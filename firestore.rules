@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 인증된 사용자만 접근 가능
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // users 컬렉션
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // trainers 컬렉션
+    match /trainers/{trainerId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == resource.data.userId
+                   || request.auth.uid == request.resource.data.userId;
+    }
+
+    // members 컬렉션
+    match /members/{memberId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // body_records 컬렉션
+    match /body_records/{recordId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // curriculums 컬렉션
+    match /curriculums/{curriculumId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // diet_records 컬렉션
+    match /diet_records/{recordId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // session_signatures 컬렉션 (수업 완료 서명)
+    match /session_signatures/{signatureId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

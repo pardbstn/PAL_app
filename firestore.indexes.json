@@ -1,0 +1,62 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "body_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "recordDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "curriculums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "sessionNumber", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "curriculums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "isCompleted", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "curriculums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "isCompleted", "order": "ASCENDING" },
+        { "fieldPath": "sessionNumber", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "session_signatures",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "sessionNumber", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "session_signatures",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trainerId", "order": "ASCENDING" },
+        { "fieldPath": "signedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "session_signatures",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "signedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

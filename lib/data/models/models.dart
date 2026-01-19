@@ -8,3 +8,5 @@ export 'curriculum_model.dart';
 export 'body_record_model.dart';
 export 'diet_record_model.dart';
 export 'session_signature_model.dart';
+export 'message_model.dart';
+export 'chat_room_model.dart';

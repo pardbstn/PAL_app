@@ -75,7 +75,7 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
               ),
             ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
+              preferredSize: const Size.fromHeight(64),
               child: _buildPremiumTabBar(context),
             ),
           ),
@@ -907,103 +907,121 @@ class _ExerciseTimelineCard extends StatelessWidget {
           const SizedBox(width: 12),
           // 카드 컨텐츠
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            child: GestureDetector(
+              onTap: () => _showExerciseDetailSheet(context),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        curriculum.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 14,
-                              color: AppTheme.secondary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            curriculum.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '완료',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppTheme.secondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (curriculum.exercises.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: curriculum.exercises
-                          .take(4)
-                          .map((exercise) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  exercise.name,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                    if (curriculum.exercises.length > 4)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          '+${curriculum.exercises.length - 4}개 더보기',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.primary,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 14,
+                                color: AppTheme.secondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '완료',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppTheme.secondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                    if (curriculum.exercises.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: curriculum.exercises
+                            .take(4)
+                            .map((exercise) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    exercise.name,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
                       ),
+                      if (curriculum.exercises.length > 4)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '+${curriculum.exercises.length - 4}개 더보기',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -1013,6 +1031,438 @@ class _ExerciseTimelineCard extends StatelessWidget {
         .animate()
         .fadeIn(duration: 400.ms, delay: (80 * index).ms)
         .slideX(begin: 0.15, end: 0, duration: 400.ms, delay: (80 * index).ms);
+  }
+
+  /// 운동 상세 정보 바텀시트 표시
+  void _showExerciseDetailSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ExerciseDetailSheet(curriculum: curriculum),
+    );
+  }
+}
+
+/// 운동 상세 정보 바텀시트
+class _ExerciseDetailSheet extends StatelessWidget {
+  const _ExerciseDetailSheet({required this.curriculum});
+
+  final CurriculumModel curriculum;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final completedDate =
+        curriculum.completedDate ?? curriculum.scheduledDate ?? DateTime.now();
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 드래그 핸들
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // 헤더
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${curriculum.sessionNumber}회차',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.secondary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 14,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '완료',
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: AppTheme.secondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            curriculum.title,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 요약 통계
+                Row(
+                  children: [
+                    _SummaryChip(
+                      icon: Icons.fitness_center_rounded,
+                      label: '${curriculum.exercises.length}개 운동',
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    _SummaryChip(
+                      icon: Icons.repeat_rounded,
+                      label: '${curriculum.totalSets}세트',
+                      color: AppTheme.tertiary,
+                    ),
+                    const SizedBox(width: 12),
+                    _SummaryChip(
+                      icon: Icons.timer_rounded,
+                      label: '약 ${curriculum.estimatedDuration}분',
+                      color: AppTheme.secondary,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          // 운동 목록
+          Flexible(
+            child: curriculum.exercises.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fitness_center_rounded,
+                          size: 48,
+                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '등록된 운동이 없습니다',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(20),
+                    itemCount: curriculum.exercises.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final exercise = curriculum.exercises[index];
+                      return _ExerciseDetailCard(
+                        exercise: exercise,
+                        index: index,
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    ).animate().slideY(
+          begin: 0.1,
+          end: 0,
+          duration: 300.ms,
+          curve: Curves.easeOutCubic,
+        );
+  }
+}
+
+/// 요약 칩 위젯
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 운동 상세 카드
+class _ExerciseDetailCard extends StatelessWidget {
+  const _ExerciseDetailCard({
+    required this.exercise,
+    required this.index,
+  });
+
+  final Exercise exercise;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // 순번 뱃지
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 운동 이름
+              Expanded(
+                child: Text(
+                  exercise.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 세트 정보
+          Row(
+            children: [
+              Expanded(
+                child: _ExerciseInfoItem(
+                  icon: Icons.repeat_rounded,
+                  label: '세트',
+                  value: '${exercise.sets}',
+                ),
+              ),
+              Expanded(
+                child: _ExerciseInfoItem(
+                  icon: Icons.numbers_rounded,
+                  label: '횟수',
+                  value: '${exercise.reps}회',
+                ),
+              ),
+              Expanded(
+                child: _ExerciseInfoItem(
+                  icon: Icons.fitness_center_rounded,
+                  label: '무게',
+                  value: exercise.weight != null
+                      ? '${exercise.weight!.toStringAsFixed(1)}kg'
+                      : '-',
+                ),
+              ),
+              if (exercise.restSeconds != null)
+                Expanded(
+                  child: _ExerciseInfoItem(
+                    icon: Icons.timer_rounded,
+                    label: '휴식',
+                    value: '${exercise.restSeconds}초',
+                  ),
+                ),
+            ],
+          ),
+          // 메모
+          if (exercise.note != null && exercise.note!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.notes_rounded,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      exercise.note!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: (50 * index).ms)
+        .slideX(begin: 0.05, end: 0, duration: 300.ms, delay: (50 * index).ms);
+  }
+}
+
+/// 운동 정보 항목
+class _ExerciseInfoItem extends StatelessWidget {
+  const _ExerciseInfoItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 }
 

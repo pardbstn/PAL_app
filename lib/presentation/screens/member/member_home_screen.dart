@@ -35,7 +35,7 @@ class MemberHomeScreen extends ConsumerWidget {
       // 인증되었지만 회원 프로필이 없는 경우
       return Scaffold(
         appBar: _buildAppBar(context),
-        body: _buildNoMemberProfile(context, user?.name ?? '회원', user?.memberCode),
+        body: _buildNoMemberProfile(context, user?.name ?? '회원님', user?.memberCode),
       );
     }
 
@@ -60,7 +60,7 @@ class MemberHomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. 상단 인사말 섹션 (index 0)
-              _GreetingSection(userName: user?.name ?? '회원')
+              _GreetingSection(userName: user?.name ?? '회원님')
                   .animateListItem(0),
               const SizedBox(height: 24),
 
@@ -713,10 +713,14 @@ class _NextClassCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              ' - ${curriculum.title}',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Text(
+                                ' - ${curriculum.title}',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
                           ],

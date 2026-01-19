@@ -9,6 +9,7 @@ import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/data/repositories/member_repository.dart';
 import 'package:flutter_pal_app/data/repositories/user_repository.dart';
 import 'package:flutter_pal_app/data/repositories/trainer_repository.dart';
+import 'package:flutter_pal_app/data/repositories/chat_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 /// 회원 등록 다이얼로그 (바텀시트)
@@ -255,7 +256,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       textInputAction: TextInputAction.next,
       validationMessages: {
         ValidationMessage.required: (error) => '회원 코드는 필수입니다',
-        ValidationMessage.pattern: (error) => '올바른 형식이 아닙니다 (예: 홍길동#1234)',
+        ValidationMessage.pattern: (error) => '이름#코드 형식으로 입력해주세요\n예: 홍길동#1234',
       },
     );
   }
@@ -583,12 +584,12 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       final existingUser = await userRepository.getByNameAndCode(name, memberCode);
 
       if (existingUser == null) {
-        throw Exception('회원을 찾을 수 없습니다.\n회원이 PAL 앱에 가입했는지 확인해주세요.');
+        throw Exception('해당 회원을 찾을 수 없습니다.\n\n확인사항:\n• 회원이 PAL 앱에 가입했는지 확인\n• 이름과 코드가 정확한지 확인\n• 회원 앱 설정에서 이름#코드 확인');
       }
 
       // 이미 다른 트레이너에게 등록되어 있는지 확인
       final existingMember = await memberRepository.getByUserId(existingUser.uid);
-      if (existingMember != null) {
+      if (existingMember != null && existingMember.trainerId.isNotEmpty) {
         throw Exception('이미 다른 트레이너에게 등록된 회원입니다.');
       }
 
@@ -597,26 +598,56 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
         await userRepository.update(existingUser.uid, {'phone': phone});
       }
 
-      // 2. 회원 프로필 생성
-      final member = MemberModel(
-        id: '',
-        userId: existingUser.uid,
-        trainerId: trainer.id,
-        goal: goal,
-        experience: experience,
-        ptInfo: PtInfo(
-          totalSessions: totalSessions,
-          completedSessions: 0,
-          startDate: DateTime.now(),
-        ),
-        targetWeight: targetWeight,
-        memo: memo,
-      );
+      // 2. 회원 프로필 생성 또는 기존 회원 업데이트
+      if (existingMember != null && existingMember.trainerId.isEmpty) {
+        // 기존 회원이 있지만 트레이너가 없는 경우 (회원이 먼저 가입한 경우)
+        await memberRepository.update(existingMember.id, {
+          'trainerId': trainer.id,
+          'goal': goal.name,
+          'experience': experience.name,
+          'ptInfo': {
+            'totalSessions': totalSessions,
+            'completedSessions': existingMember.ptInfo.completedSessions,
+            'startDate': DateTime.now().toIso8601String(),
+          },
+          if (targetWeight != null) 'targetWeight': targetWeight,
+          if (memo != null && memo.isNotEmpty) 'memo': memo,
+        });
+      } else {
+        // 새 회원 프로필 생성
+        final member = MemberModel(
+          id: '',
+          userId: existingUser.uid,
+          trainerId: trainer.id,
+          goal: goal,
+          experience: experience,
+          ptInfo: PtInfo(
+            totalSessions: totalSessions,
+            completedSessions: 0,
+            startDate: DateTime.now(),
+          ),
+          targetWeight: targetWeight,
+          memo: memo,
+        );
 
-      await memberRepository.create(member);
+        await memberRepository.create(member);
+      }
 
       // 트레이너의 memberIds에 추가
       await trainerRepository.addMember(trainer.id, existingUser.uid);
+
+      // 채팅방 자동 생성
+      // trainerId는 Firebase Auth UID를 사용해야 채팅방 조회 시 일치함
+      final chatRepository = ref.read(chatRepositoryProvider);
+      final trainerUser = ref.read(currentUserModelProvider);
+      await chatRepository.getOrCreateChatRoom(
+        trainerId: trainer.userId,
+        memberId: existingUser.uid,
+        trainerName: trainerUser?.name ?? '트레이너',
+        memberName: existingUser.name,
+        trainerProfileUrl: trainerUser?.profileImageUrl,
+        memberProfileUrl: existingUser.profileImageUrl,
+      );
 
       if (mounted) {
         Navigator.pop(context, true); // 성공 시 true 반환

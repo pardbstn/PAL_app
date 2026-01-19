@@ -207,8 +207,10 @@ class ScheduleListSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SkeletonContainer(
-      child: Column(
-        children: List.generate(itemCount, (_) => const Padding(
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (context, index) => const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
@@ -219,7 +221,7 @@ class ScheduleListSkeleton extends StatelessWidget {
               Expanded(child: SkeletonLine(height: 16)),
             ],
           ),
-        )),
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
 
 /// 회원 설정 화면
 class MemberSettingsScreen extends ConsumerWidget {
@@ -32,9 +33,7 @@ class MemberSettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.person_outline),
             title: const Text('프로필 수정'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: 프로필 수정 화면
-            },
+            onTap: () => _showEditProfileDialog(context, ref, authState),
           ),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
@@ -48,9 +47,9 @@ class MemberSettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.dark_mode_outlined),
             title: const Text('다크 모드'),
             trailing: Switch(
-              value: false,
+              value: ref.watch(themeModeProvider) == ThemeMode.dark,
               onChanged: (value) {
-                // TODO: 다크모드 토글
+                ref.read(themeModeProvider.notifier).toggleDarkMode(value);
               },
             ),
           ),
@@ -314,6 +313,64 @@ class MemberSettingsScreen extends ConsumerWidget {
               foregroundColor: Colors.white,
             ),
             child: const Text('탈퇴'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 프로필 수정 다이얼로그 표시
+  void _showEditProfileDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AuthState authState,
+  ) {
+    final nameController = TextEditingController(
+      text: authState.displayName ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('프로필 수정'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: '이름',
+            hintText: '이름을 입력하세요',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('이름을 입력해주세요.')),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              // 이름 업데이트
+              await ref.read(authProvider.notifier).updateProfile(
+                    name: newName,
+                  );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('프로필이 수정되었습니다.')),
+                );
+              }
+            },
+            child: const Text('저장'),
           ),
         ],
       ),

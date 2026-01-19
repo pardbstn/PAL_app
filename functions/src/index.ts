@@ -381,3 +381,201 @@ export const getAIUsage = functions
       );
     }
   });
+
+// ============================================
+// FCM 푸시 알림 Functions
+// ============================================
+
+/**
+ * 새 메시지 발송 시 푸시 알림 전송
+ * Firestore 트리거로 messages 컬렉션 감시
+ */
+export const sendMessageNotification = functions
+  .region("asia-northeast3")
+  .firestore.document("messages/{messageId}")
+  .onCreate(async (snapshot, context) => {
+    const message = snapshot.data();
+    const {chatRoomId, senderId, senderRole, content, imageUrl} = message;
+
+    try {
+      // 1. 채팅방 정보 가져오기
+      const chatRoomDoc = await db.collection("chat_rooms").doc(chatRoomId).get();
+      if (!chatRoomDoc.exists) {
+        console.log("채팅방을 찾을 수 없음:", chatRoomId);
+        return null;
+      }
+
+      const chatRoom = chatRoomDoc.data()!;
+
+      // 2. 수신자 ID 결정 (발신자가 트레이너면 회원에게, 회원이면 트레이너에게)
+      const receiverId = senderRole === "trainer"
+        ? chatRoom.memberId
+        : chatRoom.trainerId;
+
+      // 3. 수신자의 FCM 토큰 가져오기
+      const userDoc = await db.collection("users").doc(receiverId).get();
+      if (!userDoc.exists) {
+        console.log("수신자를 찾을 수 없음:", receiverId);
+        return null;
+      }
+
+      const userData = userDoc.data()!;
+      const fcmToken = userData.fcmToken;
+
+      if (!fcmToken) {
+        console.log("FCM 토큰 없음:", receiverId);
+        return null;
+      }
+
+      // 4. 발신자 이름 결정
+      const senderName = senderRole === "trainer"
+        ? chatRoom.trainerName
+        : chatRoom.memberName;
+
+      // 5. 푸시 알림 전송
+      const notificationBody = imageUrl ? "사진을 보냈습니다." : content;
+
+      const notificationMessage: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: senderName,
+          body: notificationBody.length > 100
+            ? notificationBody.substring(0, 100) + "..."
+            : notificationBody,
+        },
+        data: {
+          type: "chat",
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          senderRole: senderRole,
+        },
+        android: {
+          notification: {
+            channelId: "high_importance_channel",
+            priority: "high",
+            sound: "default",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              alert: {
+                title: senderName,
+                body: notificationBody,
+              },
+              badge: 1,
+              sound: "default",
+            },
+          },
+        },
+      };
+
+      await admin.messaging().send(notificationMessage);
+      console.log("푸시 알림 전송 성공:", receiverId);
+
+      return null;
+    } catch (error) {
+      console.error("푸시 알림 전송 실패:", error);
+      return null;
+    }
+  });
+
+/**
+ * PT 이용권 만료 알림 (7일, 3일, 1일 전)
+ * 매일 오전 9시에 실행되는 스케줄 함수
+ */
+export const sendPTExpiryNotification = functions
+  .region("asia-northeast3")
+  .pubsub.schedule("0 9 * * *") // 매일 오전 9시
+  .timeZone("Asia/Seoul")
+  .onRun(async (context) => {
+    const now = new Date();
+    const targetDays = [7, 3, 1]; // 알림 대상 일수
+
+    try {
+      for (const days of targetDays) {
+        // 만료 날짜 계산
+        const targetDate = new Date(now);
+        targetDate.setDate(targetDate.getDate() + days);
+        const targetDateStr = targetDate.toISOString().split("T")[0];
+
+        // 해당 날짜에 만료되는 회원 조회
+        const membersSnapshot = await db.collection("members")
+          .where("endDate", ">=", new Date(targetDateStr + "T00:00:00"))
+          .where("endDate", "<", new Date(targetDateStr + "T23:59:59"))
+          .get();
+
+        for (const memberDoc of membersSnapshot.docs) {
+          const member = memberDoc.data();
+          const memberId = member.userId;
+
+          if (!memberId) continue;
+
+          // 회원의 FCM 토큰 가져오기
+          const userDoc = await db.collection("users").doc(memberId).get();
+          if (!userDoc.exists) continue;
+
+          const userData = userDoc.data()!;
+          const fcmToken = userData.fcmToken;
+
+          if (!fcmToken) continue;
+
+          // 알림 메시지 작성
+          let title: string;
+          let body: string;
+
+          if (days === 1) {
+            title = "PT 이용권 만료 임박";
+            body = "내일 PT 이용권이 만료됩니다. 연장을 원하시면 트레이너에게 문의해주세요.";
+          } else {
+            title = "PT 이용권 만료 예정";
+            body = `${days}일 후 PT 이용권이 만료됩니다. 연장을 원하시면 트레이너에게 문의해주세요.`;
+          }
+
+          const notificationMessage: admin.messaging.Message = {
+            token: fcmToken,
+            notification: {
+              title: title,
+              body: body,
+            },
+            data: {
+              type: "pt_expiry",
+              daysUntilExpiry: days.toString(),
+            },
+            android: {
+              notification: {
+                channelId: "high_importance_channel",
+                priority: "high",
+                sound: "default",
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: title,
+                    body: body,
+                  },
+                  badge: 1,
+                  sound: "default",
+                },
+              },
+            },
+          };
+
+          try {
+            await admin.messaging().send(notificationMessage);
+            console.log(`PT 만료 알림 전송 (${days}일 전):`, memberId);
+          } catch (sendError) {
+            console.error("개별 알림 전송 실패:", memberId, sendError);
+          }
+        }
+      }
+
+      console.log("PT 만료 알림 스케줄 완료");
+      return null;
+    } catch (error) {
+      console.error("PT 만료 알림 스케줄 실패:", error);
+      return null;
+    }
+  });

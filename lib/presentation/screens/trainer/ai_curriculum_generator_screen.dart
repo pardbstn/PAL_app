@@ -663,8 +663,7 @@ class _AiCurriculumGeneratorScreenState
     final trainer = ref.read(currentTrainerProvider);
     if (trainer == null) return;
 
-    // 현재 선택된 goal/experience에 맞는 템플릿 로드
-    final repository = ref.read(curriculumTemplateRepositoryProvider);
+    // 현재 선택된 goal/experience 매핑
     final goalMap = {
       FitnessGoal.diet: member_model.FitnessGoal.diet,
       FitnessGoal.bulk: member_model.FitnessGoal.bulk,
@@ -677,6 +676,9 @@ class _AiCurriculumGeneratorScreenState
       ExperienceLevel.advanced: member_model.ExperienceLevel.advanced,
     };
 
+    final selectedGoal = goalMap[_selectedGoal]!;
+    final selectedExperience = experienceMap[_selectedExperience]!;
+
     // 로딩 다이얼로그
     showDialog(
       context: context,
@@ -685,13 +687,9 @@ class _AiCurriculumGeneratorScreenState
     );
 
     try {
-      // 전체 템플릿 + 매칭 템플릿 로드
+      // 전체 템플릿만 로드 (한 번의 쿼리로 처리)
+      final repository = ref.read(curriculumTemplateRepositoryProvider);
       final allTemplates = await repository.getByTrainerId(trainer.id);
-      final matchingTemplates = await repository.getByGoalAndExperience(
-        trainerId: trainer.id,
-        goal: goalMap[_selectedGoal]!,
-        experience: experienceMap[_selectedExperience]!,
-      );
 
       if (!mounted) return;
       Navigator.pop(context); // 로딩 닫기
@@ -741,6 +739,12 @@ class _AiCurriculumGeneratorScreenState
         return;
       }
 
+      // 클라이언트 측에서 매칭 템플릿 필터링 (복합 인덱스 불필요)
+      final matchingTemplateIds = allTemplates
+          .where((t) => t.goal == selectedGoal && t.experience == selectedExperience)
+          .map((t) => t.id)
+          .toSet();
+
       // 템플릿 선택 다이얼로그
       showModalBottomSheet(
         context: context,
@@ -750,21 +754,34 @@ class _AiCurriculumGeneratorScreenState
         ),
         builder: (context) => _buildTemplateSelectionSheet(
           allTemplates,
-          matchingTemplates,
+          matchingTemplateIds,
         ),
       );
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('템플릿 로드 실패: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('템플릿 로드 실패: $e')),
+        );
+      }
     }
   }
 
   Widget _buildTemplateSelectionSheet(
     List<CurriculumTemplateModel> allTemplates,
-    List<CurriculumTemplateModel> matchingTemplates,
+    Set<String> matchingTemplateIds,
   ) {
+    // 추천 템플릿을 먼저, 그 다음 일반 템플릿 순으로 정렬
+    final sortedTemplates = List<CurriculumTemplateModel>.from(allTemplates)
+      ..sort((a, b) {
+        final aIsMatching = matchingTemplateIds.contains(a.id);
+        final bIsMatching = matchingTemplateIds.contains(b.id);
+        if (aIsMatching && !bIsMatching) return -1;
+        if (!aIsMatching && bIsMatching) return 1;
+        // 같은 카테고리 내에서는 사용 횟수 순으로 정렬
+        return b.usageCount.compareTo(a.usageCount);
+      });
+
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.5,
@@ -806,8 +823,8 @@ class _AiCurriculumGeneratorScreenState
               ),
             ),
             const Divider(height: 1),
-            // 매칭 템플릿
-            if (matchingTemplates.isNotEmpty) ...[
+            // 매칭 템플릿 안내
+            if (matchingTemplateIds.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Row(
@@ -830,10 +847,10 @@ class _AiCurriculumGeneratorScreenState
               child: ListView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: allTemplates.length,
+                itemCount: sortedTemplates.length,
                 itemBuilder: (context, index) {
-                  final template = allTemplates[index];
-                  final isRecommended = matchingTemplates.contains(template);
+                  final template = sortedTemplates[index];
+                  final isRecommended = matchingTemplateIds.contains(template.id);
                   return _buildTemplateCard(template, isRecommended);
                 },
               ),

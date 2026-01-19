@@ -91,17 +91,18 @@ class CurriculumTemplateNotifier extends Notifier<CurriculumTemplateState> {
     return templateId;
   }
 
-  /// 목표/경험에 맞는 템플릿 필터링
+  /// 목표/경험에 맞는 템플릿 필터링 (클라이언트 측 필터링)
   Future<List<CurriculumTemplateModel>> getMatchingTemplates({
     required String trainerId,
     required FitnessGoal goal,
     required ExperienceLevel experience,
   }) async {
-    return await _repository.getByGoalAndExperience(
-      trainerId: trainerId,
-      goal: goal,
-      experience: experience,
-    );
+    // 복합 인덱스 문제를 피하기 위해 클라이언트 측 필터링 사용
+    final allTemplates = await _repository.getByTrainerId(trainerId);
+    return allTemplates
+        .where((t) => t.goal == goal && t.experience == experience)
+        .toList()
+      ..sort((a, b) => b.usageCount.compareTo(a.usageCount));
   }
 
   /// 템플릿 사용 횟수 증가
@@ -129,15 +130,16 @@ final curriculumTemplateProvider =
   return CurriculumTemplateNotifier();
 });
 
-/// 특정 목표/경험에 맞는 템플릿 Provider
+/// 특정 목표/경험에 맞는 템플릿 Provider (클라이언트 측 필터링)
 final matchingTemplatesProvider = FutureProvider.family<
     List<CurriculumTemplateModel>,
     ({String trainerId, FitnessGoal goal, ExperienceLevel experience})>(
         (ref, params) async {
   final repository = ref.watch(curriculumTemplateRepositoryProvider);
-  return await repository.getByGoalAndExperience(
-    trainerId: params.trainerId,
-    goal: params.goal,
-    experience: params.experience,
-  );
+  // 복합 인덱스 문제를 피하기 위해 클라이언트 측 필터링 사용
+  final allTemplates = await repository.getByTrainerId(params.trainerId);
+  return allTemplates
+      .where((t) => t.goal == params.goal && t.experience == params.experience)
+      .toList()
+    ..sort((a, b) => b.usageCount.compareTo(a.usageCount));
 });

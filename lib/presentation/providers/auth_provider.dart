@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_pal_app/data/models/models.dart';
 import 'package:flutter_pal_app/data/repositories/repositories.dart';
+import 'package:flutter_pal_app/data/services/fcm_service.dart';
 
 /// 사용자 역할 enum
 enum UserRole { trainer, member }
@@ -221,9 +222,12 @@ class AuthNotifier extends Notifier<AuthState> {
         'updatedAt': now,
       });
 
-      // 역할이 변경된 경우 역할 프로필 확인/생성
+      // 역할이 다른 경우 에러 (보안: 기존 사용자의 역할 변경 불가)
       if (existingUser.role != roleType) {
-        await _createRoleProfile(user.uid, role);
+        final errorMsg = existingUser.role == UserRoleType.trainer
+            ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
+            : '회원 계정은 트레이너로 로그인할 수 없습니다.';
+        throw Exception(errorMsg);
       }
       return;
     }
@@ -275,10 +279,13 @@ class AuthNotifier extends Notifier<AuthState> {
       memberCode = _generateMemberCode();
     }
 
+    // 기본 이름 설정: 역할에 따라 "트레이너" 또는 "회원"
+    final defaultName = role == UserRole.trainer ? '트레이너' : '회원';
+
     final userModel = UserModel(
       uid: user.uid,
       email: user.email ?? '',
-      name: user.displayName ?? user.email?.split('@').first ?? '사용자',
+      name: user.displayName ?? defaultName,
       role: roleType,
       profileImageUrl: user.photoURL,
       phone: user.phoneNumber,
@@ -357,11 +364,50 @@ class AuthNotifier extends Notifier<AuthState> {
       );
 
       if (credential.user != null) {
-        // Firestore에 사용자 저장/업데이트
-        await _saveUserToFirestore(credential.user!, role);
+        final user = credential.user!;
+        final selectedRoleType = role == UserRole.trainer
+            ? UserRoleType.trainer
+            : UserRoleType.member;
+
+        // 1. Firestore에서 사용자 존재 여부 확인 (UID로 검색)
+        var existingUser = await _userRepository.get(user.uid);
+
+        // 2. UID로 못 찾은 경우, 이메일로 검색
+        if (existingUser == null && user.email != null) {
+          existingUser = await _userRepository.getByEmail(user.email!);
+        }
+
+        // 3. 사용자가 등록되어 있지 않으면 로그아웃 후 에러
+        if (existingUser == null) {
+          await _auth.signOut();
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: '가입되지 않은 계정입니다. 회원가입을 먼저 해주세요.',
+          );
+          throw Exception('가입되지 않은 계정입니다. 회원가입을 먼저 해주세요.');
+        }
+
+        // 4. 역할이 일치하지 않으면 로그아웃 후 에러
+        if (existingUser.role != selectedRoleType) {
+          await _auth.signOut();
+          final errorMsg = existingUser.role == UserRoleType.trainer
+              ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
+              : '회원 계정은 트레이너로 로그인할 수 없습니다.';
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: errorMsg,
+          );
+          throw Exception(errorMsg);
+        }
+
+        // 5. 검증 통과 - Firestore에 사용자 업데이트 (마이그레이션 등)
+        await _saveUserToFirestore(user, role);
 
         // 사용자 데이터 로드
-        await _loadUserData(credential.user!.uid);
+        await _loadUserData(user.uid);
+
+        // FCM 토큰 저장
+        await _saveFcmToken(user.uid);
 
         state = state.copyWith(
           isLoading: false,
@@ -375,10 +421,13 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       rethrow;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: '로그인 중 오류가 발생했습니다.',
-      );
+      // 이미 상태가 설정된 경우 (사용자 검증 실패) 그대로 유지
+      if (state.errorMessage == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '로그인 중 오류가 발생했습니다.',
+        );
+      }
       rethrow;
     }
   }
@@ -403,6 +452,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
         // 사용자 데이터 로드
         await _loadUserData(credential.user!.uid);
+
+        // FCM 토큰 저장
+        await _saveFcmToken(credential.user!.uid);
 
         state = state.copyWith(
           isLoading: false,
@@ -452,11 +504,46 @@ class AuthNotifier extends Notifier<AuthState> {
       final userCredential = await _auth.signInWithCredential(credential);
 
       if (userCredential.user != null) {
+        final user = userCredential.user!;
+        final selectedRoleType = role == UserRole.trainer
+            ? UserRoleType.trainer
+            : UserRoleType.member;
+
+        // 1. Firestore에서 기존 사용자 존재 여부 확인 (UID로 검색)
+        var existingUser = await _userRepository.get(user.uid);
+
+        // 2. UID로 못 찾은 경우, 이메일로 검색
+        if (existingUser == null && user.email != null) {
+          existingUser = await _userRepository.getByEmail(user.email!);
+        }
+
+        // 3. 기존 사용자인 경우 역할 검증
+        if (existingUser != null) {
+          // 역할이 일치하지 않으면 로그아웃 후 에러
+          if (existingUser.role != selectedRoleType) {
+            // Firebase와 Google 모두 로그아웃
+            await _auth.signOut();
+            await _googleSignIn.signOut();
+            final errorMsg = existingUser.role == UserRoleType.trainer
+                ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
+                : '회원 계정은 트레이너로 로그인할 수 없습니다.';
+            state = state.copyWith(
+              isLoading: false,
+              errorMessage: errorMsg,
+            );
+            throw Exception(errorMsg);
+          }
+        }
+        // 4. 기존 사용자가 아니면 새 사용자 - 계속 진행 (Google 회원가입 허용)
+
         // Firestore에 사용자 저장/업데이트
-        await _saveUserToFirestore(userCredential.user!, role);
+        await _saveUserToFirestore(user, role);
 
         // 사용자 데이터 로드
-        await _loadUserData(userCredential.user!.uid);
+        await _loadUserData(user.uid);
+
+        // FCM 토큰 저장
+        await _saveFcmToken(user.uid);
 
         state = state.copyWith(
           isLoading: false,
@@ -470,10 +557,13 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       rethrow;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: '구글 로그인 중 오류가 발생했습니다.',
-      );
+      // 이미 상태가 설정된 경우 (역할 검증 실패) 그대로 유지
+      if (state.errorMessage == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '구글 로그인 중 오류가 발생했습니다.',
+        );
+      }
       rethrow;
     }
   }
@@ -549,6 +639,21 @@ class AuthNotifier extends Notifier<AuthState> {
         return '이메일 또는 비밀번호가 올바르지 않습니다.';
       default:
         return '인증 오류가 발생했습니다. ($code)';
+    }
+  }
+
+  /// FCM 토큰 저장
+  Future<void> _saveFcmToken(String uid) async {
+    try {
+      final fcmService = FCMService();
+      final token = await fcmService.getToken();
+      if (token != null) {
+        await _userRepository.saveFcmToken(uid, token);
+        print('[Auth] FCM 토큰 저장 완료');
+      }
+    } catch (e) {
+      // FCM 토큰 저장 실패는 로그인을 막지 않음
+      print('[Auth] FCM 토큰 저장 실패: $e');
     }
   }
 }

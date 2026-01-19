@@ -96,11 +96,10 @@ class _HoverEffectState extends State<HoverEffect> {
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
+        child: AnimatedScale(
+          scale: _isHovered ? widget.scale : 1.0,
           duration: widget.duration,
           curve: Curves.easeOutCubic,
-          transform: Matrix4.identity()..scale(_isHovered ? widget.scale : 1.0),
-          transformAlignment: Alignment.center,
           child: AnimatedContainer(
             duration: widget.duration,
             decoration: BoxDecoration(

@@ -20,14 +20,16 @@ import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_member_
 import 'package:flutter_pal_app/presentation/screens/trainer/ai_curriculum_generator_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/add_schedule_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/trainer_messages_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_settings_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_shell.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_home_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_records_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_diet_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/member/member_messages_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_settings_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/splash/splash_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/chat/chat_list_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/chat/chat_room_screen.dart';
 
 // ============================================================================
 // 페이지 전환 애니메이션
@@ -79,14 +81,21 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: AppRoutes.login,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
 
     // 리다이렉트 가드
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
-      final isLoginPage = state.matchedLocation == AppRoutes.login;
+      final currentPath = state.matchedLocation;
       final userRole = authState.userRole;
+
+      // 스플래시와 온보딩은 리다이렉트 없음
+      if (currentPath == AppRoutes.splash || currentPath == AppRoutes.onboarding) {
+        return null;
+      }
+
+      final isLoginPage = currentPath == AppRoutes.login;
 
       // 로그인 안 했으면 로그인 페이지로
       if (!isLoggedIn && !isLoginPage) {
@@ -105,22 +114,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       // 트레이너가 회원 경로 접근 시도시 트레이너 홈으로
       if (isLoggedIn &&
           userRole == UserRole.trainer &&
-          state.matchedLocation.startsWith('/member')) {
+          currentPath.startsWith('/member')) {
         return AppRoutes.trainerHome;
       }
 
       // 회원이 트레이너 경로 접근 시도시 회원 홈으로
       if (isLoggedIn &&
           userRole == UserRole.member &&
-          state.matchedLocation.startsWith('/trainer')) {
+          currentPath.startsWith('/trainer')) {
         return AppRoutes.memberHome;
       }
 
-      return null; // 리다이렉트 없음
+      return null;
     },
 
     // 라우트 정의
     routes: [
+      // 스플래시
+      GoRoute(
+        path: AppRoutes.splash,
+        name: RouteNames.splash,
+        pageBuilder: (context, state) => buildFadeTransitionPage(
+          key: state.pageKey,
+          child: const SplashScreen(),
+        ),
+      ),
+
+      // 온보딩
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: RouteNames.onboarding,
+        pageBuilder: (context, state) => buildFadeTransitionPage(
+          key: state.pageKey,
+          child: const OnboardingScreen(),
+        ),
+      ),
+
       // 로그인
       GoRoute(
         path: AppRoutes.login,
@@ -171,10 +200,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: RouteNames.trainerMessages,
             pageBuilder: (context, state) => buildFadeTransitionPage(
               key: state.pageKey,
-              child: const TrainerMessagesScreen(),
+              child: const ChatListScreen(),
             ),
           ),
         ],
+      ),
+
+      // 트레이너 채팅방
+      GoRoute(
+        path: AppRoutes.trainerChatRoom,
+        name: RouteNames.trainerChatRoom,
+        pageBuilder: (context, state) {
+          final chatRoomId = state.pathParameters['chatRoomId']!;
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: ChatRoomScreen(chatRoomId: chatRoomId),
+          );
+        },
       ),
 
       // 트레이너 - Shell 외부 라우트 (상세 페이지 등)
@@ -261,10 +303,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: RouteNames.memberMessages,
             pageBuilder: (context, state) => buildFadeTransitionPage(
               key: state.pageKey,
-              child: const MemberMessagesScreen(),
+              child: const ChatListScreen(),
             ),
           ),
         ],
+      ),
+
+      // 회원 채팅방
+      GoRoute(
+        path: AppRoutes.memberChatRoom,
+        name: RouteNames.memberChatRoom,
+        pageBuilder: (context, state) {
+          final chatRoomId = state.pathParameters['chatRoomId']!;
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: ChatRoomScreen(chatRoomId: chatRoomId),
+          );
+        },
       ),
 
       // 회원 - Shell 외부 라우트 (설정 페이지)

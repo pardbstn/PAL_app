@@ -64,45 +64,51 @@ class CurriculumTemplateRepository
     });
   }
 
-  /// 트레이너별 템플릿 목록 가져오기
+  /// 트레이너별 템플릿 목록 가져오기 (클라이언트 측 정렬로 인덱스 불필요)
   Future<List<CurriculumTemplateModel>> getByTrainerId(String trainerId) async {
     final snapshot = await collection
         .where('trainerId', isEqualTo: trainerId)
-        .orderBy('createdAt', descending: true)
         .get();
-    return snapshot.docs
+    final templates = snapshot.docs
         .map((doc) => CurriculumTemplateModel.fromFirestore(doc))
         .toList();
+    // 클라이언트 측 정렬 (최신순)
+    templates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return templates;
   }
 
-  /// 트레이너별 템플릿 실시간 감시
+  /// 트레이너별 템플릿 실시간 감시 (클라이언트 측 정렬로 인덱스 불필요)
   Stream<List<CurriculumTemplateModel>> watchByTrainerId(String trainerId) {
     return collection
         .where('trainerId', isEqualTo: trainerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final templates = snapshot.docs
           .map((doc) => CurriculumTemplateModel.fromFirestore(doc))
           .toList();
+      // 클라이언트 측 정렬 (최신순)
+      templates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return templates;
     });
   }
 
-  /// 목표와 경험 수준으로 템플릿 필터링
+  /// 목표와 경험 수준으로 템플릿 필터링 (클라이언트 측 정렬로 인덱스 불필요)
   Future<List<CurriculumTemplateModel>> getByGoalAndExperience({
     required String trainerId,
     required FitnessGoal goal,
     required ExperienceLevel experience,
   }) async {
+    // 트레이너 템플릿만 가져온 후 클라이언트에서 필터링
     final snapshot = await collection
         .where('trainerId', isEqualTo: trainerId)
-        .where('goal', isEqualTo: goal.name)
-        .where('experience', isEqualTo: experience.name)
-        .orderBy('usageCount', descending: true)
         .get();
-    return snapshot.docs
+    final templates = snapshot.docs
         .map((doc) => CurriculumTemplateModel.fromFirestore(doc))
+        .where((t) => t.goal == goal && t.experience == experience)
         .toList();
+    // 클라이언트 측 정렬 (사용 횟수순)
+    templates.sort((a, b) => b.usageCount.compareTo(a.usageCount));
+    return templates;
   }
 
   /// 사용 횟수 증가

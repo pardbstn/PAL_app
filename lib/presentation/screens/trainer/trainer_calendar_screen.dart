@@ -992,12 +992,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
         // 일정 카드 리스트
         Expanded(
           child: _isLoading
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: ScheduleListSkeleton(itemCount: 5),
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: const ScheduleListSkeleton(itemCount: 5),
                 )
               : schedules.isEmpty
-              ? _buildEmptyState()
+              ? SingleChildScrollView(child: _buildEmptyState())
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: schedules.length,

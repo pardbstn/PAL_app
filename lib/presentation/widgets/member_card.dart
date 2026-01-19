@@ -134,23 +134,25 @@ class _MemberCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final progressPercent = (member.progressRate * 100).toInt();
     final displayName = memberName ?? '회원 ${member.id.substring(0, 4)}';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: isWarning
             ? Border.all(
                 color: AppTheme.tertiary.withValues(alpha: 0.5), width: 2)
             : isCompleted
-                ? Border.all(color: Colors.grey.withValues(alpha: 0.3))
+                ? Border.all(color: colorScheme.outline.withValues(alpha: 0.3))
                 : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -168,19 +170,19 @@ class _MemberCardContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 이름 + 상태 아이콘
-                _buildNameRow(displayName),
+                _buildNameRow(displayName, colorScheme),
                 const SizedBox(height: 4),
 
                 // 목표 배지 + 진행률
-                _buildGoalAndProgress(progressPercent),
+                _buildGoalAndProgress(progressPercent, colorScheme),
                 const SizedBox(height: 8),
 
                 // 진행률 바
-                _buildProgressBar(),
+                _buildProgressBar(colorScheme),
                 const SizedBox(height: 6),
 
                 // 마지막 운동일
-                _buildLastWorkoutDate(),
+                _buildLastWorkoutDate(colorScheme),
               ],
             ),
           ),
@@ -258,15 +260,16 @@ class _MemberCardContent extends StatelessWidget {
     return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  Widget _buildNameRow(String name) {
+  Widget _buildNameRow(String name, ColorScheme colorScheme) {
     return Row(
       children: [
         Flexible(
           child: Text(
             name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -302,7 +305,7 @@ class _MemberCardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildGoalAndProgress(int progressPercent) {
+  Widget _buildGoalAndProgress(int progressPercent, ColorScheme colorScheme) {
     return Row(
       children: [
         _buildGoalBadge(member.goal),
@@ -312,7 +315,7 @@ class _MemberCardContent extends StatelessWidget {
             '${member.ptInfo.completedSessions}/${member.ptInfo.totalSessions}회 ($progressPercent%)',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -353,7 +356,7 @@ class _MemberCardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(ColorScheme colorScheme) {
     final color = isCompleted
         ? AppTheme.secondary
         : isWarning
@@ -364,24 +367,24 @@ class _MemberCardContent extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: LinearProgressIndicator(
         value: member.progressRate,
-        backgroundColor: Colors.grey[200],
+        backgroundColor: colorScheme.surfaceContainerHighest,
         valueColor: AlwaysStoppedAnimation<Color>(color),
         minHeight: 6,
       ),
     );
   }
 
-  Widget _buildLastWorkoutDate() {
+  Widget _buildLastWorkoutDate(ColorScheme colorScheme) {
     if (lastWorkoutDate == null) {
       return Row(
         children: [
-          Icon(Icons.schedule, size: 12, color: Colors.grey[400]),
+          Icon(Icons.schedule, size: 12, color: colorScheme.outline),
           const SizedBox(width: 4),
           Text(
             '운동 기록 없음',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[400],
+              color: colorScheme.outline,
             ),
           ),
         ],
@@ -401,7 +404,7 @@ class _MemberCardContent extends StatelessWidget {
       dateColor = AppTheme.primary;
     } else if (diff.inDays < 7) {
       dateText = '${diff.inDays}일 전 운동';
-      dateColor = Colors.grey[600]!;
+      dateColor = colorScheme.onSurfaceVariant;
     } else if (diff.inDays < 14) {
       dateText = '1주 전 운동';
       dateColor = AppTheme.tertiary;
@@ -518,6 +521,7 @@ class MemberCardCompact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isWarning =
         member.remainingSessions <= 5 && member.remainingSessions > 0;
     final displayName = memberName ?? '회원';
@@ -529,14 +533,14 @@ class MemberCardCompact extends StatelessWidget {
         width: 140,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: isWarning
               ? Border.all(color: AppTheme.error.withValues(alpha: 0.3))
               : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: colorScheme.shadow.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -587,9 +591,10 @@ class MemberCardCompact extends StatelessWidget {
             // 이름
             Text(
               displayName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
+                color: colorScheme.onSurface,
               ),
               overflow: TextOverflow.ellipsis,
             ),

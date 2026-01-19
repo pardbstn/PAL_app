@@ -22,7 +22,7 @@ class TrainerHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final displayName = authState.displayName ?? '트레이너';
+    final displayName = authState.displayName ?? '트레이너님';
 
     return Scaffold(
       body: Container(
@@ -424,42 +424,42 @@ class _TodayScheduleSection extends ConsumerWidget {
             child: Column(
               children: List.generate(
                 3,
-            (index) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const CircleAvatar(radius: 20, backgroundColor: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 14,
+                (index) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 32,
+                        decoration: BoxDecoration(
                           color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(height: 6),
-                        Container(
-                          width: 120,
-                          height: 12,
-                          color: Colors.white,
+                      ),
+                      const SizedBox(width: 16),
+                      const CircleAvatar(radius: 20, backgroundColor: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: 120,
+                              height: 12,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
               ),
             ),
           );

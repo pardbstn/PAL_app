@@ -1,39 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
 
 /// 회원 앱 셸 (Bottom Navigation)
-class MemberShell extends StatelessWidget {
+class MemberShell extends ConsumerWidget {
   final Widget child;
 
   const MemberShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
         onDestinationSelected: (index) => _onItemTapped(index, context),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: '홈',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart),
             label: '내 기록',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.restaurant_outlined),
             selectedIcon: Icon(Icons.restaurant),
             label: '식단',
           ),
           NavigationDestination(
-            icon: Icon(Icons.message_outlined),
-            selectedIcon: Icon(Icons.message),
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+              child: const Icon(Icons.message_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+              child: const Icon(Icons.message),
+            ),
             label: '메시지',
           ),
         ],

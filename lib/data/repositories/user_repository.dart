@@ -94,4 +94,20 @@ class UserRepository extends BaseRepository<UserModel> {
     if (snapshot.docs.isEmpty) return null;
     return UserModel.fromFirestore(snapshot.docs.first);
   }
+
+  /// FCM 토큰 저장
+  Future<void> saveFcmToken(String uid, String token) async {
+    await collection.doc(uid).update({
+      'fcmToken': token,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// FCM 토큰 삭제
+  Future<void> removeFcmToken(String uid) async {
+    await collection.doc(uid).update({
+      'fcmToken': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }

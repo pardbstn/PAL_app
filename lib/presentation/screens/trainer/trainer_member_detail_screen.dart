@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
@@ -799,25 +798,6 @@ class _GraphTab extends ConsumerWidget {
         ],
       ),
     ).animateSlideDown();
-  }
-
-  Widget _buildStatusItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
   }
 
   /// 애니메이션이 적용된 상태 아이템

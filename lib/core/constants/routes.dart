@@ -17,10 +17,12 @@ abstract class AppRoutes {
   static const String trainerMessages = '/trainer/messages';
   static const String trainerChatRoom = '/trainer/messages/:chatRoomId';
   static const String trainerSettings = '/trainer/settings';
+  static const String trainerInsights = '/trainer/insights';
 
   // 회원 경로
   static const String memberHome = '/member/home';
   static const String memberRecords = '/member/records';
+  static const String memberCalendar = '/member/calendar';
   static const String memberDiet = '/member/diet';
   static const String memberMessages = '/member/messages';
   static const String memberChatRoom = '/member/messages/:chatRoomId';
@@ -45,10 +47,12 @@ abstract class RouteNames {
   static const String trainerMessages = 'trainer-messages';
   static const String trainerChatRoom = 'trainer-chat-room';
   static const String trainerSettings = 'trainer-settings';
+  static const String trainerInsights = 'trainer-insights';
 
   // 회원
   static const String memberHome = 'member-home';
   static const String memberRecords = 'member-records';
+  static const String memberCalendar = 'member-calendar';
   static const String memberDiet = 'member-diet';
   static const String memberMessages = 'member-messages';
   static const String memberChatRoom = 'member-chat-room';

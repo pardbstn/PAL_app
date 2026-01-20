@@ -17,13 +17,16 @@ import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_web_she
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_dashboard_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_members_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_member_detail_web_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_schedule_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/ai_curriculum_generator_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/add_schedule_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_settings_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_insights_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_shell.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_home_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_records_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/member_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_diet_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_settings_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/splash/splash_screen.dart';
@@ -190,9 +193,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerCalendar,
             name: RouteNames.trainerCalendar,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
+            pageBuilder: (context, state) => buildFadeTransitionPage(
               key: state.pageKey,
-              child: const TrainerCalendarScreen(),
+              child: kIsWeb
+                  ? const TrainerScheduleWebScreen()
+                  : const TrainerCalendarScreen(),
             ),
           ),
           GoRoute(
@@ -269,6 +274,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: AppRoutes.trainerInsights,
+        name: RouteNames.trainerInsights,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerInsightsScreen(),
+        ),
+      ),
 
       // 회원 라우트 (ShellRoute로 Bottom Navigation 유지)
       ShellRoute(
@@ -288,6 +301,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => buildFadeTransitionPage(
               key: state.pageKey,
               child: const MemberRecordsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.memberCalendar,
+            name: RouteNames.memberCalendar,
+            pageBuilder: (context, state) => buildFadeTransitionPage(
+              key: state.pageKey,
+              child: const MemberCalendarScreen(),
             ),
           ),
           GoRoute(

@@ -290,10 +290,11 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark
         ? theme.scaffoldBackgroundColor
-        : Colors.white;
+        : colorScheme.surface;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -367,7 +368,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -461,7 +462,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
             ),
           ),
         ),
-        const Divider(height: 1, color: Color(0xFFE5E5E5)),
+        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
         // 선택된 날짜의 일정 리스트
         Expanded(
           child: _buildScheduleList(_getSchedulesForDate(_selectedDate)),
@@ -585,7 +586,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? Colors.white
+                                      ? theme.colorScheme.onPrimary
                                       : AppTheme.primary,
                                 ),
                               ),
@@ -599,7 +600,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? Colors.white.withValues(alpha: 0.7)
+                                      ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
                                       : AppTheme.tertiary,
                                 ),
                               ),
@@ -623,11 +624,11 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     required int weekdayIndex,
     required ThemeData theme,
   }) {
-    if (isSelected) return Colors.white;
+    if (isSelected) return theme.colorScheme.onPrimary;
     if (!isCurrentMonth) return Colors.grey[300]!;
     if (weekdayIndex == 0) return Colors.red;
     if (weekdayIndex == 6) return Colors.blue;
-    return theme.textTheme.bodyMedium?.color ?? Colors.black87;
+    return theme.textTheme.bodyMedium?.color ?? theme.colorScheme.onSurface;
   }
 
   // ============================================================
@@ -684,7 +685,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     return Column(
       children: [
         _buildWeekHeader(weekDays),
-        const Divider(height: 1, color: Color(0xFFE5E5E5)),
+        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
         Expanded(child: _buildWeekTimeGrid(weekDays)),
       ],
     );
@@ -740,17 +741,22 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                             : null,
                         shape: BoxShape.circle,
                       ),
-                      child: Center(
-                        child: Text(
-                          '${date.day}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected || isToday
-                                ? FontWeight.bold
-                                : null,
-                            color: isSelected ? Colors.white : Colors.black87,
-                          ),
-                        ),
+                      child: Builder(
+                        builder: (context) {
+                          final colorScheme = Theme.of(context).colorScheme;
+                          return Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected || isToday
+                                    ? FontWeight.bold
+                                    : null,
+                                color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1141,7 +1147,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1367,9 +1373,9 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
           return Container(
             height: MediaQuery.of(builderContext).size.height * 0.85,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: Theme.of(builderContext).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
@@ -1446,7 +1452,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                       Icon(
                                         Icons.fitness_center,
                                         color: scheduleType == ScheduleType.pt
-                                            ? Colors.white
+                                            ? Theme.of(builderContext).colorScheme.onPrimary
                                             : Colors.grey[600],
                                         size: 18,
                                       ),
@@ -1455,7 +1461,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                         'PT 일정',
                                         style: TextStyle(
                                           color: scheduleType == ScheduleType.pt
-                                              ? Colors.white
+                                              ? Theme.of(builderContext).colorScheme.onPrimary
                                               : Colors.grey[600],
                                           fontWeight:
                                               scheduleType == ScheduleType.pt
@@ -1498,7 +1504,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                         color:
                                             scheduleType ==
                                                 ScheduleType.personal
-                                            ? Colors.white
+                                            ? Theme.of(builderContext).colorScheme.onPrimary
                                             : Colors.grey[600],
                                         size: 18,
                                       ),
@@ -1509,7 +1515,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                           color:
                                               scheduleType ==
                                                   ScheduleType.personal
-                                              ? Colors.white
+                                              ? Theme.of(builderContext).colorScheme.onPrimary
                                               : Colors.grey[600],
                                           fontWeight:
                                               scheduleType ==
@@ -1839,7 +1845,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                               ? accentColor.withValues(
                                                   alpha: 0.1,
                                                 )
-                                              : Colors.white,
+                                              : Theme.of(builderContext).colorScheme.surface,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -1958,7 +1964,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
         builder: (_, setPickerState) {
           return Container(
             height: 320,
-            color: Colors.white,
+            color: Theme.of(pickerContext).colorScheme.surface,
             child: Column(
               children: [
                 Container(
@@ -2143,9 +2149,9 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
           return Container(
             height: MediaQuery.of(builderContext).size.height * 0.75,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: Theme.of(builderContext).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
@@ -2654,7 +2660,7 @@ class _ScheduleCard extends ConsumerWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCompleted
@@ -2747,7 +2753,7 @@ class _ScheduleCard extends ConsumerWidget {
                                 : null,
                             color: isCompleted || isCancelled || isPast
                                 ? Colors.grey
-                                : Colors.black87,
+                                : Theme.of(context).colorScheme.onSurface,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),

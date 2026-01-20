@@ -9,6 +9,7 @@ import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
@@ -43,6 +44,7 @@ class MemberHomeScreen extends ConsumerWidget {
     final weightChangeAsync = ref.watch(weightChangeProvider(memberId));
     final nextCurriculumAsync = ref.watch(nextCurriculumProvider(memberId));
     final weightHistoryAsync = ref.watch(weightHistoryProvider(memberId));
+    final memberInsightsAsync = ref.watch(memberInsightsStreamProvider(memberId));
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -103,11 +105,21 @@ class MemberHomeScreen extends ConsumerWidget {
                   ).animateListItem(3),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // 5. AI 인사이트 카드 (index 4)
+              memberInsightsAsync.when(
+                loading: () => _buildInsightSkeleton(context),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (insights) => insights.isEmpty
+                    ? const SizedBox.shrink()
+                    : _InsightCardsSection(insights: insights).animateListItem(4),
+              ),
               const SizedBox(height: 24),
 
-              // 5. 빠른 액션 버튼들 (index 4)
+              // 6. 빠른 액션 버튼들 (index 5)
               _QuickActionsSection()
-                  .animateListItem(4),
+                  .animateListItem(5),
               const SizedBox(height: 32),
             ],
           ),
@@ -227,6 +239,24 @@ class MemberHomeScreen extends ConsumerWidget {
       highlightColor: highlightColor,
       child: Container(
         height: 180,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInsightSkeleton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 100,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -1178,6 +1208,130 @@ class _QuickActionButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// AI 인사이트 카드 섹션
+class _InsightCardsSection extends StatelessWidget {
+  final List<MemberInsight> insights;
+
+  const _InsightCardsSection({required this.insights});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'AI 인사이트',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 120,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: insights.length > 5 ? 5 : insights.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final insight = insights[index];
+              return _InsightCard(insight: insight);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 개별 인사이트 카드
+class _InsightCard extends StatelessWidget {
+  final MemberInsight insight;
+
+  const _InsightCard({required this.insight});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: 260,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: insight.priorityColor.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: insight.priorityColor.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: insight.priorityColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(insight.typeIcon, size: 18, color: insight.priorityColor),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  insight.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Text(
+              insight.message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark ? Colors.white70 : Colors.black54,
+                height: 1.4,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -299,6 +299,46 @@ class AIService {
     }
   }
 
+  /// AI 인사이트 생성
+  ///
+  /// 트레이너의 회원 데이터를 분석하여 관리 인사이트 생성
+  /// [memberId] 특정 회원만 분석 (optional)
+  /// [forceRefresh] 캐시 무시하고 새로 생성 (기본값: false)
+  /// [includeAI] AI 기반 추천 포함 여부 (기본값: true)
+  ///
+  /// 타임아웃: 60초
+  Future<InsightsResult> generateInsights({
+    String? memberId,
+    bool forceRefresh = false,
+    bool includeAI = true,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable(
+        'generateInsights',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
+      );
+
+      final result = await callable.call({
+        if (memberId != null) 'memberId': memberId,
+        'forceRefresh': forceRefresh,
+        'includeAI': includeAI,
+      });
+
+      final data = _convertToStringDynamic(result.data);
+      return InsightsResult.fromMap(data);
+    } on FirebaseFunctionsException catch (e) {
+      return InsightsResult.error(
+        errorCode: e.code,
+        errorMessage: e.message ?? '인사이트 생성에 실패했습니다.',
+      );
+    } catch (e) {
+      return InsightsResult.error(
+        errorCode: 'unknown',
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
   /// Firebase Functions 예외 처리
   Exception _handleFunctionsException(FirebaseFunctionsException e) {
     switch (e.code) {
@@ -315,6 +355,103 @@ class AIService {
       default:
         return Exception(e.message ?? '오류가 발생했습니다.');
     }
+  }
+}
+
+/// AI 인사이트 생성 결과 (새 버전)
+///
+/// Cloud Function 응답을 파싱하여 상태 정보와 함께 반환
+class InsightsResult {
+  /// 요청 성공 여부
+  final bool success;
+
+  /// 생성된 인사이트 목록
+  final List<GeneratedInsightSummary> insights;
+
+  /// 캐시된 결과인지 여부
+  final bool cached;
+
+  /// 생성 시각
+  final DateTime? generatedAt;
+
+  /// 에러 코드 (실패 시)
+  final String? errorCode;
+
+  /// 에러 메시지 (실패 시)
+  final String? errorMessage;
+
+  /// 통계 정보
+  final InsightStats? stats;
+
+  InsightsResult({
+    required this.success,
+    required this.insights,
+    this.cached = false,
+    this.generatedAt,
+    this.errorCode,
+    this.errorMessage,
+    this.stats,
+  });
+
+  /// 성공 응답 생성
+  factory InsightsResult.fromMap(Map<dynamic, dynamic> map) {
+    final insightsList = map['insights'] as List<dynamic>? ?? [];
+    final statsMap = map['stats'] as Map<dynamic, dynamic>?;
+
+    return InsightsResult(
+      success: map['success'] as bool? ?? true,
+      insights: insightsList
+          .map((i) => GeneratedInsightSummary.fromMap(i as Map<dynamic, dynamic>))
+          .toList(),
+      cached: map['cached'] as bool? ?? false,
+      generatedAt: map['generatedAt'] != null
+          ? DateTime.tryParse(map['generatedAt'].toString())
+          : DateTime.now(),
+      stats: statsMap != null ? InsightStats.fromMap(statsMap) : null,
+    );
+  }
+
+  /// 에러 응답 생성
+  factory InsightsResult.error({
+    required String errorCode,
+    required String errorMessage,
+  }) {
+    return InsightsResult(
+      success: false,
+      insights: [],
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+    );
+  }
+
+  /// 결과가 에러인지 확인
+  bool get hasError => !success || errorCode != null;
+
+  /// 인사이트 개수
+  int get count => insights.length;
+}
+
+/// 인사이트 생성 통계
+class InsightStats {
+  final int totalMembers;
+  final int totalGenerated;
+  final int newSaved;
+  final int skippedDuplicates;
+
+  InsightStats({
+    required this.totalMembers,
+    required this.totalGenerated,
+    required this.newSaved,
+    required this.skippedDuplicates,
+  });
+
+  factory InsightStats.fromMap(Map<dynamic, dynamic> map) {
+    return InsightStats(
+      totalMembers: (map['totalMembers'] as num?)?.toInt() ?? 0,
+      totalGenerated: (map['totalGenerated'] as num?)?.toInt() ?? 0,
+      newSaved: (map['newSaved'] as num?)?.toInt() ?? 0,
+      skippedDuplicates: (map['skippedDuplicates'] as num?)?.toInt() ?? 0,
+    );
   }
 }
 
@@ -397,4 +534,66 @@ class WeightPredictionResult {
   /// 마지막 예측 체중
   double? get finalPredictedWeight =>
       predictedWeights.isNotEmpty ? predictedWeights.last.weight : null;
+}
+
+/// AI 인사이트 생성 결과
+class InsightGenerationResult {
+  final int totalMembers;
+  final int totalGenerated;
+  final int newSaved;
+  final int skippedDuplicates;
+  final List<GeneratedInsightSummary> insights;
+
+  InsightGenerationResult({
+    required this.totalMembers,
+    required this.totalGenerated,
+    required this.newSaved,
+    required this.skippedDuplicates,
+    required this.insights,
+  });
+
+  factory InsightGenerationResult.fromMap(Map<dynamic, dynamic> map) {
+    final stats = map['stats'] as Map<dynamic, dynamic>? ?? {};
+    final insightsList = map['insights'] as List<dynamic>? ?? [];
+
+    return InsightGenerationResult(
+      totalMembers: (stats['totalMembers'] as num?)?.toInt() ?? 0,
+      totalGenerated: (stats['totalGenerated'] as num?)?.toInt() ?? 0,
+      newSaved: (stats['newSaved'] as num?)?.toInt() ?? 0,
+      skippedDuplicates: (stats['skippedDuplicates'] as num?)?.toInt() ?? 0,
+      insights: insightsList
+          .map((i) => GeneratedInsightSummary.fromMap(i as Map<dynamic, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// 생성된 인사이트 요약
+class GeneratedInsightSummary {
+  final String type;
+  final String priority;
+  final String title;
+  final String message;
+  final String? memberName;
+  final String? actionSuggestion;
+
+  GeneratedInsightSummary({
+    required this.type,
+    required this.priority,
+    required this.title,
+    required this.message,
+    this.memberName,
+    this.actionSuggestion,
+  });
+
+  factory GeneratedInsightSummary.fromMap(Map<dynamic, dynamic> map) {
+    return GeneratedInsightSummary(
+      type: map['type']?.toString() ?? '',
+      priority: map['priority']?.toString() ?? 'low',
+      title: map['title']?.toString() ?? '',
+      message: map['message']?.toString() ?? '',
+      memberName: map['memberName']?.toString(),
+      actionSuggestion: map['actionSuggestion']?.toString(),
+    );
+  }
 }

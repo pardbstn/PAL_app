@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/weight_prediction_model.dart';
 import 'base_repository.dart';
@@ -36,7 +37,7 @@ class WeightPredictionRepository {
       if (snapshot.docs.isEmpty) return null;
       return WeightPredictionModel.fromFirestore(snapshot.docs.first);
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] getLatestPrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] getLatestPrediction 오류: $e');
       rethrow;
     }
   }
@@ -64,10 +65,10 @@ class WeightPredictionRepository {
   Future<String> savePrediction(WeightPredictionModel prediction) async {
     try {
       final docRef = await _collection.add(prediction.toFirestore());
-      print('[WeightPredictionRepository] 예측 저장 완료: ${docRef.id}');
+      debugPrint('[WeightPredictionRepository] 예측 저장 완료: ${docRef.id}');
       return docRef.id;
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] savePrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] savePrediction 오류: $e');
       rethrow;
     }
   }
@@ -82,9 +83,9 @@ class WeightPredictionRepository {
   ) async {
     try {
       await _collection.doc(predictionId).update(data);
-      print('[WeightPredictionRepository] 예측 업데이트 완료: $predictionId');
+      debugPrint('[WeightPredictionRepository] 예측 업데이트 완료: $predictionId');
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] updatePrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] updatePrediction 오류: $e');
       rethrow;
     }
   }
@@ -109,7 +110,7 @@ class WeightPredictionRepository {
           .map((doc) => WeightPredictionModel.fromFirestore(doc))
           .toList();
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] getPredictionHistory 오류: $e');
+      debugPrint('[WeightPredictionRepository] getPredictionHistory 오류: $e');
       rethrow;
     }
   }
@@ -141,9 +142,9 @@ class WeightPredictionRepository {
   Future<void> deletePrediction(String predictionId) async {
     try {
       await _collection.doc(predictionId).delete();
-      print('[WeightPredictionRepository] 예측 삭제 완료: $predictionId');
+      debugPrint('[WeightPredictionRepository] 예측 삭제 완료: $predictionId');
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] deletePrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] deletePrediction 오류: $e');
       rethrow;
     }
   }
@@ -158,7 +159,7 @@ class WeightPredictionRepository {
       if (!doc.exists) return null;
       return WeightPredictionModel.fromFirestore(doc);
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] getPrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] getPrediction 오류: $e');
       rethrow;
     }
   }
@@ -194,7 +195,7 @@ class WeightPredictionRepository {
           .map((doc) => WeightPredictionModel.fromFirestore(doc))
           .toList();
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] getPredictionsByTrainer 오류: $e');
+      debugPrint('[WeightPredictionRepository] getPredictionsByTrainer 오류: $e');
       rethrow;
     }
   }
@@ -211,7 +212,7 @@ class WeightPredictionRepository {
           .get();
       return snapshot.docs.isNotEmpty;
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] hasPrediction 오류: $e');
+      debugPrint('[WeightPredictionRepository] hasPrediction 오류: $e');
       rethrow;
     }
   }
@@ -232,10 +233,10 @@ class WeightPredictionRepository {
       }
       await batch.commit();
 
-      print(
+      debugPrint(
           '[WeightPredictionRepository] 회원 예측 전체 삭제 완료: $memberId (${snapshot.docs.length}개)');
     } on FirebaseException catch (e) {
-      print('[WeightPredictionRepository] deleteAllPredictions 오류: $e');
+      debugPrint('[WeightPredictionRepository] deleteAllPredictions 오류: $e');
       rethrow;
     }
   }

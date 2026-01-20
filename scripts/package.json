@@ -1,0 +1,16 @@
+{
+  "name": "pal-demo-seed",
+  "version": "1.0.0",
+  "description": "PAL 심사용 데모 데이터 생성 스크립트",
+  "main": "seed_demo_data.js",
+  "scripts": {
+    "seed": "node seed_demo_data.js",
+    "seed:clear": "node clear_demo_data.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

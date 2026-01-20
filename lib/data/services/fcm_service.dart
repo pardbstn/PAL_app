@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,7 +48,7 @@ class FCMService {
       sound: true,
     );
 
-    print('[FCM] 권한 상태: ${settings.authorizationStatus}');
+    debugPrint('[FCM] 권한 상태: ${settings.authorizationStatus}');
   }
 
   /// 로컬 알림 초기화
@@ -87,7 +88,7 @@ class FCMService {
 
   /// 포그라운드 메시지 처리
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    print('[FCM] 포그라운드 메시지 수신: ${message.notification?.title}');
+    debugPrint('[FCM] 포그라운드 메시지 수신: ${message.notification?.title}');
 
     final notification = message.notification;
     final android = message.notification?.android;
@@ -120,14 +121,14 @@ class FCMService {
 
   /// 백그라운드에서 알림 탭했을 때
   void _handleMessageOpenedApp(RemoteMessage message) {
-    print('[FCM] 알림 탭으로 앱 열림: ${message.data}');
+    debugPrint('[FCM] 알림 탭으로 앱 열림: ${message.data}');
     // TODO: 채팅방으로 네비게이션 (GoRouter 연동 필요)
     // 예: context.push('/trainer/messages/${message.data['chatRoomId']}');
   }
 
   /// 로컬 알림 탭했을 때
   void _onNotificationTapped(NotificationResponse response) {
-    print('[FCM] 로컬 알림 탭: ${response.payload}');
+    debugPrint('[FCM] 로컬 알림 탭: ${response.payload}');
     // TODO: 채팅방으로 네비게이션
   }
 
@@ -135,10 +136,10 @@ class FCMService {
   Future<String?> getToken() async {
     try {
       final token = await _messaging.getToken();
-      print('[FCM] 토큰: $token');
+      debugPrint('[FCM] 토큰: $token');
       return token;
     } catch (e) {
-      print('[FCM] 토큰 가져오기 실패: $e');
+      debugPrint('[FCM] 토큰 가져오기 실패: $e');
       return null;
     }
   }
@@ -149,12 +150,12 @@ class FCMService {
   /// 토픽 구독
   Future<void> subscribeToTopic(String topic) async {
     await _messaging.subscribeToTopic(topic);
-    print('[FCM] 토픽 구독: $topic');
+    debugPrint('[FCM] 토픽 구독: $topic');
   }
 
   /// 토픽 구독 해제
   Future<void> unsubscribeFromTopic(String topic) async {
     await _messaging.unsubscribeFromTopic(topic);
-    print('[FCM] 토픽 구독 해제: $topic');
+    debugPrint('[FCM] 토픽 구독 해제: $topic');
   }
 }

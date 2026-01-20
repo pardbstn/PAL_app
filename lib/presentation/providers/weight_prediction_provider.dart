@@ -45,10 +45,10 @@ class WeightPredictionService {
 
   WeightPredictionService(this._aiService);
 
-  /// 체중 예측 실행
+  /// 체중 예측 실행 (1주 뒤 예측)
   Future<WeightPredictionResult> predict({
     required String memberId,
-    int weeksAhead = 8,
+    int weeksAhead = 1,
   }) async {
     return _aiService.predictWeight(
       memberId: memberId,

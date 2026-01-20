@@ -45,7 +45,7 @@ const db = admin.firestore();
  *
  * @param {Object} data - 요청 데이터
  * @param {string} data.memberId - 회원 ID (필수)
- * @param {number} [data.weeksAhead=8] - 예측할 주 수 (1~12)
+ * @param {number} [data.weeksAhead=1] - 예측할 주 수 (1주만 지원)
  *
  * @returns {Promise<Object>} 예측 결과
  *
@@ -77,7 +77,7 @@ export const predictWeight = functions
     const userId = context.auth.uid;
 
     // 2. 입력 데이터 검증
-    const {memberId, weeksAhead = 8} = data || {};
+    const {memberId, weeksAhead = 1} = data || {};
 
     if (!memberId || typeof memberId !== "string") {
       throw new functions.https.HttpsError(

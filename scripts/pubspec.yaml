@@ -1,0 +1,10 @@
+name: pal_seed_scripts
+description: PAL 데모 데이터 시드 스크립트
+version: 1.0.0
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  firedart: ^0.9.7
+  uuid: ^4.2.0

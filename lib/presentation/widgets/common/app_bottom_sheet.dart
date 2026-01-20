@@ -70,15 +70,15 @@ class _BottomSheetContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     final screenHeight = MediaQuery.of(context).size.height;
     final viewInsets = MediaQuery.of(context).viewInsets;
 
-    // 배경색: 라이트 모드는 흰색, 다크 모드는 grey[900]
-    final backgroundColor = isDarkMode ? Colors.grey[900] : Colors.white;
+    // 배경색: Theme의 surface 색상 사용
+    final backgroundColor = colorScheme.surface;
 
-    // 드래그 핸들 색상: 라이트 모드는 grey[300], 다크 모드는 grey[600]
-    final dragHandleColor = isDarkMode ? Colors.grey[600] : Colors.grey[300];
+    // 드래그 핸들 색상: Theme의 outline 또는 onSurfaceVariant 사용
+    final dragHandleColor = colorScheme.outlineVariant;
 
     // 최대 높이 계산 (기본값: 화면의 90%)
     final effectiveMaxHeight = maxHeight ?? screenHeight * 0.9;

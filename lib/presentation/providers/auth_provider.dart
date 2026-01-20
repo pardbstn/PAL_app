@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_pal_app/data/models/models.dart';
@@ -160,7 +161,15 @@ class AuthNotifier extends Notifier<AuthState> {
           // 회원 프로필이 없으면 실시간 감시 시작 (나중에 트레이너가 등록할 수 있음)
           if (memberModel == null) {
             _memberRepository.watchByUserId(uid).listen((member) {
-              if (member != null && state.memberModel == null) {
+              if (member != null) {
+                // memberModel이 바뀌면 항상 업데이트 (trainerId 등이 나중에 추가될 수 있음)
+                state = state.copyWith(memberModel: member);
+              }
+            });
+          } else {
+            // 회원 프로필이 있으면 실시간 감시로 업데이트 추적 (trainerId 변경 등)
+            _memberRepository.watchByUserId(uid).listen((member) {
+              if (member != null && member.id == memberModel?.id) {
                 state = state.copyWith(memberModel: member);
               }
             });
@@ -344,7 +353,12 @@ class AuthNotifier extends Notifier<AuthState> {
             startDate: now,
           ),
         );
-        await _memberRepository.create(member);
+        final memberId = await _memberRepository.create(member);
+        // 생성된 회원 프로필을 다시 조회하여 상태 업데이트
+        final createdMember = await _memberRepository.get(memberId);
+        if (createdMember != null) {
+          state = state.copyWith(memberModel: createdMember);
+        }
       }
     }
   }
@@ -616,6 +630,23 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// 트레이너 데이터 새로고침
+  ///
+  /// Firestore에서 트레이너 모델을 다시 가져와 상태 업데이트
+  /// 구독 티어 변경 등 외부에서 Firestore를 직접 수정한 경우 호출
+  Future<void> refreshTrainerData() async {
+    if (state.userId == null || state.userRole != UserRole.trainer) return;
+
+    try {
+      final trainerModel = await _trainerRepository.getByUserId(state.userId!);
+      if (trainerModel != null) {
+        state = state.copyWith(trainerModel: trainerModel);
+      }
+    } catch (e) {
+      debugPrint('refreshTrainerData error: $e');
+    }
+  }
+
   /// Firebase Auth 에러 메시지 변환
   String _getErrorMessage(String code) {
     switch (code) {
@@ -649,11 +680,11 @@ class AuthNotifier extends Notifier<AuthState> {
       final token = await fcmService.getToken();
       if (token != null) {
         await _userRepository.saveFcmToken(uid, token);
-        print('[Auth] FCM 토큰 저장 완료');
+        debugPrint('[Auth] FCM 토큰 저장 완료');
       }
     } catch (e) {
       // FCM 토큰 저장 실패는 로그인을 막지 않음
-      print('[Auth] FCM 토큰 저장 실패: $e');
+      debugPrint('[Auth] FCM 토큰 저장 실패: $e');
     }
   }
 }

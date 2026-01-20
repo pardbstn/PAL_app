@@ -10,8 +10,8 @@
 /** 최소 필요 데이터 포인트 수 */
 export const MIN_DATA_POINTS = 4;
 
-/** 최대 예측 기간 (주) */
-export const MAX_WEEKS_AHEAD = 12;
+/** 최대 예측 기간 (주) - 1주 예측만 지원 */
+export const MAX_WEEKS_AHEAD = 1;
 
 /** 이상치 판단 기준 (kg) */
 export const OUTLIER_THRESHOLD = 3;
@@ -589,6 +589,7 @@ export function generateDataSummary(data: WeightDataPoint[]): DataSummary {
 export function generateGoalScenarios(
   currentWeight: number,
   targetWeight: number | null,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   goal: string
 ): GoalScenario[] {
   if (!targetWeight) return [];

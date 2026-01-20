@@ -44,3 +44,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase secrets
+scripts/serviceAccountKey.json
+**/serviceAccountKey.json
+
+# Scripts dependencies
+scripts/node_modules/
+scripts/.dart_tool/
+scripts/pubspec.lock

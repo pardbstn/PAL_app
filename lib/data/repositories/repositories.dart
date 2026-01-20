@@ -10,3 +10,6 @@ export 'body_record_repository.dart';
 export 'diet_record_repository.dart';
 export 'session_signature_repository.dart';
 export 'weight_prediction_repository.dart';
+export 'insight_repository.dart';
+export 'inbody_repository.dart';
+export 'diet_analysis_repository.dart';

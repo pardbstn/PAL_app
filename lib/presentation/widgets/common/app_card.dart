@@ -57,10 +57,11 @@ class _AppCardState extends State<AppCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final effectivePadding = widget.padding ?? _defaultPadding;
 
-    Widget card = _buildCardContent(isDark, effectivePadding);
+    Widget card = _buildCardContent(colorScheme, isDark, effectivePadding);
 
     // 호버 효과 적용
     if (widget.isHoverable) {
@@ -79,22 +80,25 @@ class _AppCardState extends State<AppCard> {
     return card;
   }
 
-  Widget _buildCardContent(bool isDark, EdgeInsets effectivePadding) {
+  Widget _buildCardContent(
+      ColorScheme colorScheme, bool isDark, EdgeInsets effectivePadding) {
     switch (widget.variant) {
       case AppCardVariant.elevated:
-        return _buildElevatedCard(isDark, effectivePadding);
+        return _buildElevatedCard(colorScheme, isDark, effectivePadding);
       case AppCardVariant.outlined:
-        return _buildOutlinedCard(isDark, effectivePadding);
+        return _buildOutlinedCard(colorScheme, isDark, effectivePadding);
       case AppCardVariant.filled:
         return _buildFilledCard(isDark, effectivePadding);
       case AppCardVariant.glass:
-        return _buildGlassCard(isDark, effectivePadding);
+        return _buildGlassCard(colorScheme, isDark, effectivePadding);
     }
   }
 
   /// Elevated 카드: 흰색 배경 + 그림자
-  Widget _buildElevatedCard(bool isDark, EdgeInsets padding) {
-    final backgroundColor = isDark ? Colors.grey[850]! : Colors.white;
+  Widget _buildElevatedCard(
+      ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
+    final backgroundColor =
+        isDark ? Colors.grey[850]! : colorScheme.surface;
 
     return _wrapWithInkWell(
       backgroundColor: backgroundColor,
@@ -117,8 +121,10 @@ class _AppCardState extends State<AppCard> {
   }
 
   /// Outlined 카드: 흰색 배경 + 1px 테두리
-  Widget _buildOutlinedCard(bool isDark, EdgeInsets padding) {
-    final backgroundColor = isDark ? Colors.grey[850]! : Colors.white;
+  Widget _buildOutlinedCard(
+      ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
+    final backgroundColor =
+        isDark ? Colors.grey[850]! : colorScheme.surface;
     final borderColor = isDark ? Colors.grey[700]! : Colors.grey[300]!;
 
     return _wrapWithInkWell(
@@ -156,13 +162,14 @@ class _AppCardState extends State<AppCard> {
   }
 
   /// Glass 카드: 반투명 배경 + 블러 효과
-  Widget _buildGlassCard(bool isDark, EdgeInsets padding) {
+  Widget _buildGlassCard(
+      ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
     final backgroundColor = isDark
         ? Colors.grey[900]!.withValues(alpha: 0.7)
-        : Colors.white.withValues(alpha: 0.7);
+        : colorScheme.surface.withValues(alpha: 0.7);
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.1)
-        : Colors.white.withValues(alpha: 0.5);
+        ? colorScheme.surface.withValues(alpha: 0.1)
+        : colorScheme.surface.withValues(alpha: 0.5);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(_borderRadius),

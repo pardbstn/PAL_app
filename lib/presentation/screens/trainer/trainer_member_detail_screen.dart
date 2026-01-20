@@ -25,6 +25,11 @@ import 'package:flutter_pal_app/presentation/widgets/session_complete_dialog.dar
 import 'package:flutter_pal_app/data/models/session_signature_model.dart';
 import 'package:flutter_pal_app/data/repositories/session_signature_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/weight_prediction_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
+import 'package:flutter_pal_app/data/models/inbody_record_model.dart';
+import 'package:flutter_pal_app/presentation/widgets/inbody/inbody_input_form.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 // ============================================================================
 // Providers
@@ -179,7 +184,7 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Text(memberName),
@@ -200,9 +205,11 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
             ),
           ],
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
               Tab(text: '기본정보'),
               Tab(text: '그래프'),
+              Tab(text: '인바디'),
               Tab(text: '커리큘럼'),
               Tab(text: '메모'),
             ],
@@ -212,6 +219,7 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
           children: [
             _InfoTab(member: widget.member, user: widget.user),
             _GraphTab(memberId: widget.memberId, member: widget.member),
+            _InbodyTab(memberId: widget.memberId),
             _CurriculumTab(memberId: widget.memberId),
             _MemoTab(memberId: widget.memberId, member: widget.member),
           ],
@@ -628,7 +636,7 @@ class _GraphTab extends ConsumerWidget {
           // 현재 상태 요약
           latestRecordAsync.when(
             loading: () => _buildCurrentStatusShimmer(context),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
             data: (record) {
               if (record == null) return const SizedBox.shrink();
               return _buildCurrentStatus(record);
@@ -884,7 +892,7 @@ class _GraphTab extends ConsumerWidget {
           ] else ...[
             const SizedBox(height: 8),
             Text(
-              '현재 ${recordCount}개 기록',
+              '현재 $recordCount개 기록',
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: 12,
@@ -2306,5 +2314,774 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
         );
       }
     }
+  }
+}
+
+// ============================================================================
+// 인바디 탭
+// ============================================================================
+
+/// 인바디 탭 위젯
+class _InbodyTab extends ConsumerWidget {
+  final String memberId;
+
+  const _InbodyTab({required this.memberId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latestAsync = ref.watch(latestInbodyProvider(memberId));
+    final historyAsync = ref.watch(inbodyHistoryProvider(memberId));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(latestInbodyProvider(memberId));
+        ref.invalidate(inbodyHistoryProvider(memberId));
+      },
+      child: latestAsync.when(
+        loading: () => const _InbodyTabSkeleton(),
+        error: (e, st) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('오류가 발생했습니다\n$e'),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => ref.invalidate(latestInbodyProvider(memberId)),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+        data: (latest) {
+          if (latest == null) {
+            return _buildEmptyState(context, ref, colorScheme);
+          }
+          return _buildContent(context, ref, latest, historyAsync, colorScheme);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(
+      BuildContext context, WidgetRef ref, ColorScheme colorScheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.assessment_outlined,
+            size: 80,
+            color: colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '인바디 기록이 없습니다',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '첫 번째 인바디 기록을 추가해보세요',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+          ),
+          const SizedBox(height: 32),
+          FilledButton.icon(
+            onPressed: () => _showInputForm(context, ref),
+            icon: const Icon(Icons.add),
+            label: const Text('기록 추가'),
+          ),
+        ],
+      ).animate().fadeIn(duration: 300.ms),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    InbodyRecordModel latest,
+    AsyncValue<List<InbodyRecordModel>> historyAsync,
+    ColorScheme colorScheme,
+  ) {
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 최신 인바디 결과 카드
+              _InbodyResultCardCompact(record: latest)
+                  .animate()
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 16),
+
+              // 체성분 도넛 차트
+              _InbodyPieChartCard(record: latest)
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: 100.ms)
+                  .slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 16),
+
+              // 히스토리 그래프
+              historyAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (e, st) => const SizedBox.shrink(),
+                data: (history) {
+                  if (history.length < 2) {
+                    return const SizedBox.shrink();
+                  }
+                  return _InbodyLineChartCard(records: history)
+                      .animate()
+                      .fadeIn(duration: 300.ms, delay: 200.ms)
+                      .slideY(begin: 0.1, end: 0);
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // 히스토리 리스트
+              _buildHistorySection(context, ref, historyAsync),
+
+              const SizedBox(height: 80), // FAB 공간
+            ],
+          ),
+        ),
+        // FAB
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton.extended(
+            heroTag: 'inbody_fab',
+            onPressed: () => _showInputForm(context, ref),
+            icon: const Icon(Icons.add),
+            label: const Text('기록 추가'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistorySection(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<InbodyRecordModel>> historyAsync,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '측정 기록',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        historyAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, st) => Text('오류: $e'),
+          data: (history) {
+            if (history.isEmpty) {
+              return const Text('기록이 없습니다');
+            }
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: history.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final record = history[index];
+                return _InbodyHistoryListTile(
+                  record: record,
+                  colorScheme: colorScheme,
+                  onDelete: () => _deleteRecord(context, ref, record),
+                ).animate().fadeIn(
+                      duration: 200.ms,
+                      delay: Duration(milliseconds: 50 * index),
+                    );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showInputForm(BuildContext context, WidgetRef ref) async {
+    final data = await InbodyInputForm.showAsBottomSheet(
+      context,
+      memberId: memberId,
+    );
+
+    if (data != null) {
+      final notifier = ref.read(inbodyNotifierProvider.notifier);
+      final id = await notifier.saveManualEntry(
+        memberId: data.memberId,
+        weight: data.weight,
+        skeletalMuscleMass: data.skeletalMuscleMass,
+        bodyFatPercent: data.bodyFatPercent,
+        bodyFatMass: data.bodyFatMass,
+        bmi: data.bmi,
+        basalMetabolicRate: data.basalMetabolicRate,
+        totalBodyWater: data.totalBodyWater,
+        protein: data.protein,
+        minerals: data.minerals,
+        visceralFatLevel: data.visceralFatLevel,
+        inbodyScore: data.inbodyScore,
+        memo: data.memo,
+        measuredAt: data.measuredAt,
+      );
+
+      if (id != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('인바디 기록이 저장되었습니다'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteRecord(
+    BuildContext context,
+    WidgetRef ref,
+    InbodyRecordModel record,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('기록 삭제'),
+        content: const Text('이 인바디 기록을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final notifier = ref.read(inbodyNotifierProvider.notifier);
+      final success = await notifier.deleteRecord(memberId, record.id);
+
+      if (success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('기록이 삭제되었습니다'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/// 인바디 결과 카드 (컴팩트 버전)
+class _InbodyResultCardCompact extends StatelessWidget {
+  final InbodyRecordModel record;
+
+  const _InbodyResultCardCompact({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '최근 측정',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _formatDate(record.measuredAt),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMetric(context, '체중', '${record.weight.toStringAsFixed(1)}kg',
+                    colorScheme.primary),
+                _buildMetric(context, '골격근량',
+                    '${record.skeletalMuscleMass.toStringAsFixed(1)}kg', Colors.green),
+                _buildMetric(context, '체지방률',
+                    '${record.bodyFatPercent.toStringAsFixed(1)}%', Colors.orange),
+              ],
+            ),
+            if (record.inbodyScore != null) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.star, color: colorScheme.primary, size: 18),
+                  const SizedBox(width: 4),
+                  Text('인바디 점수 ', style: theme.textTheme.bodySmall),
+                  Text(
+                    '${record.inbodyScore}점',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetric(
+      BuildContext context, String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color:
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
+  }
+}
+
+/// 체성분 도넛 차트 카드
+class _InbodyPieChartCard extends StatelessWidget {
+  final InbodyRecordModel record;
+
+  const _InbodyPieChartCard({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final totalWeight = record.weight;
+    final fatMass =
+        record.bodyFatMass ?? (totalWeight * record.bodyFatPercent / 100);
+    final muscleMass = record.skeletalMuscleMass;
+    final otherMass = totalWeight - fatMass - muscleMass;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '체성분 분석',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 160,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 30,
+                        sections: [
+                          PieChartSectionData(
+                            value: muscleMass,
+                            title: '',
+                            color: Colors.green,
+                            radius: 40,
+                          ),
+                          PieChartSectionData(
+                            value: fatMass,
+                            title: '',
+                            color: Colors.orange,
+                            radius: 40,
+                          ),
+                          PieChartSectionData(
+                            value: otherMass > 0 ? otherMass : 0,
+                            title: '',
+                            color: Colors.blue,
+                            radius: 40,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLegend('골격근량', '${muscleMass.toStringAsFixed(1)}kg',
+                          Colors.green),
+                      const SizedBox(height: 8),
+                      _buildLegend(
+                          '체지방량', '${fatMass.toStringAsFixed(1)}kg', Colors.orange),
+                      const SizedBox(height: 8),
+                      _buildLegend(
+                          '기타', '${otherMass.toStringAsFixed(1)}kg', Colors.blue),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegend(String label, String value, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(value,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 히스토리 라인 차트 카드
+class _InbodyLineChartCard extends StatelessWidget {
+  final List<InbodyRecordModel> records;
+
+  const _InbodyLineChartCard({required this.records});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final sortedRecords = List<InbodyRecordModel>.from(records)
+      ..sort((a, b) => a.measuredAt.compareTo(b.measuredAt));
+
+    final displayRecords = sortedRecords.length > 8
+        ? sortedRecords.sublist(sortedRecords.length - 8)
+        : sortedRecords;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '변화 추이',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildChartLegend('체중', colorScheme.primary),
+                const SizedBox(width: 12),
+                _buildChartLegend('골격근량', Colors.green),
+                const SizedBox(width: 12),
+                _buildChartLegend('체지방률', Colors.orange),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 160,
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: 10,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: colorScheme.outline.withValues(alpha: 0.1),
+                        strokeWidth: 1,
+                      );
+                    },
+                  ),
+                  titlesData: FlTitlesData(
+                    leftTitles:
+                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles:
+                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles:
+                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < displayRecords.length) {
+                            final date = displayRecords[index].measuredAt;
+                            return Text(
+                              '${date.month}/${date.day}',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color:
+                                    colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            );
+                          }
+                          return const Text('');
+                        },
+                        interval: 1,
+                        reservedSize: 20,
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: displayRecords.asMap().entries.map((e) {
+                        return FlSpot(e.key.toDouble(), e.value.weight);
+                      }).toList(),
+                      isCurved: true,
+                      color: colorScheme.primary,
+                      barWidth: 2,
+                      dotData: const FlDotData(show: true),
+                    ),
+                    LineChartBarData(
+                      spots: displayRecords.asMap().entries.map((e) {
+                        return FlSpot(
+                            e.key.toDouble(), e.value.skeletalMuscleMass);
+                      }).toList(),
+                      isCurved: true,
+                      color: Colors.green,
+                      barWidth: 2,
+                      dotData: const FlDotData(show: true),
+                    ),
+                    LineChartBarData(
+                      spots: displayRecords.asMap().entries.map((e) {
+                        return FlSpot(e.key.toDouble(), e.value.bodyFatPercent);
+                      }).toList(),
+                      isCurved: true,
+                      color: Colors.orange,
+                      barWidth: 2,
+                      dotData: const FlDotData(show: true),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartLegend(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10)),
+      ],
+    );
+  }
+}
+
+/// 히스토리 리스트 타일
+class _InbodyHistoryListTile extends StatelessWidget {
+  final InbodyRecordModel record;
+  final ColorScheme colorScheme;
+  final VoidCallback onDelete;
+
+  const _InbodyHistoryListTile({
+    required this.record,
+    required this.colorScheme,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${record.measuredAt.day}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+              Text(
+                '${record.measuredAt.month}월',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          '${record.weight.toStringAsFixed(1)}kg',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          '골격근 ${record.skeletalMuscleMass.toStringAsFixed(1)}kg · '
+          '체지방 ${record.bodyFatPercent.toStringAsFixed(1)}%',
+          style: TextStyle(
+            fontSize: 11,
+            color: colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, size: 18),
+          onPressed: onDelete,
+          color: colorScheme.error,
+        ),
+      ),
+    );
+  }
+}
+
+/// 인바디 탭 스켈레톤 로딩
+class _InbodyTabSkeleton extends StatelessWidget {
+  const _InbodyTabSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

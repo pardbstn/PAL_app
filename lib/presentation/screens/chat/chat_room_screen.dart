@@ -137,7 +137,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             );
           },
           loading: () => const Text('로딩 중...'),
-          error: (_, __) => const Text('채팅'),
+          error: (_, _) => const Text('채팅'),
         ),
       ),
       body: Column(

@@ -7,9 +7,12 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/core/utils/animation_utils.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
+import 'package:flutter_pal_app/data/models/insight_model.dart';
+import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
 
@@ -793,11 +796,27 @@ class _EndingSoonSection extends ConsumerWidget {
 }
 
 /// AI 인사이트 섹션
-class _AiInsightSection extends ConsumerWidget {
+class _AiInsightSection extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AiInsightSection> createState() => _AiInsightSectionState();
+}
+
+class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
+  /// 이전 생성 성공 상태 (SnackBar 중복 방지)
+  bool _previousSuccessState = false;
+
+  @override
+  Widget build(BuildContext context) {
     final statsAsync = ref.watch(memberStatsProvider);
     final endingSoonAsync = ref.watch(endingSoonMembersWithUserProvider);
+    final aiInsightsAsync = ref.watch(trainerInsightsProvider);
+    final unreadCountAsync = ref.watch(unreadInsightCountProvider);
+    final generationState = ref.watch(insightsGenerationProvider);
+    final trainer = ref.watch(currentTrainerProvider);
+    final trainerId = ref.watch(currentTrainerIdProvider);
+
+    // 생성 성공 시 SnackBar 표시
+    _handleGenerationSuccess(context, generationState);
 
     // 로딩 중
     if (statsAsync.isLoading || endingSoonAsync.isLoading) {
@@ -812,19 +831,440 @@ class _AiInsightSection extends ConsumerWidget {
     final stats = statsAsync.value!;
     final endingSoon = endingSoonAsync.value!;
 
+    // 읽지 않은 개수
+    final unreadCount = unreadCountAsync.value ?? 0;
+
+    // AI 인사이트 (최대 5개)
+    final aiInsights = aiInsightsAsync.when(
+      data: (insights) => insights.take(5).toList(),
+      loading: () => <InsightModel>[],
+      error: (_, _) => <InsightModel>[],
+    );
+
+    return Column(
+      children: [
+        // 섹션 헤더
+        _buildSectionHeader(
+          context,
+          unreadCount: unreadCount,
+          isLoading: generationState.isLoading,
+          trainerId: trainerId,
+        ),
+        const SizedBox(height: 16),
+
+        // Pro 플랜 체크
+        if (trainer?.isFreeTier == true) ...[
+          _buildUpgradeCard(context),
+        ] else if (generationState.isLoading) ...[
+          // 로딩 상태
+          _buildInsightShimmer(),
+        ] else if (aiInsights.isEmpty) ...[
+          // 빈 상태 (AI 인사이트 없음)
+          _buildEmptyState(context, trainerId),
+          const SizedBox(height: 16),
+          // 로컬 인사이트 폴백 (Free tier일 때도 보이도록)
+          ..._buildLocalInsights(stats, endingSoon),
+        ] else ...[
+          // AI 인사이트 카드들
+          for (int i = 0; i < aiInsights.length; i++) ...[
+            _buildAiInsightCard(context, aiInsights[i], i),
+            if (i < aiInsights.length - 1) const SizedBox(height: 16),
+          ],
+          // 더보기 버튼
+          const SizedBox(height: 16),
+          _buildSeeMoreButton(context, unreadCountAsync),
+        ],
+      ],
+    );
+  }
+
+  /// 생성 성공 처리 (SnackBar 표시)
+  void _handleGenerationSuccess(
+    BuildContext context,
+    InsightsGenerationState state,
+  ) {
+    // 성공 상태로 변경되었을 때만 SnackBar 표시
+    if (state.isSuccess && !_previousSuccessState) {
+      // 인사이트 목록 새로고침
+      ref.invalidate(trainerInsightsProvider);
+      ref.invalidate(unreadInsightCountProvider);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        final result = state.result;
+        final newSaved = result?.stats?.newSaved ?? 0;
+        final totalGenerated = result?.stats?.totalGenerated ?? 0;
+        final skipped = result?.stats?.skippedDuplicates ?? 0;
+
+        String message;
+        Color bgColor;
+
+        if (newSaved > 0) {
+          message = '$newSaved개의 새 인사이트가 생성되었습니다';
+          bgColor = AppTheme.secondary;
+        } else if (totalGenerated > 0 && skipped > 0) {
+          message = '새 인사이트 없음 (이미 생성된 $skipped개 제외)';
+          bgColor = AppTheme.tertiary;
+        } else {
+          message = '분석할 데이터가 부족합니다. 회원 데이터를 추가해주세요.';
+          bgColor = AppTheme.tertiary;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: bgColor,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      });
+    }
+    _previousSuccessState = state.isSuccess;
+  }
+
+  /// 섹션 헤더 (타이틀 + 배지 + 새로고침 버튼)
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required int unreadCount,
+    required bool isLoading,
+    required String? trainerId,
+  }) {
+    return Row(
+      children: [
+        // 타이틀
+        const Text(
+          'AI 인사이트',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(width: 8),
+        // 읽지 않은 개수 배지
+        if (unreadCount > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppTheme.error,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$unreadCount',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        const Spacer(),
+        // 새로고침 버튼
+        IconButton(
+          onPressed: isLoading || trainerId == null
+              ? null
+              : () {
+                  ref.read(insightsGenerationProvider.notifier).generate(
+                        trainerId: trainerId,
+                      );
+                },
+          icon: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh),
+          tooltip: '인사이트 새로고침',
+        ),
+      ],
+    ).animate().fadeIn(delay: 500.ms, duration: 300.ms);
+  }
+
+  /// Pro 업그레이드 카드
+  Widget _buildUpgradeCard(BuildContext context) {
+    return GlassCard(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          AppTheme.primary.withValues(alpha: 0.3),
+          AppTheme.secondary.withValues(alpha: 0.2),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.secondary.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.workspace_premium,
+              color: AppTheme.secondary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Pro 플랜에서 AI 인사이트 사용',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'AI가 회원 데이터를 분석하여 맞춤 인사이트를 제공합니다',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => context.push('/trainer/settings'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.secondary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Pro 업그레이드',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 600.ms, duration: 500.ms).slideY(begin: 0.1);
+  }
+
+  /// 빈 상태 카드
+  Widget _buildEmptyState(BuildContext context, String? trainerId) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.3),
+          width: 1,
+          strokeAlign: BorderSide.strokeAlignInside,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.lightbulb_outline,
+              color: AppTheme.primary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '새로운 인사이트가 없습니다',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'AI에게 회원 분석을 요청해보세요',
+            style: TextStyle(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: trainerId == null
+                ? null
+                : () {
+                    ref.read(insightsGenerationProvider.notifier).generate(
+                          trainerId: trainerId,
+                        );
+                  },
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: const Text('인사이트 생성하기'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 600.ms, duration: 500.ms).slideY(begin: 0.1);
+  }
+
+  /// AI 인사이트 카드 (InsightCard 사용)
+  Widget _buildAiInsightCard(
+    BuildContext context,
+    InsightModel insight,
+    int index,
+  ) {
+    final insightsService = ref.read(insightsServiceProvider);
+
+    return GestureDetector(
+      onTap: () {
+        // 읽음 처리
+        if (!insight.isRead) {
+          insightsService.markAsRead(insight.id);
+        }
+        // 회원 상세로 이동 (memberId가 있을 경우)
+        if (insight.memberId != null && insight.memberId!.isNotEmpty) {
+          context.push('/trainer/members/${insight.memberId}');
+        }
+      },
+      child: GradientGlassCard(
+        gradientColors: [
+          insight.priorityColor.withValues(alpha: 0.8),
+          insight.priorityColor.withValues(alpha: 0.6),
+        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(insight.typeIcon, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          insight.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (!insight.isRead)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              insight.message,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  insight.isRead ? '확인하기' : '새 알림',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: 600 + (100 * index)),
+      duration: 500.ms,
+    ).slideY(begin: 0.1);
+  }
+
+  /// 로컬 인사이트 빌드 (Free tier 폴백)
+  List<Widget> _buildLocalInsights(
+    MemberStats stats,
+    List<MemberWithUser> endingSoon,
+  ) {
     final List<_InsightItem> insights = [];
 
     // PT 종료 임박 인사이트
     if (endingSoon.isNotEmpty) {
-      final urgentCount = endingSoon.where((m) => m.member.remainingSessions <= 2).length;
+      final urgentCount =
+          endingSoon.where((m) => m.member.remainingSessions <= 2).length;
       if (urgentCount > 0) {
         insights.add(_InsightItem(
           icon: Icons.warning_amber_rounded,
           iconColor: AppTheme.error,
           title: 'PT 연장 필요',
-          description: '$urgentCount명의 회원이 2회 이하로 남았습니다. 연장 상담이 필요합니다.',
+          description:
+              '$urgentCount명의 회원이 2회 이하로 남았습니다. 연장 상담이 필요합니다.',
           actionLabel: '확인하기',
-          gradientColors: [AppTheme.error.withValues(alpha: 0.8), AppTheme.error.withValues(alpha: 0.6)],
+          gradientColors: [
+            AppTheme.error.withValues(alpha: 0.8),
+            AppTheme.error.withValues(alpha: 0.6),
+          ],
         ));
       }
     }
@@ -839,16 +1279,23 @@ class _AiInsightSection extends ConsumerWidget {
           title: '우수한 진행률',
           description: '회원들의 평균 진행률이 $avgProgress%입니다. 훌륭합니다!',
           actionLabel: '상세보기',
-          gradientColors: [AppTheme.secondary.withValues(alpha: 0.8), AppTheme.secondary.withValues(alpha: 0.6)],
+          gradientColors: [
+            AppTheme.secondary.withValues(alpha: 0.8),
+            AppTheme.secondary.withValues(alpha: 0.6),
+          ],
         ));
       } else if (avgProgress < 50) {
         insights.add(_InsightItem(
           icon: Icons.trending_up,
           iconColor: AppTheme.primary,
           title: '진행률 향상 필요',
-          description: '회원들의 평균 진행률이 $avgProgress%입니다. 동기부여가 필요할 수 있습니다.',
+          description:
+              '회원들의 평균 진행률이 $avgProgress%입니다. 동기부여가 필요할 수 있습니다.',
           actionLabel: '확인하기',
-          gradientColors: [AppTheme.primary.withValues(alpha: 0.8), AppTheme.primary.withValues(alpha: 0.6)],
+          gradientColors: [
+            AppTheme.primary.withValues(alpha: 0.8),
+            AppTheme.primary.withValues(alpha: 0.6),
+          ],
         ));
       }
     }
@@ -861,7 +1308,10 @@ class _AiInsightSection extends ConsumerWidget {
         title: '첫 회원을 등록하세요',
         description: 'PAL과 함께 회원 관리를 시작해보세요!',
         actionLabel: '회원 추가',
-        gradientColors: [AppTheme.primary.withValues(alpha: 0.8), AppTheme.primary.withValues(alpha: 0.6)],
+        gradientColors: [
+          AppTheme.primary.withValues(alpha: 0.8),
+          AppTheme.primary.withValues(alpha: 0.6),
+        ],
       ));
     }
 
@@ -873,77 +1323,151 @@ class _AiInsightSection extends ConsumerWidget {
         title: '모든 것이 순조롭습니다',
         description: '${stats.activeMembers}명의 회원이 열심히 운동 중입니다.',
         actionLabel: '확인하기',
-        gradientColors: [AppTheme.secondary.withValues(alpha: 0.8), AppTheme.secondary.withValues(alpha: 0.6)],
+        gradientColors: [
+          AppTheme.secondary.withValues(alpha: 0.8),
+          AppTheme.secondary.withValues(alpha: 0.6),
+        ],
       ));
     }
 
-    return Column(
-      children: [
-        for (int i = 0; i < insights.length; i++) ...[
-          _buildInsightCard(context, insights[i], i),
-          if (i < insights.length - 1) const SizedBox(height: 16),
-        ],
+    return [
+      for (int i = 0; i < insights.length; i++) ...[
+        _buildLocalInsightCard(insights[i], i),
+        if (i < insights.length - 1) const SizedBox(height: 16),
       ],
-    );
+    ];
   }
 
-  Widget _buildInsightCard(BuildContext context, _InsightItem insight, int index) {
+  /// 로컬 인사이트 카드 (기존 스타일 유지)
+  Widget _buildLocalInsightCard(_InsightItem insight, int index) {
     return GradientGlassCard(
       gradientColors: insight.gradientColors,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(insight.icon, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(insight.icon, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
                   insight.title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  insight.description,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            insight.description,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 13,
+              height: 1.4,
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              insight.actionLabel,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                insight.actionLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(delay: Duration(milliseconds: 600 + (100 * index)), duration: 500.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: 700 + (100 * index)),
+      duration: 500.ms,
+    ).slideY(begin: 0.1);
+  }
+
+  Widget _buildSeeMoreButton(BuildContext context, AsyncValue<int> unreadCount) {
+    return GestureDetector(
+      onTap: () => context.push('/trainer/insights'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.primary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 18,
+              color: AppTheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '모든 AI 인사이트 보기',
+              style: TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            unreadCount.when(
+              data: (count) => count > 0
+                  ? Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.error,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+              loading: () => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: AppTheme.primary,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 800.ms, duration: 300.ms);
   }
 
   Widget _buildInsightShimmer() {
@@ -985,7 +1509,7 @@ class _AiInsightSection extends ConsumerWidget {
   }
 }
 
-/// 인사이트 아이템 데이터 클래스
+/// 인사이트 아이템 데이터 클래스 (로컬 인사이트용)
 class _InsightItem {
   final IconData icon;
   final Color iconColor;

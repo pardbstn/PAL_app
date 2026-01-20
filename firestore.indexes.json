@@ -1,11 +1,59 @@
 {
   "indexes": [
     {
+      "collectionGroup": "inbodyRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inbodyRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inbody_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inbody_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "schedules",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "trainerId", "order": "ASCENDING" },
         { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "schedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "schedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "DESCENDING" }
       ]
     },
     {
@@ -87,6 +135,46 @@
       "fields": [
         { "fieldPath": "memberId", "order": "ASCENDING" },
         { "fieldPath": "signedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "diet_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "diet_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "diet_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "analyzedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "diet_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "analyzedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "insights",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trainerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

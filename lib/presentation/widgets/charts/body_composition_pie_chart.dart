@@ -33,6 +33,8 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         // 파이 차트
@@ -60,7 +62,7 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
                   ),
                   sectionsSpace: 3,
                   centerSpaceRadius: 50,
-                  sections: _buildSections(),
+                  sections: _buildSections(colorScheme),
                 ),
               ),
               // 중앙 텍스트
@@ -90,7 +92,7 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
     );
   }
 
-  List<PieChartSectionData> _buildSections() {
+  List<PieChartSectionData> _buildSections(ColorScheme colorScheme) {
     return [
       // 골격근량
       PieChartSectionData(
@@ -105,7 +107,7 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        badgeWidget: touchedIndex == 0 ? _buildBadge('골격근') : null,
+        badgeWidget: touchedIndex == 0 ? _buildBadge('골격근', colorScheme) : null,
         badgePositionPercentageOffset: 1.3,
       ),
       // 체지방량
@@ -121,7 +123,7 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        badgeWidget: touchedIndex == 1 ? _buildBadge('체지방') : null,
+        badgeWidget: touchedIndex == 1 ? _buildBadge('체지방', colorScheme) : null,
         badgePositionPercentageOffset: 1.3,
       ),
       // 기타 (수분, 뼈 등)
@@ -137,23 +139,23 @@ class _BodyCompositionPieChartState extends State<BodyCompositionPieChart> {
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        badgeWidget: touchedIndex == 2 ? _buildBadge('기타') : null,
+        badgeWidget: touchedIndex == 2 ? _buildBadge('기타', colorScheme) : null,
         badgePositionPercentageOffset: 1.3,
       ),
     ];
   }
 
-  Widget _buildBadge(String text) {
+  Widget _buildBadge(String text, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: colorScheme.onSurface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: colorScheme.surface,
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),

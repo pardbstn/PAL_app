@@ -53,6 +53,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: const BoxDecoration(
@@ -71,27 +72,27 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 헤더
-                  _buildHeader(),
+                  _buildHeader(colorScheme),
                   const SizedBox(height: 24),
 
                   // 기록 날짜
-                  _buildDatePicker(),
+                  _buildDatePicker(colorScheme),
                   const SizedBox(height: 20),
 
                   // 체중 (필수)
-                  _buildWeightField(),
+                  _buildWeightField(colorScheme),
                   const SizedBox(height: 16),
 
                   // 체지방률 (선택)
-                  _buildBodyFatField(),
+                  _buildBodyFatField(colorScheme),
                   const SizedBox(height: 16),
 
                   // 골격근량 (선택)
-                  _buildMuscleMassField(),
+                  _buildMuscleMassField(colorScheme),
                   const SizedBox(height: 20),
 
                   // 데이터 소스
-                  _buildDataSourceSelector(),
+                  _buildDataSourceSelector(colorScheme),
                   const SizedBox(height: 32),
 
                   // 저장 버튼
@@ -106,7 +107,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ColorScheme colorScheme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -125,16 +126,16 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildDatePicker() {
+  Widget _buildDatePicker(ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '기록 날짜',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -187,8 +188,9 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     }
   }
 
-  Widget _buildWeightField() {
+  Widget _buildWeightField(ColorScheme colorScheme) {
     return _buildNumberField(
+      colorScheme: colorScheme,
       label: '체중',
       hint: '예: 72.5',
       suffix: 'kg',
@@ -207,8 +209,9 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildBodyFatField() {
+  Widget _buildBodyFatField(ColorScheme colorScheme) {
     return _buildNumberField(
+      colorScheme: colorScheme,
       label: '체지방률',
       hint: '예: 18.5',
       suffix: '%',
@@ -225,8 +228,9 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildMuscleMassField() {
+  Widget _buildMuscleMassField(ColorScheme colorScheme) {
     return _buildNumberField(
+      colorScheme: colorScheme,
       label: '골격근량',
       hint: '예: 32.0',
       suffix: 'kg',
@@ -244,6 +248,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
   }
 
   Widget _buildNumberField({
+    required ColorScheme colorScheme,
     required String label,
     required String hint,
     required String suffix,
@@ -258,10 +263,10 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: colorScheme.onSurface,
               ),
             ),
             if (isRequired)
@@ -307,16 +312,16 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildDataSourceSelector() {
+  Widget _buildDataSourceSelector(ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '데이터 소스',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),

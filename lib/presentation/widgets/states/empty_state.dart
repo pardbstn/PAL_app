@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 enum EmptyStateType {
   members,
@@ -20,6 +21,8 @@ class EmptyState extends StatelessWidget {
   final VoidCallback? onAction;
   final Widget? customIcon;
   final double iconSize;
+  final String? lottieAsset; // Lottie 에셋 경로 (예: 'assets/lottie/empty.json')
+  final bool useLottie; // Lottie 사용 여부 (기본값 false)
 
   const EmptyState({
     super.key,
@@ -30,6 +33,8 @@ class EmptyState extends StatelessWidget {
     this.onAction,
     this.customIcon,
     this.iconSize = 120,
+    this.lottieAsset,
+    this.useLottie = false,
   });
 
   @override
@@ -79,8 +84,26 @@ class EmptyState extends StatelessWidget {
   }
 
   Widget _buildIcon(BuildContext context, _EmptyStateConfig config) {
+    final effectiveLottieAsset = lottieAsset ?? config.lottieAsset;
+
+    // useLottie가 true이고 lottieAsset이 있으면 Lottie 사용
+    if (useLottie && effectiveLottieAsset != null) {
+      return Lottie.asset(
+        effectiveLottieAsset,
+        width: iconSize,
+        height: iconSize,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackIcon(context, config),
+      );
+    }
+
+    // 기존 아이콘 로직
+    return _buildFallbackIcon(context, config);
+  }
+
+  Widget _buildFallbackIcon(BuildContext context, _EmptyStateConfig config) {
     final theme = Theme.of(context);
-    // Lottie 파일이 있으면 사용, 없으면 아이콘
     return Container(
       width: iconSize,
       height: iconSize,
@@ -105,6 +128,7 @@ class EmptyState extends StatelessWidget {
           message: '새 회원을 등록해보세요',
           actionLabel: '회원 등록',
           actionIcon: Icons.person_add,
+          lottieAsset: 'assets/lottie/empty_members.json',
         );
       case EmptyStateType.curriculums:
         return _EmptyStateConfig(
@@ -113,6 +137,7 @@ class EmptyState extends StatelessWidget {
           message: 'AI로 맞춤 커리큘럼을 생성해보세요',
           actionLabel: 'AI 커리큘럼 생성',
           actionIcon: Icons.auto_awesome,
+          lottieAsset: 'assets/lottie/empty_curriculum.json',
         );
       case EmptyStateType.bodyRecords:
         return _EmptyStateConfig(
@@ -121,6 +146,7 @@ class EmptyState extends StatelessWidget {
           message: '체성분을 기록하면 변화 그래프를 볼 수 있어요',
           actionLabel: '기록 추가',
           actionIcon: Icons.add,
+          lottieAsset: 'assets/lottie/empty_chart.json',
         );
       case EmptyStateType.dietRecords:
         return _EmptyStateConfig(
@@ -129,6 +155,7 @@ class EmptyState extends StatelessWidget {
           message: '오늘 먹은 음식을 기록해보세요',
           actionLabel: '식단 기록',
           actionIcon: Icons.add_a_photo,
+          lottieAsset: 'assets/lottie/empty_diet.json',
         );
       case EmptyStateType.messages:
         return _EmptyStateConfig(
@@ -137,6 +164,7 @@ class EmptyState extends StatelessWidget {
           message: '트레이너와 대화를 시작해보세요',
           actionLabel: '메시지 보내기',
           actionIcon: Icons.send,
+          lottieAsset: 'assets/lottie/empty_chat.json',
         );
       case EmptyStateType.sessions:
         return _EmptyStateConfig(
@@ -145,6 +173,7 @@ class EmptyState extends StatelessWidget {
           message: '이 날짜에는 수업이 없어요',
           actionLabel: null,
           actionIcon: null,
+          lottieAsset: 'assets/lottie/empty_calendar.json',
         );
       case EmptyStateType.signatures:
         return _EmptyStateConfig(
@@ -153,6 +182,7 @@ class EmptyState extends StatelessWidget {
           message: '수업 완료 시 서명 기록이 저장됩니다',
           actionLabel: null,
           actionIcon: null,
+          lottieAsset: 'assets/lottie/empty_signature.json',
         );
       case EmptyStateType.search:
         return _EmptyStateConfig(
@@ -161,6 +191,7 @@ class EmptyState extends StatelessWidget {
           message: '다른 검색어로 시도해보세요',
           actionLabel: null,
           actionIcon: null,
+          lottieAsset: 'assets/lottie/search_empty.json',
         );
       case EmptyStateType.generic:
         return _EmptyStateConfig(
@@ -169,6 +200,7 @@ class EmptyState extends StatelessWidget {
           message: '아직 데이터가 없어요',
           actionLabel: null,
           actionIcon: null,
+          lottieAsset: 'assets/lottie/empty.json',
         );
     }
   }
@@ -180,6 +212,7 @@ class _EmptyStateConfig {
   final String message;
   final String? actionLabel;
   final IconData? actionIcon;
+  final String? lottieAsset; // Lottie 에셋 경로 (optional)
 
   _EmptyStateConfig({
     required this.icon,
@@ -187,5 +220,6 @@ class _EmptyStateConfig {
     required this.message,
     this.actionLabel,
     this.actionIcon,
+    this.lottieAsset,
   });
 }

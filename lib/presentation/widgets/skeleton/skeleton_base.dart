@@ -33,11 +33,12 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -52,11 +53,12 @@ class SkeletonCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
         shape: BoxShape.circle,
       ),
     );

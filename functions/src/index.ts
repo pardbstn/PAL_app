@@ -393,7 +393,7 @@ export const getAIUsage = functions
 export const sendMessageNotification = functions
   .region("asia-northeast3")
   .firestore.document("messages/{messageId}")
-  .onCreate(async (snapshot, context) => {
+  .onCreate(async (snapshot) => {
     const message = snapshot.data();
     const {chatRoomId, senderId, senderRole, content, imageUrl} = message;
 
@@ -488,7 +488,7 @@ export const sendPTExpiryNotification = functions
   .region("asia-northeast3")
   .pubsub.schedule("0 9 * * *") // 매일 오전 9시
   .timeZone("Asia/Seoul")
-  .onRun(async (context) => {
+  .onRun(async () => {
     const now = new Date();
     const targetDays = [7, 3, 1]; // 알림 대상 일수
 
@@ -586,3 +586,37 @@ export const sendPTExpiryNotification = functions
 
 // 모듈화된 predictWeight 함수 re-export
 export {predictWeight} from "./predictWeight";
+
+// ============================================
+// AI 인사이트 Functions
+// ============================================
+
+// 모듈화된 generateInsights 함수 re-export
+export {generateInsights, generateInsightsScheduled} from "./generateInsights";
+
+// ============================================
+// AI 식단 분석 Functions
+// ============================================
+
+// 모듈화된 analyzeDiet 함수 re-export
+export {analyzeDiet} from "./analyzeDiet";
+
+// ============================================
+// AI 회원 인사이트 Functions
+// ============================================
+
+// 모듈화된 generateMemberInsights 함수 re-export
+export {generateMemberInsights} from "./generateMemberInsights";
+
+// ============================================
+// 푸시 알림 Functions
+// ============================================
+
+// 알림 함수 re-export
+export {
+  sendInsightNotification,
+  sendDietReminderLunch,
+  sendDietReminderDinner,
+  sendPTReminder,
+  sendWeeklyReport,
+} from "./notifications";

@@ -49,8 +49,8 @@ class MemberListSkeleton extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: itemCount,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, __) => const MemberCardSkeleton(),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, _) => const MemberCardSkeleton(),
     );
   }
 }
@@ -326,6 +326,128 @@ class ExerciseTimelineSkeleton extends StatelessWidget {
           ),
         )),
       ),
+    );
+  }
+}
+
+/// 인사이트 카드 스켈레톤
+class InsightCardSkeleton extends StatelessWidget {
+  const InsightCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonContainer(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단: 아이콘 + 제목
+            Row(
+              children: [
+                SkeletonCircle(size: 40),
+                SizedBox(width: 12),
+                Expanded(child: SkeletonLine(width: 150, height: 18)),
+              ],
+            ),
+            SizedBox(height: 16),
+            // 본문 텍스트 3줄
+            SkeletonLine(height: 14),
+            SizedBox(height: 8),
+            SkeletonLine(height: 14),
+            SizedBox(height: 8),
+            SkeletonLine(width: 200, height: 14),
+            SizedBox(height: 16),
+            // 하단: 날짜
+            SkeletonLine(width: 100, height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 인사이트 목록 스켈레톤
+class InsightListSkeleton extends StatelessWidget {
+  final int itemCount;
+
+  const InsightListSkeleton({super.key, this.itemCount = 3});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: itemCount,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, _) => const InsightCardSkeleton(),
+    );
+  }
+}
+
+/// 채팅 목록 아이템 스켈레톤
+class ChatListItemSkeleton extends StatelessWidget {
+  const ChatListItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonContainer(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            // 아바타
+            const SkeletonCircle(size: 48),
+            const SizedBox(width: 12),
+            // 이름 + 마지막 메시지
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLine(width: 100, height: 16),
+                  SizedBox(height: 6),
+                  SkeletonLine(width: 180, height: 14),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // 시간 + 읽지 않은 메시지 배지
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const SkeletonLine(width: 40, height: 12),
+                const SizedBox(height: 6),
+                SkeletonCircle(size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 채팅 목록 스켈레톤
+class ChatListSkeleton extends StatelessWidget {
+  final int itemCount;
+
+  const ChatListSkeleton({super.key, this.itemCount = 5});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: itemCount,
+      separatorBuilder: (_, _) => Divider(
+        height: 1,
+        color: Theme.of(context).dividerColor,
+      ),
+      itemBuilder: (_, _) => const ChatListItemSkeleton(),
     );
   }
 }

@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
 
-/// 회원 앱 셸 (Bottom Navigation)
+/// 회원 앱 셸 (Bottom Navigation - 5개 탭)
+/// 1. 홈 2. 내 기록 3. 캘린더 4. 식단 5. 메시지
 class MemberShell extends ConsumerWidget {
   final Widget child;
 
@@ -26,9 +27,14 @@ class MemberShell extends ConsumerWidget {
             label: '홈',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.fitness_center_outlined),
+            selectedIcon: Icon(Icons.fitness_center),
             label: '내 기록',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: '캘린더',
           ),
           const NavigationDestination(
             icon: Icon(Icons.restaurant_outlined),
@@ -57,8 +63,9 @@ class MemberShell extends ConsumerWidget {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/member/home')) return 0;
     if (location.startsWith('/member/records')) return 1;
-    if (location.startsWith('/member/diet')) return 2;
-    if (location.startsWith('/member/messages')) return 3;
+    if (location.startsWith('/member/calendar')) return 2;
+    if (location.startsWith('/member/diet')) return 3;
+    if (location.startsWith('/member/messages')) return 4;
     return 0;
   }
 
@@ -71,9 +78,12 @@ class MemberShell extends ConsumerWidget {
         context.go(AppRoutes.memberRecords);
         break;
       case 2:
-        context.go(AppRoutes.memberDiet);
+        context.go(AppRoutes.memberCalendar);
         break;
       case 3:
+        context.go(AppRoutes.memberDiet);
+        break;
+      case 4:
         context.go(AppRoutes.memberMessages);
         break;
     }

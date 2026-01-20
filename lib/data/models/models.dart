@@ -11,3 +11,6 @@ export 'session_signature_model.dart';
 export 'message_model.dart';
 export 'chat_room_model.dart';
 export 'weight_prediction_model.dart';
+export 'insight_model.dart';
+export 'inbody_record_model.dart';
+export 'diet_analysis_model.dart' hide MealType;

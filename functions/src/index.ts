@@ -620,3 +620,14 @@ export {
   sendPTReminder,
   sendWeeklyReport,
 } from "./notifications";
+
+// ============================================
+// 회원 활동 트리거 Functions
+// ============================================
+
+// 회원 활동 감지 시 인사이트 자동 생성
+export {
+  onBodyRecordCreated,
+  onDietRecordCreated,
+  onCurriculumCompleted,
+} from "./triggers/onMemberActivity";

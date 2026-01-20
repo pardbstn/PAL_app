@@ -86,9 +86,9 @@ export const predictWeight = functions
       );
     }
 
-    // 예측 기간 검증 및 클램핑
+    // 예측 기간 검증 및 클램핑 (1주 예측만 지원)
     const predictionWeeks = Math.min(
-      Math.max(1, Number(weeksAhead) || 8),
+      Math.max(1, Number(weeksAhead) || 1),
       MAX_WEEKS_AHEAD
     );
 

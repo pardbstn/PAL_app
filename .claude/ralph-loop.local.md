@@ -1,6 +1,6 @@
 ---
 active: true
-iteration: 1
+iteration: 2
 max_iterations: 50
 completion_promise: "전체 수정 완료"
 started_at: "2026-01-20T16:50:12Z"

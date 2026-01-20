@@ -12,7 +12,7 @@ import {
   PredictedPoint,
   MIN_DATA_POINTS,
   MAX_WEEKS_AHEAD,
-  PREDICTION_LIMITS,
+  // PREDICTION_LIMITS, // 테스트용 임시 주석
   calculateLinearRegression,
   calculateWeightedTrend,
   calculateStandardDeviation,
@@ -22,7 +22,7 @@ import {
   calculateWeeksToTarget,
   generateAnalysisMessage,
   generatePredictedWeights,
-  isQuotaExceeded,
+  // isQuotaExceeded, // 테스트용 임시 주석
   generateDataSummary,
   generateGoalScenarios,
   generateCoachingMessages,
@@ -145,21 +145,22 @@ export const predictWeight = functions
         ? 0
         : aiUsage.predictionCount || 0;
 
-      // 한도 체크 (Pro 티어는 무제한)
-      if (tier.toLowerCase() !== "pro" && isQuotaExceeded(tier, currentPredictionCount)) {
-        const limit = PREDICTION_LIMITS[tier.toLowerCase()] || PREDICTION_LIMITS.free;
-        functions.logger.warn("[predictWeight] 사용량 초과", {
-          trainerId,
-          tier,
-          currentCount: currentPredictionCount,
-          limit,
-        });
-        throw new functions.https.HttpsError(
-          "resource-exhausted",
-          `이번 달 AI 예측 사용량을 초과했습니다. (${currentPredictionCount}/${limit}회) ` +
-          "Pro 플랜으로 업그레이드하시면 무제한으로 사용 가능합니다."
-        );
-      }
+      // TODO: 테스트 완료 후 한도 체크 다시 활성화
+      // 한도 체크 (Pro 티어는 무제한) - 테스트용 임시 비활성화
+      // if (tier.toLowerCase() !== "pro" && isQuotaExceeded(tier, currentPredictionCount)) {
+      //   const limit = PREDICTION_LIMITS[tier.toLowerCase()] || PREDICTION_LIMITS.free;
+      //   functions.logger.warn("[predictWeight] 사용량 초과", {
+      //     trainerId,
+      //     tier,
+      //     currentCount: currentPredictionCount,
+      //     limit,
+      //   });
+      //   throw new functions.https.HttpsError(
+      //     "resource-exhausted",
+      //     `이번 달 AI 예측 사용량을 초과했습니다. (${currentPredictionCount}/${limit}회) ` +
+      //     "Pro 플랜으로 업그레이드하시면 무제한으로 사용 가능합니다."
+      //   );
+      // }
 
       // 5. 회원 정보 확인
       const memberDoc = await db.collection("members").doc(memberId).get();

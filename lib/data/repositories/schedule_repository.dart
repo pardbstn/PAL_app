@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/schedule_model.dart';
 import 'base_repository.dart';
@@ -24,10 +23,6 @@ class ScheduleRepository {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    debugPrint('=== 일별 일정 조회 ===');
-    debugPrint('trainerId: $trainerId');
-    debugPrint('기간: $startOfDay ~ $endOfDay');
-
     // 복합 인덱스 사용: trainerId + scheduledAt
     final snapshot = await _collection
         .where('trainerId', isEqualTo: trainerId)
@@ -36,17 +31,7 @@ class ScheduleRepository {
         .orderBy('scheduledAt')
         .get();
 
-    debugPrint('조회된 일정 수: ${snapshot.docs.length}');
-
-    final schedules = snapshot.docs
-        .map((doc) => _docToSchedule(doc))
-        .toList();
-
-    for (final s in schedules) {
-      debugPrint('  - ${s.memberName}: ${s.scheduledAt}');
-    }
-
-    return schedules;
+    return snapshot.docs.map((doc) => _docToSchedule(doc)).toList();
   }
 
   /// 월별 일정 조회
@@ -54,10 +39,6 @@ class ScheduleRepository {
       String trainerId, DateTime month) async {
     final startOfMonth = DateTime(month.year, month.month, 1);
     final endOfMonth = DateTime(month.year, month.month + 1, 1);
-
-    debugPrint('=== 월별 일정 조회 ===');
-    debugPrint('trainerId: $trainerId');
-    debugPrint('기간: $startOfMonth ~ $endOfMonth');
 
     // 복합 인덱스 사용: trainerId + scheduledAt
     final snapshot = await _collection
@@ -67,17 +48,7 @@ class ScheduleRepository {
         .orderBy('scheduledAt')
         .get();
 
-    debugPrint('조회된 일정 수: ${snapshot.docs.length}');
-
-    final schedules = snapshot.docs
-        .map((doc) => _docToSchedule(doc))
-        .toList();
-
-    for (final s in schedules) {
-      debugPrint('  - ${s.memberName}: ${s.scheduledAt}');
-    }
-
-    return schedules;
+    return snapshot.docs.map((doc) => _docToSchedule(doc)).toList();
   }
 
   /// 회원의 일정 조회
@@ -109,12 +80,6 @@ class ScheduleRepository {
 
   /// 일정 추가
   Future<String> addSchedule(ScheduleModel schedule) async {
-    debugPrint('=== 일정 저장 ===');
-    debugPrint('trainerId: ${schedule.trainerId}');
-    debugPrint('memberId: ${schedule.memberId}');
-    debugPrint('memberName: ${schedule.memberName}');
-    debugPrint('scheduledAt: ${schedule.scheduledAt}');
-
     final data = {
       'trainerId': schedule.trainerId,
       'memberId': schedule.memberId,
@@ -130,7 +95,6 @@ class ScheduleRepository {
     };
 
     final docRef = await _collection.add(data);
-    debugPrint('저장 완료: ${docRef.id}');
     return docRef.id;
   }
 

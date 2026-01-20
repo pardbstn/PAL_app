@@ -7,7 +7,6 @@ import 'package:flutter_pal_app/presentation/widgets/states/states.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:uuid/uuid.dart';
 
 /// 트레이너 캘린더 화면 - 프로덕션 품질 버전
@@ -39,7 +38,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   // PageController 설정 (무한 스와이프)
   late final PageController _monthPageController;
   late final PageController _weekPageController;
-  static const int _initialPage = 1200; // ~100년 스크롤 가능
+  static const int _initialPage = 120; // 앞뒤 10년 범위 (성능 최적화)
 
   // 주별 뷰 시간 설정
   static const int _dayStartHour = 6; // 6:00 AM
@@ -51,10 +50,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     super.initState();
     _monthPageController = PageController(initialPage: _initialPage);
     _weekPageController = PageController(initialPage: _initialPage);
-    // 프레임 렌더링 완료 후 데이터 로드 (UI 블로킹 방지)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 데이터 로드는 첫 프레임 후 (로딩 인디케이터 없이)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        _loadSchedulesForMonth(_focusedMonth);
+        await _loadSchedulesForMonth(_focusedMonth, showLoading: false);
+        // 데이터 로드 완료 후 UI 업데이트
+        if (mounted) setState(() {});
       }
     });
   }
@@ -228,11 +229,13 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
   /// 일정 데이터 새로고침
   Future<void> _refreshSchedules() async {
-    // 캐시 비우고 현재 월 다시 로드
+    // 캐시 비우고 현재 월 다시 로드 (로딩 인디케이터 없이 - 성능 최적화)
     _schedulesCache.clear();
     _schedulesPerDayCache.clear();
-    await _loadSchedulesForMonth(_focusedMonth);
+    await _loadSchedulesForMonth(_focusedMonth, showLoading: false);
     _preloadAdjacentMonths(_focusedMonth);
+    // 데이터 로드 후 UI 업데이트
+    if (mounted) setState(() {});
   }
 
   /// 월별/주별 뷰 전환 (페이지 동기화 포함)
@@ -426,7 +429,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
             height: 340,
             child: PageView.builder(
               controller: _monthPageController,
-              onPageChanged: (page) {
+              onPageChanged: (page) async {
                 final month = _getMonthFromPage(page);
                 // 같은 월이면 무시
                 if (_focusedMonth.year == month.year &&
@@ -442,8 +445,10 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       : _selectedDate.day;
                   _selectedDate = DateTime(month.year, month.month, newDay);
                 });
-                // 현재 월 로드
-                _loadSchedulesForMonth(month);
+                // 현재 월 로드 (로딩 인디케이터 없이 - 성능 최적화)
+                await _loadSchedulesForMonth(month, showLoading: false);
+                // 데이터 로드 완료 후 UI 업데이트
+                if (mounted) setState(() {});
                 // 인접 월은 다음 프레임에 로드 (UI 블로킹 방지)
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) _preloadAdjacentMonths(month);
@@ -527,13 +532,9 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
               final schedules = _getSchedulesForDate(date);
               final weekdayIndex = index % 7;
 
-              // PT 일정과 개인 일정 분리
-              final ptSchedules = schedules
-                  .where((s) => s.scheduleType == ScheduleType.pt)
-                  .toList();
-              final personalSchedules = schedules
-                  .where((s) => s.scheduleType == ScheduleType.personal)
-                  .toList();
+              // PT 일정과 개인 일정 존재 여부만 체크 (리스트 할당 없이)
+              final hasPtSchedules = schedules.any((s) => s.scheduleType == ScheduleType.pt);
+              final hasPersonalSchedules = schedules.any((s) => s.scheduleType == ScheduleType.personal);
 
               return GestureDetector(
                 onTap: () {
@@ -570,12 +571,11 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       const SizedBox(height: 2),
                       // 일정 도트 (PT: 파란색, 개인: 주황색)
                       if (isCurrentMonth &&
-                          (ptSchedules.isNotEmpty ||
-                              personalSchedules.isNotEmpty))
+                          (hasPtSchedules || hasPersonalSchedules))
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (ptSchedules.isNotEmpty)
+                            if (hasPtSchedules)
                               Container(
                                 width: 5,
                                 height: 5,
@@ -589,7 +589,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                                       : AppTheme.primary,
                                 ),
                               ),
-                            if (personalSchedules.isNotEmpty)
+                            if (hasPersonalSchedules)
                               Container(
                                 width: 5,
                                 height: 5,
@@ -638,7 +638,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     return RepaintBoundary(
       child: PageView.builder(
         controller: _weekPageController,
-        onPageChanged: (page) {
+        onPageChanged: (page) async {
           final weekStart = _getWeekStartFromPage(page);
           final weekEnd = weekStart.add(const Duration(days: 6));
 
@@ -662,10 +662,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
           }
 
           // 주에 포함된 월들의 일정 로드 (백그라운드)
-          _loadSchedulesForMonth(weekStart, showLoading: false);
+          await _loadSchedulesForMonth(weekStart, showLoading: false);
           if (weekStart.month != weekEnd.month) {
-            _loadSchedulesForMonth(weekEnd, showLoading: false);
+            await _loadSchedulesForMonth(weekEnd, showLoading: false);
           }
+          // 데이터 로드 완료 후 UI 업데이트
+          if (mounted) setState(() {});
         },
         itemBuilder: (context, page) {
           final weekStart = _getWeekStartFromPage(page);
@@ -868,70 +870,61 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   /// 특정 날짜의 일정 블록들 렌더링
   Widget _buildDayScheduleBlocks(DateTime date, int dayIndex, int totalDays) {
     final schedules = _getSchedulesForDate(date);
+    if (schedules.isEmpty) return const SizedBox.shrink();
 
     // 같은 시간대의 일정들을 그룹화
     final schedulesWithOverlap = _calculateOverlaps(schedules);
 
-    return Stack(
-      children: schedulesWithOverlap.map((item) {
-        final schedule = item.schedule;
-        final overlapIndex = item.overlapIndex;
-        final overlapCount = item.overlapCount;
+    // LayoutBuilder를 부모 레벨에서 한 번만 사용 (성능 최적화)
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
 
-        // 시작 시간의 Y 위치 계산
-        int startHour = schedule.scheduledAt.hour;
-        int startMinute = schedule.scheduledAt.minute;
+        return Stack(
+          children: schedulesWithOverlap.map((item) {
+            final schedule = item.schedule;
+            final overlapIndex = item.overlapIndex;
+            final overlapCount = item.overlapCount;
 
-        // 6시 이전 시작하는 일정은 6시부터 표시
-        if (startHour < _dayStartHour) {
-          startHour = _dayStartHour;
-          startMinute = 0;
-        }
+            // 시작 시간의 Y 위치 계산
+            int startHour = schedule.scheduledAt.hour;
+            int startMinute = schedule.scheduledAt.minute;
 
-        // 그리드 시작 기준(6시)으로 오프셋 계산
-        final startOffset = (startHour - _dayStartHour) + (startMinute / 60.0);
-        final top = startOffset * _hourHeight;
+            // 6시 이전 시작하는 일정은 6시부터 표시
+            if (startHour < _dayStartHour) {
+              startHour = _dayStartHour;
+              startMinute = 0;
+            }
 
-        // 블록 높이 계산 (duration 반영)
-        final blockHeight = (schedule.duration / 60.0) * _hourHeight;
+            // 그리드 시작 기준(6시)으로 오프셋 계산
+            final startOffset = (startHour - _dayStartHour) + (startMinute / 60.0);
+            final top = startOffset * _hourHeight;
 
-        // 동일 시간대 겹침 처리
-        final columnWidth = 1.0 / overlapCount;
-        final left = overlapIndex * columnWidth;
+            // 블록 높이 계산 (duration 반영)
+            final blockHeight = (schedule.duration / 60.0) * _hourHeight;
 
-        // 일정 유형에 따른 색상
-        final isPt = schedule.scheduleType == ScheduleType.pt;
-        final baseColor = isPt ? AppTheme.primary : AppTheme.tertiary;
+            // 겹침 처리: 픽셀 기반 계산
+            final columnWidth = availableWidth / overlapCount;
+            final leftPos = overlapIndex * columnWidth + 2;
+            final width = columnWidth - 4; // 양쪽 2px 마진
 
-        return Positioned(
-          top: top,
-          left: left * 100, // 퍼센트를 위한 임시값
-          right: (1 - left - columnWidth) * 100, // 퍼센트를 위한 임시값
-          height: blockHeight.clamp(20.0, double.infinity),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final availableWidth = constraints.maxWidth;
-              return Positioned(
-                left: 0,
-                right: 0,
-                child: Container(
-                  margin: EdgeInsets.only(
-                    left: 2 + (availableWidth * overlapIndex / overlapCount),
-                    right:
-                        2 +
-                        (availableWidth *
-                            (overlapCount - overlapIndex - 1) /
-                            overlapCount),
-                    top: 1,
-                    bottom: 1,
-                  ),
-                  child: _buildScheduleBlock(schedule, baseColor, blockHeight),
-                ),
-              );
-            },
-          ),
+            // 일정 유형에 따른 색상
+            final isPt = schedule.scheduleType == ScheduleType.pt;
+            final baseColor = isPt ? AppTheme.primary : AppTheme.tertiary;
+
+            return Positioned(
+              top: top,
+              left: leftPos,
+              width: width,
+              height: blockHeight.clamp(20.0, double.infinity),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 1),
+                child: _buildScheduleBlock(schedule, baseColor, blockHeight),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -1367,11 +1360,9 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          final membersAsync = ref.watch(membersWithUserProvider);
-
-          // PT 일정이면 회원 선택 필수, 개인 일정이면 제목 입력 필수
+          // PT 일정이면 회원 이름 필수, 개인 일정이면 제목 입력 필수
           final bool canSave = scheduleType == ScheduleType.pt
-              ? selectedMemberId != null
+              ? (selectedMemberName?.trim().isNotEmpty ?? false)
               : personalTitle.trim().isNotEmpty;
 
           return Container(
@@ -1405,7 +1396,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(builderContext),
+                        onPressed: () => Navigator.pop(sheetContext),
                       ),
                     ],
                   ),
@@ -1536,12 +1527,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // PT 일정: 회원 선택
+                        // PT 일정: 회원 이름 입력
                         if (scheduleType == ScheduleType.pt) ...[
                           Row(
                             children: [
                               const Text(
-                                '회원 선택',
+                                '회원 이름',
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(width: 4),
@@ -1552,46 +1543,36 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          membersAsync.when(
-                            data: (members) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
+                          TextField(
+                            onChanged: (v) {
+                              setDialogState(() {
+                                selectedMemberName = v;
+                                // memberId는 이름 기반으로 생성
+                                selectedMemberId = 'manual-$v';
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: '회원 이름을 입력하세요',
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[200]!),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: selectedMemberId,
-                                  isExpanded: true,
-                                  hint: const Text('회원을 선택하세요'),
-                                  items: members.map((m) {
-                                    final name = m.user?.name ?? '회원';
-                                    return DropdownMenuItem(
-                                      value: m.member.id,
-                                      child: Text(name),
-                                    );
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setDialogState(() {
-                                      selectedMemberId = value;
-                                      selectedMemberName = members
-                                          .firstWhere(
-                                            (m) => m.member.id == value,
-                                          )
-                                          .user
-                                          ?.name;
-                                    });
-                                  },
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
                                 ),
                               ),
-                            ),
-                            loading: () => const LinearProgressIndicator(),
-                            error: (e, _) => Text(
-                              '오류: $e',
-                              style: const TextStyle(color: Colors.red),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppTheme.primary,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -2153,12 +2134,11 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          final membersAsync = ref.watch(membersWithUserProvider);
           final isPt = scheduleType == ScheduleType.pt;
 
-          // PT 일정이면 회원 선택 필수, 개인 일정이면 제목 입력 필수
+          // PT 일정이면 회원 이름 필수, 개인 일정이면 제목 입력 필수
           final bool canSave = scheduleType == ScheduleType.pt
-              ? selectedMemberId != null
+              ? (selectedMemberName?.trim().isNotEmpty ?? false)
               : personalTitle.trim().isNotEmpty;
 
           return Container(
@@ -2192,7 +2172,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(builderContext),
+                        onPressed: () => Navigator.pop(sheetContext),
                       ),
                     ],
                   ),
@@ -2251,12 +2231,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // PT 일정: 회원 선택
+                        // PT 일정: 회원 이름 입력
                         if (scheduleType == ScheduleType.pt) ...[
                           Row(
                             children: [
                               const Text(
-                                '회원 선택',
+                                '회원 이름',
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(width: 4),
@@ -2267,46 +2247,36 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          membersAsync.when(
-                            data: (members) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
+                          TextField(
+                            onChanged: (v) {
+                              setDialogState(() {
+                                selectedMemberName = v;
+                                // memberId는 이름 기반으로 생성
+                                selectedMemberId = 'manual-$v';
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: '회원 이름을 입력하세요',
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[200]!),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: selectedMemberId,
-                                  isExpanded: true,
-                                  hint: const Text('회원을 선택하세요'),
-                                  items: members.map((m) {
-                                    final name = m.user?.name ?? '회원';
-                                    return DropdownMenuItem(
-                                      value: m.member.id,
-                                      child: Text(name),
-                                    );
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setDialogState(() {
-                                      selectedMemberId = value;
-                                      selectedMemberName = members
-                                          .firstWhere(
-                                            (m) => m.member.id == value,
-                                          )
-                                          .user
-                                          ?.name;
-                                    });
-                                  },
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
                                 ),
                               ),
-                            ),
-                            loading: () => const LinearProgressIndicator(),
-                            error: (e, _) => Text(
-                              '오류: $e',
-                              style: const TextStyle(color: Colors.red),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppTheme.primary,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),

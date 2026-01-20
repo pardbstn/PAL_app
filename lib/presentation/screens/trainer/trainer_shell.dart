@@ -12,8 +12,6 @@ class TrainerShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
-
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
@@ -35,16 +33,27 @@ class TrainerShell extends ConsumerWidget {
             selectedIcon: Icon(Icons.calendar_today),
             label: '캘린더',
           ),
+          // 메시지 배지만 별도로 리빌드되도록 Consumer 사용
           NavigationDestination(
-            icon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-              child: const Icon(Icons.message_outlined),
+            icon: Consumer(
+              builder: (context, ref, _) {
+                final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+                return Badge(
+                  isLabelVisible: unreadCount > 0,
+                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                  child: const Icon(Icons.message_outlined),
+                );
+              },
             ),
-            selectedIcon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-              child: const Icon(Icons.message),
+            selectedIcon: Consumer(
+              builder: (context, ref, _) {
+                final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+                return Badge(
+                  isLabelVisible: unreadCount > 0,
+                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                  child: const Icon(Icons.message),
+                );
+              },
             ),
             label: '메시지',
           ),

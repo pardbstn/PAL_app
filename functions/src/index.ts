@@ -579,3 +579,10 @@ export const sendPTExpiryNotification = functions
       return null;
     }
   });
+
+// ============================================
+// AI 체중 예측 Functions
+// ============================================
+
+// 모듈화된 predictWeight 함수 re-export
+export {predictWeight} from "./predictWeight";

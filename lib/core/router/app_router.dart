@@ -190,7 +190,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerCalendar,
             name: RouteNames.trainerCalendar,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage<void>(
               key: state.pageKey,
               child: const TrainerCalendarScreen(),
             ),

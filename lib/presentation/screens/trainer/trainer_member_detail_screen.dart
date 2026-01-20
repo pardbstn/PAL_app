@@ -24,6 +24,7 @@ import 'package:flutter_pal_app/presentation/widgets/add_body_record_sheet.dart'
 import 'package:flutter_pal_app/presentation/widgets/session_complete_dialog.dart';
 import 'package:flutter_pal_app/data/models/session_signature_model.dart';
 import 'package:flutter_pal_app/data/repositories/session_signature_repository.dart';
+import 'package:flutter_pal_app/presentation/providers/weight_prediction_provider.dart';
 
 // ============================================================================
 // Providers
@@ -511,6 +512,7 @@ class _GraphTab extends ConsumerWidget {
     final bodyRecordsAsync = ref.watch(bodyRecordsProvider(memberId));
     final weightHistoryAsync = ref.watch(weightHistoryProvider(memberId));
     final latestRecordAsync = ref.watch(latestBodyRecordProvider(memberId));
+    final predictionAsync = ref.watch(latestPredictionProvider(memberId));
 
     return Stack(
       children: [
@@ -523,9 +525,11 @@ class _GraphTab extends ConsumerWidget {
             }
             return _buildGraphContent(
               context,
+              ref,
               records,
               weightHistoryAsync,
               latestRecordAsync,
+              predictionAsync,
             );
           },
         ),
@@ -598,10 +602,24 @@ class _GraphTab extends ConsumerWidget {
 
   Widget _buildGraphContent(
     BuildContext context,
+    WidgetRef ref,
     List records,
     AsyncValue<List<WeightHistoryData>> weightHistoryAsync,
     AsyncValue<dynamic> latestRecordAsync,
+    AsyncValue<dynamic> predictionAsync,
   ) {
+    // 예측 데이터를 WeightData로 변환
+    List<WeightData> predictedData = [];
+    final prediction = predictionAsync.value;
+    if (prediction != null) {
+      predictedData = prediction.predictedWeights.map<WeightData>((p) {
+        return WeightData(
+          label: DateFormat('M/d').format(p.date),
+          weight: p.weight,
+        );
+      }).toList();
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -610,7 +628,7 @@ class _GraphTab extends ConsumerWidget {
           // 현재 상태 요약
           latestRecordAsync.when(
             loading: () => _buildCurrentStatusShimmer(context),
-            error: (_, _) => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
             data: (record) {
               if (record == null) return const SizedBox.shrink();
               return _buildCurrentStatus(record);
@@ -654,7 +672,7 @@ class _GraphTab extends ConsumerWidget {
                 const SizedBox.shrink(),
           const SizedBox(height: 24),
 
-          // 체중 변화 그래프
+          // 체중 변화 그래프 (예측 포함)
           _buildSectionCard(
             context,
             '체중 변화',
@@ -690,12 +708,16 @@ class _GraphTab extends ConsumerWidget {
 
                 return WeightLineChart(
                   actualData: weightData,
-                  predictedData: const [],
+                  predictedData: predictedData,
                   targetWeight: targetWeight,
                 );
               },
             ),
           ),
+          const SizedBox(height: 16),
+
+          // AI 체중 예측 섹션
+          _buildPredictionSection(context, ref, predictionAsync, records.length),
           const SizedBox(height: 24),
 
           // 체성분 비율
@@ -716,6 +738,330 @@ class _GraphTab extends ConsumerWidget {
             );
           }).value ??
               const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
+  /// AI 체중 예측 섹션
+  Widget _buildPredictionSection(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<dynamic> predictionAsync,
+    int recordCount,
+  ) {
+    return _buildSectionCard(
+      context,
+      'AI 체중 예측',
+      predictionAsync.when(
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        error: (error, _) => _buildPredictionError(context, ref, error.toString()),
+        data: (prediction) {
+          if (prediction == null) {
+            return _buildPredictionEmpty(context, ref, recordCount);
+          }
+          return _buildPredictionResult(context, ref, prediction);
+        },
+      ),
+      trailing: _buildPredictionButton(context, ref, recordCount),
+    );
+  }
+
+  /// 예측 버튼
+  Widget _buildPredictionButton(BuildContext context, WidgetRef ref, int recordCount) {
+    final canPredict = recordCount >= 4;
+
+    return TextButton.icon(
+      onPressed: canPredict
+          ? () => _runPrediction(context, ref)
+          : null,
+      icon: Icon(
+        Icons.auto_graph,
+        size: 18,
+        color: canPredict ? AppTheme.primary : Colors.grey,
+      ),
+      label: Text(
+        '예측하기',
+        style: TextStyle(
+          color: canPredict ? AppTheme.primary : Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  /// 예측 실행
+  Future<void> _runPrediction(BuildContext context, WidgetRef ref) async {
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('AI가 체중 변화를 분석 중입니다...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final service = ref.read(weightPredictionServiceProvider);
+      await service.predict(memberId: memberId, weeksAhead: 8);
+
+      // 예측 데이터 갱신
+      ref.invalidate(latestPredictionProvider(memberId));
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('체중 예측이 완료되었습니다!'),
+            backgroundColor: AppTheme.secondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 예측 결과 없음 상태
+  Widget _buildPredictionEmpty(BuildContext context, WidgetRef ref, int recordCount) {
+    final canPredict = recordCount >= 4;
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.auto_graph,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            canPredict
+                ? 'AI 체중 예측을 실행해보세요'
+                : '예측을 위해 최소 4개의 기록이 필요합니다',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (canPredict) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _runPrediction(context, ref),
+              icon: const Icon(Icons.auto_graph),
+              label: const Text('예측 시작'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              '현재 ${recordCount}개 기록',
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 예측 에러 상태
+  Widget _buildPredictionError(BuildContext context, WidgetRef ref, String error) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            error.replaceAll('Exception: ', ''),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () => _runPrediction(context, ref),
+            icon: const Icon(Icons.refresh),
+            label: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 예측 결과 표시
+  Widget _buildPredictionResult(BuildContext context, WidgetRef ref, dynamic prediction) {
+    final isLosing = prediction.weeklyTrend < 0;
+    final isMaintaining = prediction.weeklyTrend.abs() < 0.1;
+    final trendColor = isLosing
+        ? AppTheme.secondary
+        : (isMaintaining ? Colors.blue : AppTheme.tertiary);
+    final trendIcon = isLosing
+        ? Icons.trending_down
+        : (isMaintaining ? Icons.trending_flat : Icons.trending_up);
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 주간 변화 트렌드
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: trendColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(trendIcon, color: trendColor, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '주간 변화',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    '${prediction.weeklyTrend > 0 ? '+' : ''}${prediction.weeklyTrend.toStringAsFixed(2)} kg/주',
+                    style: TextStyle(
+                      color: trendColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              // 신뢰도
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '신뢰도',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    '${(prediction.confidence * 100).toStringAsFixed(0)}%',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 목표 도달 예상
+          if (prediction.estimatedWeeksToTarget != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.flag, color: AppTheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '목표 도달 예상: 약 ${prediction.estimatedWeeksToTarget}주 후',
+                      style: const TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
+
+          // 분석 메시지
+          if (prediction.analysisMessage.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.amber.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      prediction.analysisMessage,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // 예측 정보
+          const SizedBox(height: 12),
+          Text(
+            '데이터 ${prediction.dataPointsUsed}개 기반 예측 • ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
@@ -821,7 +1167,12 @@ class _GraphTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionCard(BuildContext context, String title, Widget child) {
+  Widget _buildSectionCard(
+    BuildContext context,
+    String title,
+    Widget child, {
+    Widget? trailing,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -838,9 +1189,15 @@ class _GraphTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              if (trailing != null) trailing,
+            ],
           ),
           const SizedBox(height: 20),
           child,

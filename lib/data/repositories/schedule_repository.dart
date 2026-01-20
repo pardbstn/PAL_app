@@ -28,25 +28,20 @@ class ScheduleRepository {
     debugPrint('trainerId: $trainerId');
     debugPrint('기간: $startOfDay ~ $endOfDay');
 
-    // trainerId로만 쿼리 (복합 인덱스 불필요)
+    // 복합 인덱스 사용: trainerId + scheduledAt
     final snapshot = await _collection
         .where('trainerId', isEqualTo: trainerId)
+        .where('scheduledAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('scheduledAt', isLessThan: Timestamp.fromDate(endOfDay))
+        .orderBy('scheduledAt')
         .get();
 
-    debugPrint('전체 일정 수: ${snapshot.docs.length}');
+    debugPrint('조회된 일정 수: ${snapshot.docs.length}');
 
-    // 클라이언트에서 날짜 필터링
     final schedules = snapshot.docs
         .map((doc) => _docToSchedule(doc))
-        .where((schedule) {
-          final scheduleDate = schedule.scheduledAt;
-          return scheduleDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
-                 scheduleDate.isBefore(endOfDay);
-        })
-        .toList()
-      ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+        .toList();
 
-    debugPrint('필터링된 일정 수: ${schedules.length}');
     for (final s in schedules) {
       debugPrint('  - ${s.memberName}: ${s.scheduledAt}');
     }
@@ -64,25 +59,20 @@ class ScheduleRepository {
     debugPrint('trainerId: $trainerId');
     debugPrint('기간: $startOfMonth ~ $endOfMonth');
 
-    // trainerId로만 먼저 조회 (복합 인덱스 문제 회피)
+    // 복합 인덱스 사용: trainerId + scheduledAt
     final snapshot = await _collection
         .where('trainerId', isEqualTo: trainerId)
+        .where('scheduledAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('scheduledAt', isLessThan: Timestamp.fromDate(endOfMonth))
+        .orderBy('scheduledAt')
         .get();
 
-    debugPrint('전체 일정 수: ${snapshot.docs.length}');
+    debugPrint('조회된 일정 수: ${snapshot.docs.length}');
 
-    // 클라이언트에서 날짜 필터링
     final schedules = snapshot.docs
         .map((doc) => _docToSchedule(doc))
-        .where((schedule) {
-          final date = schedule.scheduledAt;
-          return date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-                 date.isBefore(endOfMonth);
-        })
-        .toList()
-      ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+        .toList();
 
-    debugPrint('필터링된 일정 수: ${schedules.length}');
     for (final s in schedules) {
       debugPrint('  - ${s.memberName}: ${s.scheduledAt}');
     }
@@ -184,25 +174,22 @@ class ScheduleRepository {
   }
 
   /// 트레이너의 오늘 일정 실시간 스트림 (홈 화면용)
-  /// 복합 인덱스 없이 클라이언트 필터링 방식 사용
+  /// 복합 인덱스 사용: trainerId + scheduledAt
   Stream<List<ScheduleModel>> todaySchedulesStream(String trainerId) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
     return _collection
         .where('trainerId', isEqualTo: trainerId)
+        .where('scheduledAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('scheduledAt', isLessThan: Timestamp.fromDate(endOfDay))
+        .orderBy('scheduledAt')
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
       final schedules = snapshot.docs
           .map((doc) => _docToSchedule(doc))
-          .where((schedule) {
-            final date = schedule.scheduledAt;
-            return date.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
-                   date.isBefore(endOfDay);
-          })
-          .toList()
-        ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+          .toList();
       return schedules;
     });
   }

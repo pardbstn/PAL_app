@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/body_record_model.dart';
 import '../../../data/models/curriculum_model.dart';
+import '../../../data/repositories/body_record_repository.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/body_records_provider.dart';
@@ -1825,14 +1826,15 @@ class _AddRecordFAB extends StatelessWidget {
 }
 
 /// 체성분 기록 추가 바텀시트
-class _AddBodyRecordSheet extends StatefulWidget {
+class _AddBodyRecordSheet extends ConsumerStatefulWidget {
   const _AddBodyRecordSheet();
 
   @override
-  State<_AddBodyRecordSheet> createState() => _AddBodyRecordSheetState();
+  ConsumerState<_AddBodyRecordSheet> createState() => _AddBodyRecordSheetState();
 }
 
-class _AddBodyRecordSheetState extends State<_AddBodyRecordSheet> {
+class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
+  bool _isSaving = false;
   final _weightController = TextEditingController();
   final _bodyFatController = TextEditingController();
   final _muscleMassController = TextEditingController();
@@ -1846,6 +1848,91 @@ class _AddBodyRecordSheetState extends State<_AddBodyRecordSheet> {
     _muscleMassController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveRecord() async {
+    // 체중 필수 입력 검증
+    final weightText = _weightController.text.trim();
+    if (weightText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('체중을 입력해주세요'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final weight = double.tryParse(weightText);
+    if (weight == null || weight <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('올바른 체중을 입력해주세요'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // 회원 ID 가져오기
+    final member = ref.read(currentMemberProvider);
+    if (member == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('회원 정보를 찾을 수 없습니다'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final repository = ref.read(bodyRecordRepositoryProvider);
+
+      // 체성분 기록 생성
+      final record = BodyRecordModel(
+        id: '',
+        memberId: member.id,
+        recordDate: _selectedDate,
+        weight: weight,
+        bodyFatPercent: double.tryParse(_bodyFatController.text.trim()),
+        muscleMass: double.tryParse(_muscleMassController.text.trim()),
+        note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        createdAt: DateTime.now(),
+      );
+
+      await repository.create(record);
+
+      // 데이터 갱신
+      ref.invalidate(bodyRecordsProvider(member.id));
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('체성분 기록이 저장되었습니다'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.secondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('저장 실패: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -1967,17 +2054,20 @@ class _AddBodyRecordSheetState extends State<_AddBodyRecordSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () {
-                // TODO: 실제 저장 로직 구현
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('기록이 저장되었습니다')),
-                );
-              },
+              onPressed: _isSaving ? null : _saveRecord,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text('저장'),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('저장'),
             ),
           ),
           SizedBox(height: MediaQuery.of(context).viewInsets.bottom),

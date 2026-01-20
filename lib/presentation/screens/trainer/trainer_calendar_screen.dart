@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/presentation/widgets/skeleton/skeletons.dart';
 import 'package:flutter_pal_app/presentation/widgets/states/states.dart';
@@ -32,13 +31,15 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
   // 일정 캐시: 월별로 저장 (YYYY-MM 형식)
   final Map<String, List<ScheduleModel>> _schedulesCache = {};
+  // 날짜별 일정 캐시: (YYYY-MM-DD 형식) - 성능 최적화
+  final Map<String, List<ScheduleModel>> _schedulesPerDayCache = {};
   final Set<String> _loadingMonths = {};
   bool _isLoading = false;
 
   // PageController 설정 (무한 스와이프)
-  late PageController _monthPageController;
-  late PageController _weekPageController;
-  static const int _initialPage = 5000;
+  late final PageController _monthPageController;
+  late final PageController _weekPageController;
+  static const int _initialPage = 1200; // ~100년 스크롤 가능
 
   // 주별 뷰 시간 설정
   static const int _dayStartHour = 6; // 6:00 AM
@@ -50,7 +51,12 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     super.initState();
     _monthPageController = PageController(initialPage: _initialPage);
     _weekPageController = PageController(initialPage: _initialPage);
-    _loadSchedulesForMonth(_focusedMonth);
+    // 프레임 렌더링 완료 후 데이터 로드 (UI 블로킹 방지)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSchedulesForMonth(_focusedMonth);
+      }
+    });
   }
 
   @override
@@ -84,11 +90,39 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}';
   }
 
+  /// 날짜별 키 생성 (성능 최적화용)
+  String _getDayKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 월별 일정을 날짜별 캐시로 분배
+  void _populateDayCache(String monthKey, List<ScheduleModel> schedules) {
+    // 기존 월의 날짜별 캐시 제거
+    _schedulesPerDayCache.removeWhere((key, _) => key.startsWith(monthKey));
+
+    // 일정을 날짜별로 그룹화
+    final Map<String, List<ScheduleModel>> grouped = {};
+    for (final schedule in schedules) {
+      final dayKey = _getDayKey(schedule.scheduledAt);
+      grouped.putIfAbsent(dayKey, () => []).add(schedule);
+    }
+
+    // 정렬하여 캐시에 저장
+    grouped.forEach((dayKey, daySchedules) {
+      daySchedules.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+      _schedulesPerDayCache[dayKey] = daySchedules;
+    });
+  }
+
   /// 특정 월의 일정 로드
-  Future<void> _loadSchedulesForMonth(DateTime month) async {
+  /// [showLoading] - true면 로딩 인디케이터 표시 (현재 월에만 사용)
+  Future<void> _loadSchedulesForMonth(DateTime month, {bool showLoading = true}) async {
     final monthKey = _getMonthKey(month);
 
-    // 이미 로드 중이거나 캐시에 있으면 스킵
+    // 이미 캐시에 있으면 스킵
+    if (_schedulesCache.containsKey(monthKey)) return;
+
+    // 이미 로드 중이면 스킵
     if (_loadingMonths.contains(monthKey)) return;
 
     final trainer = ref.read(currentTrainerProvider);
@@ -96,8 +130,8 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     _loadingMonths.add(monthKey);
 
-    // 캐시에 없으면 로딩 표시
-    if (!_schedulesCache.containsKey(monthKey)) {
+    // 현재 월에 대해서만 로딩 표시 (인접 월 프리로드 시에는 표시 안 함)
+    if (showLoading && mounted) {
       setState(() => _isLoading = true);
     }
 
@@ -106,42 +140,42 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
       final schedules = await repo.getSchedulesForMonth(trainer.id, month);
 
       if (mounted) {
-        setState(() {
-          _schedulesCache[monthKey] = schedules;
-          _isLoading = false;
-        });
+        // 캐시 업데이트 (setState 없이)
+        _schedulesCache[monthKey] = schedules;
+        _populateDayCache(monthKey, schedules);
+
+        // 로딩 중이었으면 상태 업데이트
+        if (showLoading) {
+          setState(() => _isLoading = false);
+        }
       }
     } catch (e) {
       debugPrint('일정 로드 실패: $e');
       if (mounted) {
-        setState(() {
-          _schedulesCache[monthKey] = [];
-          _isLoading = false;
-        });
+        _schedulesCache[monthKey] = [];
+        _populateDayCache(monthKey, []);
+        if (showLoading) {
+          setState(() => _isLoading = false);
+        }
       }
     } finally {
       _loadingMonths.remove(monthKey);
     }
   }
 
-  /// 인접 월 사전 로드 (성능 최적화)
+  /// 인접 월 사전 로드 (백그라운드, setState 없음)
   void _preloadAdjacentMonths(DateTime month) {
     final prevMonth = DateTime(month.year, month.month - 1, 1);
     final nextMonth = DateTime(month.year, month.month + 1, 1);
-    _loadSchedulesForMonth(prevMonth);
-    _loadSchedulesForMonth(nextMonth);
+    // 로딩 인디케이터 없이 백그라운드 로드
+    _loadSchedulesForMonth(prevMonth, showLoading: false);
+    _loadSchedulesForMonth(nextMonth, showLoading: false);
   }
 
-  /// 특정 날짜의 일정 조회
+  /// 특정 날짜의 일정 조회 (O(1) 캐시 조회로 최적화)
   List<ScheduleModel> _getSchedulesForDate(DateTime date) {
-    final monthKey = _getMonthKey(date);
-    final schedules = _schedulesCache[monthKey] ?? [];
-
-    return schedules.where((s) {
-      return s.scheduledAt.year == date.year &&
-          s.scheduledAt.month == date.month &&
-          s.scheduledAt.day == date.day;
-    }).toList()..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    final dayKey = _getDayKey(date);
+    return _schedulesPerDayCache[dayKey] ?? [];
   }
 
   /// 오늘로 이동
@@ -196,8 +230,58 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   Future<void> _refreshSchedules() async {
     // 캐시 비우고 현재 월 다시 로드
     _schedulesCache.clear();
+    _schedulesPerDayCache.clear();
     await _loadSchedulesForMonth(_focusedMonth);
     _preloadAdjacentMonths(_focusedMonth);
+  }
+
+  /// 월별/주별 뷰 전환 (페이지 동기화 포함)
+  void _toggleViewMode() {
+    final targetDate = _selectedDate;
+
+    if (!_isWeekView) {
+      // 월별 → 주별: 선택된 날짜 기준으로 주별 페이지 계산
+      final weekPage = _getWeekPageForDate(targetDate);
+      setState(() {
+        _isWeekView = true;
+        _focusedMonth = targetDate;
+      });
+      // 프레임 후 페이지 이동
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_weekPageController.hasClients) {
+          _weekPageController.jumpToPage(weekPage);
+        }
+      });
+    } else {
+      // 주별 → 월별: 선택된 날짜 기준으로 월별 페이지 계산
+      final monthPage = _getMonthPageForDate(targetDate);
+      setState(() {
+        _isWeekView = false;
+        _focusedMonth = DateTime(targetDate.year, targetDate.month, 1);
+      });
+      // 프레임 후 페이지 이동
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_monthPageController.hasClients) {
+          _monthPageController.jumpToPage(monthPage);
+        }
+      });
+    }
+  }
+
+  /// 날짜로부터 주별 페이지 번호 계산
+  int _getWeekPageForDate(DateTime date) {
+    final now = DateTime.now();
+    final todayWeekStart = now.subtract(Duration(days: now.weekday % 7));
+    final targetWeekStart = date.subtract(Duration(days: date.weekday % 7));
+    final weeksDiff = targetWeekStart.difference(todayWeekStart).inDays ~/ 7;
+    return _initialPage + weeksDiff;
+  }
+
+  /// 날짜로부터 월별 페이지 번호 계산
+  int _getMonthPageForDate(DateTime date) {
+    final now = DateTime.now();
+    final monthsDiff = (date.year - now.year) * 12 + (date.month - now.month);
+    return _initialPage + monthsDiff;
   }
 
   @override
@@ -226,7 +310,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
         onPressed: () => _showAddScheduleBottomSheet(),
         backgroundColor: AppTheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
-      ).animate().scale(duration: 200.ms, curve: Curves.easeOutBack),
+      ),
     );
   }
 
@@ -267,9 +351,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
               color: theme.iconTheme.color,
             ),
             tooltip: _isWeekView ? '월별 보기' : '주별 보기',
-            onPressed: () {
-              setState(() => _isWeekView = !_isWeekView);
-            },
+            onPressed: () => _toggleViewMode(),
           ),
         ],
       ),
@@ -338,21 +420,40 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   Widget _buildMonthViewWithSwipe() {
     return Column(
       children: [
-        // 월별 캘린더 그리드
-        SizedBox(
-          height: 340,
-          child: PageView.builder(
-            controller: _monthPageController,
-            onPageChanged: (page) {
-              final month = _getMonthFromPage(page);
-              setState(() => _focusedMonth = month);
-              _loadSchedulesForMonth(month);
-              _preloadAdjacentMonths(month);
-            },
-            itemBuilder: (context, page) {
-              final month = _getMonthFromPage(page);
-              return _buildMonthCalendar(month);
-            },
+        // 월별 캘린더 그리드 (RepaintBoundary로 격리)
+        RepaintBoundary(
+          child: SizedBox(
+            height: 340,
+            child: PageView.builder(
+              controller: _monthPageController,
+              onPageChanged: (page) {
+                final month = _getMonthFromPage(page);
+                // 같은 월이면 무시
+                if (_focusedMonth.year == month.year &&
+                    _focusedMonth.month == month.month) {
+                  return;
+                }
+                setState(() {
+                  _focusedMonth = month;
+                  // 선택된 날짜도 새 월로 업데이트 (같은 일자 유지, 없으면 말일)
+                  final lastDayOfMonth = DateTime(month.year, month.month + 1, 0).day;
+                  final newDay = _selectedDate.day > lastDayOfMonth
+                      ? lastDayOfMonth
+                      : _selectedDate.day;
+                  _selectedDate = DateTime(month.year, month.month, newDay);
+                });
+                // 현재 월 로드
+                _loadSchedulesForMonth(month);
+                // 인접 월은 다음 프레임에 로드 (UI 블로킹 방지)
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _preloadAdjacentMonths(month);
+                });
+              },
+              itemBuilder: (context, page) {
+                final month = _getMonthFromPage(page);
+                return _buildMonthCalendar(month);
+              },
+            ),
           ),
         ),
         const Divider(height: 1, color: Color(0xFFE5E5E5)),
@@ -534,26 +635,43 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   // ============================================================
 
   Widget _buildWeekViewWithSwipe() {
-    return PageView.builder(
-      controller: _weekPageController,
-      onPageChanged: (page) {
-        final weekStart = _getWeekStartFromPage(page);
-        setState(() {
-          _focusedMonth = weekStart;
-          // 선택된 날짜가 현재 주에 없으면 주의 첫날로 설정
-          if (_selectedDate.isBefore(weekStart) ||
-              _selectedDate.isAfter(weekStart.add(const Duration(days: 6)))) {
-            _selectedDate = weekStart;
+    return RepaintBoundary(
+      child: PageView.builder(
+        controller: _weekPageController,
+        onPageChanged: (page) {
+          final weekStart = _getWeekStartFromPage(page);
+          final weekEnd = weekStart.add(const Duration(days: 6));
+
+          // 선택된 날짜 업데이트
+          DateTime newSelectedDate = _selectedDate;
+          if (_selectedDate.isBefore(weekStart) || _selectedDate.isAfter(weekEnd)) {
+            newSelectedDate = weekStart;
           }
-        });
-        // 주에 포함된 월들의 일정 로드
-        _loadSchedulesForMonth(weekStart);
-        _loadSchedulesForMonth(weekStart.add(const Duration(days: 6)));
-      },
-      itemBuilder: (context, page) {
-        final weekStart = _getWeekStartFromPage(page);
-        return _buildWeekView(weekStart);
-      },
+
+          // focusedMonth 업데이트
+          final newFocusedMonth = DateTime(weekStart.year, weekStart.month, 1);
+
+          // 상태가 변경된 경우에만 setState
+          if (_focusedMonth.year != newFocusedMonth.year ||
+              _focusedMonth.month != newFocusedMonth.month ||
+              _selectedDate != newSelectedDate) {
+            setState(() {
+              _focusedMonth = newFocusedMonth;
+              _selectedDate = newSelectedDate;
+            });
+          }
+
+          // 주에 포함된 월들의 일정 로드 (백그라운드)
+          _loadSchedulesForMonth(weekStart, showLoading: false);
+          if (weekStart.month != weekEnd.month) {
+            _loadSchedulesForMonth(weekEnd, showLoading: false);
+          }
+        },
+        itemBuilder: (context, page) {
+          final weekStart = _getWeekStartFromPage(page);
+          return _buildWeekView(weekStart);
+        },
+      ),
     );
   }
 
@@ -1006,9 +1124,6 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       schedule: schedules[index],
                       onTap: () => _showScheduleDetail(schedules[index]),
                       onStatusChanged: _refreshSchedules,
-                    ).animate().fadeIn(
-                      duration: 200.ms,
-                      delay: (index * 50).ms,
                     );
                   },
                 ),

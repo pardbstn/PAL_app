@@ -10,3 +10,4 @@ export 'diet_record_model.dart';
 export 'session_signature_model.dart';
 export 'message_model.dart';
 export 'chat_room_model.dart';
+export 'weight_prediction_model.dart';

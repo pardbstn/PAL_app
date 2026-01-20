@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
+import 'package:flutter_pal_app/data/models/weight_prediction_model.dart';
 
 /// AI 서비스 Provider
 final aiServiceProvider = Provider<AIService>((ref) {
@@ -11,6 +12,8 @@ final aiServiceProvider = Provider<AIService>((ref) {
 class AIUsageInfo {
   final int curriculumCount;
   final int curriculumLimit;
+  final int predictionCount;
+  final int predictionLimit;
   final String subscriptionTier;
   final String model;
   final String provider;
@@ -19,6 +22,8 @@ class AIUsageInfo {
   AIUsageInfo({
     required this.curriculumCount,
     required this.curriculumLimit,
+    required this.predictionCount,
+    required this.predictionLimit,
     required this.subscriptionTier,
     required this.model,
     required this.provider,
@@ -29,6 +34,8 @@ class AIUsageInfo {
     return AIUsageInfo(
       curriculumCount: (map['curriculumCount'] as num?)?.toInt() ?? 0,
       curriculumLimit: (map['curriculumLimit'] as num?)?.toInt() ?? 3,
+      predictionCount: (map['predictionCount'] as num?)?.toInt() ?? 0,
+      predictionLimit: (map['predictionLimit'] as num?)?.toInt() ?? 3,
       subscriptionTier: map['subscriptionTier']?.toString() ?? 'free',
       model: map['model']?.toString() ?? 'gemini-2.0-flash-lite',
       provider: map['provider']?.toString() ?? 'google',
@@ -36,14 +43,30 @@ class AIUsageInfo {
     );
   }
 
-  /// 남은 사용 횟수
-  int get remaining => curriculumLimit == -1 ? 999999 : curriculumLimit - curriculumCount;
+  /// 커리큘럼 남은 사용 횟수
+  int get curriculumRemaining =>
+      curriculumLimit == -1 ? 999999 : curriculumLimit - curriculumCount;
 
-  /// 사용 가능 여부
-  bool get canUse => curriculumLimit == -1 || remaining > 0;
+  /// 예측 남은 사용 횟수
+  int get predictionRemaining =>
+      predictionLimit == -1 ? 999999 : predictionLimit - predictionCount;
 
-  /// 무제한 여부
-  bool get isUnlimited => curriculumLimit == -1;
+  /// 커리큘럼 사용 가능 여부
+  bool get canUseCurriculum => curriculumLimit == -1 || curriculumRemaining > 0;
+
+  /// 예측 사용 가능 여부
+  bool get canUsePrediction => predictionLimit == -1 || predictionRemaining > 0;
+
+  /// 커리큘럼 무제한 여부
+  bool get isCurriculumUnlimited => curriculumLimit == -1;
+
+  /// 예측 무제한 여부
+  bool get isPredictionUnlimited => predictionLimit == -1;
+
+  /// [deprecated] 기존 호환성
+  int get remaining => curriculumRemaining;
+  bool get canUse => canUseCurriculum;
+  bool get isUnlimited => isCurriculumUnlimited;
 }
 
 /// AI 생성 커리큘럼 (아직 저장되지 않은 상태)
@@ -245,6 +268,37 @@ class AIService {
     }
   }
 
+  /// AI 체중 예측
+  ///
+  /// [memberId] 예측 대상 회원 ID
+  /// [weeksAhead] 예측할 주 수 (기본값: 8, 최대: 12)
+  Future<WeightPredictionResult> predictWeight({
+    required String memberId,
+    int weeksAhead = 8,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable('predictWeight');
+      final result = await callable.call({
+        'memberId': memberId,
+        'weeksAhead': weeksAhead,
+      });
+
+      final data = _convertToStringDynamic(result.data);
+
+      if (data['success'] != true) {
+        final error = data['error'] as Map<dynamic, dynamic>?;
+        throw Exception(error?['message']?.toString() ?? '체중 예측에 실패했습니다.');
+      }
+
+      final predictionData = data['prediction'] as Map<dynamic, dynamic>;
+      return WeightPredictionResult.fromMap(predictionData);
+    } on FirebaseFunctionsException catch (e) {
+      throw _handleFunctionsException(e);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Firebase Functions 예외 처리
   Exception _handleFunctionsException(FirebaseFunctionsException e) {
     switch (e.code) {
@@ -262,4 +316,85 @@ class AIService {
         return Exception(e.message ?? '오류가 발생했습니다.');
     }
   }
+}
+
+/// AI 체중 예측 결과
+class WeightPredictionResult {
+  final String id;
+  final String memberId;
+  final String trainerId;
+  final double currentWeight;
+  final double? targetWeight;
+  final List<PredictedWeightPoint> predictedWeights;
+  final double weeklyTrend;
+  final int? estimatedWeeksToTarget;
+  final double confidence;
+  final int dataPointsUsed;
+  final String analysisMessage;
+
+  WeightPredictionResult({
+    required this.id,
+    required this.memberId,
+    required this.trainerId,
+    required this.currentWeight,
+    this.targetWeight,
+    required this.predictedWeights,
+    required this.weeklyTrend,
+    this.estimatedWeeksToTarget,
+    required this.confidence,
+    required this.dataPointsUsed,
+    required this.analysisMessage,
+  });
+
+  factory WeightPredictionResult.fromMap(Map<dynamic, dynamic> map) {
+    final predictedList = map['predictedWeights'] as List<dynamic>? ?? [];
+
+    return WeightPredictionResult(
+      id: map['id']?.toString() ?? '',
+      memberId: map['memberId']?.toString() ?? '',
+      trainerId: map['trainerId']?.toString() ?? '',
+      currentWeight: (map['currentWeight'] as num?)?.toDouble() ?? 0,
+      targetWeight: (map['targetWeight'] as num?)?.toDouble(),
+      predictedWeights: predictedList
+          .map((p) => PredictedWeightPoint(
+                date: DateTime.parse(p['date'] as String),
+                weight: (p['weight'] as num).toDouble(),
+                upperBound: (p['upperBound'] as num).toDouble(),
+                lowerBound: (p['lowerBound'] as num).toDouble(),
+              ))
+          .toList(),
+      weeklyTrend: (map['weeklyTrend'] as num?)?.toDouble() ?? 0,
+      estimatedWeeksToTarget: (map['estimatedWeeksToTarget'] as num?)?.toInt(),
+      confidence: (map['confidence'] as num?)?.toDouble() ?? 0,
+      dataPointsUsed: (map['dataPointsUsed'] as num?)?.toInt() ?? 0,
+      analysisMessage: map['analysisMessage']?.toString() ?? '',
+    );
+  }
+
+  /// 감량 중인지 여부
+  bool get isLosingWeight => weeklyTrend < 0;
+
+  /// 증량 중인지 여부
+  bool get isGainingWeight => weeklyTrend > 0;
+
+  /// 유지 중인지 여부 (주간 변화 ±0.1kg 이내)
+  bool get isMaintaining => weeklyTrend.abs() < 0.1;
+
+  /// 신뢰도 등급 (high/medium/low)
+  String get confidenceLevel {
+    if (confidence >= 0.8) return 'high';
+    if (confidence >= 0.5) return 'medium';
+    return 'low';
+  }
+
+  /// 신뢰도 한글 등급
+  String get confidenceLevelKorean {
+    if (confidence >= 0.8) return '높음';
+    if (confidence >= 0.5) return '보통';
+    return '낮음';
+  }
+
+  /// 마지막 예측 체중
+  double? get finalPredictedWeight =>
+      predictedWeights.isNotEmpty ? predictedWeights.last.weight : null;
 }

@@ -9,3 +9,4 @@ export 'curriculum_repository.dart';
 export 'body_record_repository.dart';
 export 'diet_record_repository.dart';
 export 'session_signature_repository.dart';
+export 'weight_prediction_repository.dart';

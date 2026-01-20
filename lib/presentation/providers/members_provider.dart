@@ -40,6 +40,7 @@ final membersProvider = StreamProvider<List<MemberModel>>((ref) {
 });
 
 /// 회원 목록 + 사용자 정보 (FutureProvider)
+/// Future.wait으로 병렬 쿼리 최적화
 final membersWithUserProvider =
     FutureProvider<List<MemberWithUser>>((ref) async {
   final membersAsync = ref.watch(membersProvider);
@@ -49,12 +50,15 @@ final membersWithUserProvider =
     loading: () => <MemberWithUser>[],
     error: (_, _) => <MemberWithUser>[],
     data: (members) async {
-      final List<MemberWithUser> result = [];
+      if (members.isEmpty) return <MemberWithUser>[];
 
-      for (final member in members) {
-        // Firestore에서 사용자 조회
-        final user = await userRepository.get(member.userId);
-        result.add(MemberWithUser(member: member, user: user));
+      // 병렬로 모든 사용자 정보 조회 (N+1 → 1+N 병렬)
+      final userFutures = members.map((m) => userRepository.get(m.userId));
+      final users = await Future.wait(userFutures);
+
+      final List<MemberWithUser> result = [];
+      for (int i = 0; i < members.length; i++) {
+        result.add(MemberWithUser(member: members[i], user: users[i]));
       }
 
       return result;
@@ -407,6 +411,7 @@ final endingSoonMembersProvider = Provider<AsyncValue<List<MemberModel>>>((ref) 
 });
 
 /// PT 종료 임박 회원 + 사용자 정보
+/// Future.wait으로 병렬 쿼리 최적화
 final endingSoonMembersWithUserProvider =
     FutureProvider<List<MemberWithUser>>((ref) async {
   final endingSoonAsync = ref.watch(endingSoonMembersProvider);
@@ -416,11 +421,15 @@ final endingSoonMembersWithUserProvider =
     loading: () => <MemberWithUser>[],
     error: (_, _) => <MemberWithUser>[],
     data: (members) async {
-      final List<MemberWithUser> result = [];
+      if (members.isEmpty) return <MemberWithUser>[];
 
-      for (final member in members) {
-        final user = await userRepository.get(member.userId);
-        result.add(MemberWithUser(member: member, user: user));
+      // 병렬로 모든 사용자 정보 조회
+      final userFutures = members.map((m) => userRepository.get(m.userId));
+      final users = await Future.wait(userFutures);
+
+      final List<MemberWithUser> result = [];
+      for (int i = 0; i < members.length; i++) {
+        result.add(MemberWithUser(member: members[i], user: users[i]));
       }
 
       return result;

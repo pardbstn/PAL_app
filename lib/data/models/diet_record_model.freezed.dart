@@ -312,7 +312,15 @@ mixin _$DietRecordModel {
  String? get imageUrl;/// 음식 설명 (수동 입력)
  String? get description;/// AI 분석 결과
  AiAnalysis? get aiAnalysis;/// 메모
- String? get note;/// 생성일
+ String? get note;/// 로컬 DB 음식 ID (음식 검색으로 추가된 경우)
+ String? get foodId;/// 수량 배수 (기본 1.0, 예: 0.5 = 반 인분)
+ double get servingMultiplier;/// 입력 방식 (search: 검색, ai: AI분석, manual: 수동입력)
+ String get inputType;/// 음식명 (검색으로 추가된 경우 저장)
+ String? get foodName;/// 칼로리 (검색/수동 입력 시 직접 저장)
+ double? get calories;/// 탄수화물 (g)
+ double? get carbs;/// 단백질 (g)
+ double? get protein;/// 지방 (g)
+ double? get fat;/// 생성일
 @TimestampConverter() DateTime get createdAt;/// 수정일
 @TimestampConverter() DateTime get updatedAt;
 /// Create a copy of DietRecordModel
@@ -327,16 +335,16 @@ $DietRecordModelCopyWith<DietRecordModel> get copyWith => _$DietRecordModelCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DietRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.recordDate, recordDate) || other.recordDate == recordDate)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.description, description) || other.description == description)&&(identical(other.aiAnalysis, aiAnalysis) || other.aiAnalysis == aiAnalysis)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DietRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.recordDate, recordDate) || other.recordDate == recordDate)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.description, description) || other.description == description)&&(identical(other.aiAnalysis, aiAnalysis) || other.aiAnalysis == aiAnalysis)&&(identical(other.note, note) || other.note == note)&&(identical(other.foodId, foodId) || other.foodId == foodId)&&(identical(other.servingMultiplier, servingMultiplier) || other.servingMultiplier == servingMultiplier)&&(identical(other.inputType, inputType) || other.inputType == inputType)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,recordDate,mealType,imageUrl,description,aiAnalysis,note,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,memberId,recordDate,mealType,imageUrl,description,aiAnalysis,note,foodId,servingMultiplier,inputType,foodName,calories,carbs,protein,fat,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'DietRecordModel(id: $id, memberId: $memberId, recordDate: $recordDate, mealType: $mealType, imageUrl: $imageUrl, description: $description, aiAnalysis: $aiAnalysis, note: $note, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'DietRecordModel(id: $id, memberId: $memberId, recordDate: $recordDate, mealType: $mealType, imageUrl: $imageUrl, description: $description, aiAnalysis: $aiAnalysis, note: $note, foodId: $foodId, servingMultiplier: $servingMultiplier, inputType: $inputType, foodName: $foodName, calories: $calories, carbs: $carbs, protein: $protein, fat: $fat, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -347,7 +355,7 @@ abstract mixin class $DietRecordModelCopyWith<$Res>  {
   factory $DietRecordModelCopyWith(DietRecordModel value, $Res Function(DietRecordModel) _then) = _$DietRecordModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String memberId,@TimestampConverter() DateTime recordDate, MealType mealType, String? imageUrl, String? description, AiAnalysis? aiAnalysis, String? note,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String memberId,@TimestampConverter() DateTime recordDate, MealType mealType, String? imageUrl, String? description, AiAnalysis? aiAnalysis, String? note, String? foodId, double servingMultiplier, String inputType, String? foodName, double? calories, double? carbs, double? protein, double? fat,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -364,7 +372,7 @@ class _$DietRecordModelCopyWithImpl<$Res>
 
 /// Create a copy of DietRecordModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? recordDate = null,Object? mealType = null,Object? imageUrl = freezed,Object? description = freezed,Object? aiAnalysis = freezed,Object? note = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? recordDate = null,Object? mealType = null,Object? imageUrl = freezed,Object? description = freezed,Object? aiAnalysis = freezed,Object? note = freezed,Object? foodId = freezed,Object? servingMultiplier = null,Object? inputType = null,Object? foodName = freezed,Object? calories = freezed,Object? carbs = freezed,Object? protein = freezed,Object? fat = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -374,7 +382,15 @@ as MealType,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore:
 as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,aiAnalysis: freezed == aiAnalysis ? _self.aiAnalysis : aiAnalysis // ignore: cast_nullable_to_non_nullable
 as AiAnalysis?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,foodId: freezed == foodId ? _self.foodId : foodId // ignore: cast_nullable_to_non_nullable
+as String?,servingMultiplier: null == servingMultiplier ? _self.servingMultiplier : servingMultiplier // ignore: cast_nullable_to_non_nullable
+as double,inputType: null == inputType ? _self.inputType : inputType // ignore: cast_nullable_to_non_nullable
+as String,foodName: freezed == foodName ? _self.foodName : foodName // ignore: cast_nullable_to_non_nullable
+as String?,calories: freezed == calories ? _self.calories : calories // ignore: cast_nullable_to_non_nullable
+as double?,carbs: freezed == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
+as double?,protein: freezed == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
+as double?,fat: freezed == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as double?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -470,10 +486,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note,  String? foodId,  double servingMultiplier,  String inputType,  String? foodName,  double? calories,  double? carbs,  double? protein,  double? fat, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DietRecordModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.foodId,_that.servingMultiplier,_that.inputType,_that.foodName,_that.calories,_that.carbs,_that.protein,_that.fat,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -491,10 +507,10 @@ return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.im
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note,  String? foodId,  double servingMultiplier,  String inputType,  String? foodName,  double? calories,  double? carbs,  double? protein,  double? fat, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _DietRecordModel():
-return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.createdAt,_that.updatedAt);}
+return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.foodId,_that.servingMultiplier,_that.inputType,_that.foodName,_that.calories,_that.carbs,_that.protein,_that.fat,_that.createdAt,_that.updatedAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -508,10 +524,10 @@ return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.im
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId, @TimestampConverter()  DateTime recordDate,  MealType mealType,  String? imageUrl,  String? description,  AiAnalysis? aiAnalysis,  String? note,  String? foodId,  double servingMultiplier,  String inputType,  String? foodName,  double? calories,  double? carbs,  double? protein,  double? fat, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _DietRecordModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.imageUrl,_that.description,_that.aiAnalysis,_that.note,_that.foodId,_that.servingMultiplier,_that.inputType,_that.foodName,_that.calories,_that.carbs,_that.protein,_that.fat,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -523,7 +539,7 @@ return $default(_that.id,_that.memberId,_that.recordDate,_that.mealType,_that.im
 @JsonSerializable()
 
 class _DietRecordModel implements DietRecordModel {
-  const _DietRecordModel({required this.id, required this.memberId, @TimestampConverter() required this.recordDate, required this.mealType, this.imageUrl, this.description, this.aiAnalysis, this.note, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
+  const _DietRecordModel({required this.id, required this.memberId, @TimestampConverter() required this.recordDate, required this.mealType, this.imageUrl, this.description, this.aiAnalysis, this.note, this.foodId, this.servingMultiplier = 1.0, this.inputType = 'manual', this.foodName, this.calories, this.carbs, this.protein, this.fat, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
   factory _DietRecordModel.fromJson(Map<String, dynamic> json) => _$DietRecordModelFromJson(json);
 
 /// 기록 문서 ID
@@ -542,6 +558,22 @@ class _DietRecordModel implements DietRecordModel {
 @override final  AiAnalysis? aiAnalysis;
 /// 메모
 @override final  String? note;
+/// 로컬 DB 음식 ID (음식 검색으로 추가된 경우)
+@override final  String? foodId;
+/// 수량 배수 (기본 1.0, 예: 0.5 = 반 인분)
+@override@JsonKey() final  double servingMultiplier;
+/// 입력 방식 (search: 검색, ai: AI분석, manual: 수동입력)
+@override@JsonKey() final  String inputType;
+/// 음식명 (검색으로 추가된 경우 저장)
+@override final  String? foodName;
+/// 칼로리 (검색/수동 입력 시 직접 저장)
+@override final  double? calories;
+/// 탄수화물 (g)
+@override final  double? carbs;
+/// 단백질 (g)
+@override final  double? protein;
+/// 지방 (g)
+@override final  double? fat;
 /// 생성일
 @override@TimestampConverter() final  DateTime createdAt;
 /// 수정일
@@ -560,16 +592,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DietRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.recordDate, recordDate) || other.recordDate == recordDate)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.description, description) || other.description == description)&&(identical(other.aiAnalysis, aiAnalysis) || other.aiAnalysis == aiAnalysis)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DietRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.recordDate, recordDate) || other.recordDate == recordDate)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.description, description) || other.description == description)&&(identical(other.aiAnalysis, aiAnalysis) || other.aiAnalysis == aiAnalysis)&&(identical(other.note, note) || other.note == note)&&(identical(other.foodId, foodId) || other.foodId == foodId)&&(identical(other.servingMultiplier, servingMultiplier) || other.servingMultiplier == servingMultiplier)&&(identical(other.inputType, inputType) || other.inputType == inputType)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,recordDate,mealType,imageUrl,description,aiAnalysis,note,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,memberId,recordDate,mealType,imageUrl,description,aiAnalysis,note,foodId,servingMultiplier,inputType,foodName,calories,carbs,protein,fat,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'DietRecordModel(id: $id, memberId: $memberId, recordDate: $recordDate, mealType: $mealType, imageUrl: $imageUrl, description: $description, aiAnalysis: $aiAnalysis, note: $note, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'DietRecordModel(id: $id, memberId: $memberId, recordDate: $recordDate, mealType: $mealType, imageUrl: $imageUrl, description: $description, aiAnalysis: $aiAnalysis, note: $note, foodId: $foodId, servingMultiplier: $servingMultiplier, inputType: $inputType, foodName: $foodName, calories: $calories, carbs: $carbs, protein: $protein, fat: $fat, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -580,7 +612,7 @@ abstract mixin class _$DietRecordModelCopyWith<$Res> implements $DietRecordModel
   factory _$DietRecordModelCopyWith(_DietRecordModel value, $Res Function(_DietRecordModel) _then) = __$DietRecordModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String memberId,@TimestampConverter() DateTime recordDate, MealType mealType, String? imageUrl, String? description, AiAnalysis? aiAnalysis, String? note,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String memberId,@TimestampConverter() DateTime recordDate, MealType mealType, String? imageUrl, String? description, AiAnalysis? aiAnalysis, String? note, String? foodId, double servingMultiplier, String inputType, String? foodName, double? calories, double? carbs, double? protein, double? fat,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -597,7 +629,7 @@ class __$DietRecordModelCopyWithImpl<$Res>
 
 /// Create a copy of DietRecordModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? recordDate = null,Object? mealType = null,Object? imageUrl = freezed,Object? description = freezed,Object? aiAnalysis = freezed,Object? note = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? recordDate = null,Object? mealType = null,Object? imageUrl = freezed,Object? description = freezed,Object? aiAnalysis = freezed,Object? note = freezed,Object? foodId = freezed,Object? servingMultiplier = null,Object? inputType = null,Object? foodName = freezed,Object? calories = freezed,Object? carbs = freezed,Object? protein = freezed,Object? fat = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_DietRecordModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -607,7 +639,15 @@ as MealType,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore:
 as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,aiAnalysis: freezed == aiAnalysis ? _self.aiAnalysis : aiAnalysis // ignore: cast_nullable_to_non_nullable
 as AiAnalysis?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,foodId: freezed == foodId ? _self.foodId : foodId // ignore: cast_nullable_to_non_nullable
+as String?,servingMultiplier: null == servingMultiplier ? _self.servingMultiplier : servingMultiplier // ignore: cast_nullable_to_non_nullable
+as double,inputType: null == inputType ? _self.inputType : inputType // ignore: cast_nullable_to_non_nullable
+as String,foodName: freezed == foodName ? _self.foodName : foodName // ignore: cast_nullable_to_non_nullable
+as String?,calories: freezed == calories ? _self.calories : calories // ignore: cast_nullable_to_non_nullable
+as double?,carbs: freezed == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
+as double?,protein: freezed == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
+as double?,fat: freezed == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as double?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

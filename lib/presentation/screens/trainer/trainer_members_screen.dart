@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../core/utils/animation_utils.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/member_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/add_member_dialog.dart';
 import '../../../presentation/widgets/states/states.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
 
 /// 트레이너 회원 목록 화면
 class TrainerMembersScreen extends ConsumerStatefulWidget {
@@ -238,8 +238,18 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -310,28 +320,33 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
     );
   }
 
-  /// 회원 목록 (flutter_animate 스태거 애니메이션) - MemberWithUser 사용
+  /// 회원 목록 (flutter_staggered_animations 적용) - MemberWithUser 사용
   Widget _buildMemberListWithUser(List<MemberWithUser> membersWithUser) {
     final searchQuery = ref.watch(memberSearchQueryProvider);
     final sortOption = ref.watch(memberSortOptionProvider);
 
-    return ListView.builder(
-      // 검색/정렬 변경 시 애니메이션 재실행을 위한 키
-      key: ValueKey('$searchQuery-${sortOption.name}'),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: membersWithUser.length,
-      itemBuilder: (context, index) {
-        final mwu = membersWithUser[index];
-        return MemberCard(
-          member: mwu.member,
-          memberName: mwu.name,
-          profileImageUrl: mwu.profileImageUrl,
-          lastWorkoutDate: null, // TODO: 마지막 운동일 연동
-          onTap: () => context.go('/trainer/members/${mwu.member.id}'),
-          onEdit: () => _showEditMemberDialog(mwu.member),
-          onDelete: () => _deleteMember(mwu.member),
-        ).animateListItem(index);
-      },
+    return AnimatedListWrapper(
+      child: ListView.builder(
+        // 검색/정렬 변경 시 애니메이션 재실행을 위한 키
+        key: ValueKey('$searchQuery-${sortOption.name}'),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: membersWithUser.length,
+        itemBuilder: (context, index) {
+          final mwu = membersWithUser[index];
+          return AnimatedListWrapper.item(
+            index: index,
+            child: MemberCard(
+              member: mwu.member,
+              memberName: mwu.name,
+              profileImageUrl: mwu.profileImageUrl,
+              lastWorkoutDate: null, // TODO: 마지막 운동일 연동
+              onTap: () => context.go('/trainer/members/${mwu.member.id}'),
+              onEdit: () => _showEditMemberDialog(mwu.member),
+              onDelete: () => _deleteMember(mwu.member),
+            ),
+          );
+        },
+      ),
     );
   }
 

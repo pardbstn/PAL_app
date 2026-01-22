@@ -119,11 +119,11 @@ class _WebStatCardState extends State<WebStatCard> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _isHovered
                   ? variantColor.withValues(alpha: 0.5)
-                  : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2)),
+                  : (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
               width: _isHovered ? 2 : 1,
             ),
             boxShadow: _isHovered
@@ -134,7 +134,13 @@ class _WebStatCardState extends State<WebStatCard> {
                       offset: const Offset(0, 8),
                     ),
                   ]
-                : AppShadows.sm,
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           transform: _isHovered ? Matrix4.diagonal3Values(1.02, 1.02, 1.0) : Matrix4.identity(),
           child: widget.isLoading ? _buildLoadingSkeleton(context) : _buildContent(context),
@@ -335,11 +341,17 @@ class WebStatCardLarge extends StatelessWidget {
       constraints: minHeight != null ? BoxConstraints(minHeight: minHeight!) : null,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
         ),
-        boxShadow: AppShadows.sm,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

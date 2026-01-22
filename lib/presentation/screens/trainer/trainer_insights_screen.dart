@@ -321,6 +321,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
   Widget _buildSkeletonCard(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -332,6 +333,16 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
         ),
       ),

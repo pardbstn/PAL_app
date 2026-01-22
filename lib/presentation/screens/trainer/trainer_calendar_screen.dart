@@ -2654,6 +2654,8 @@ class _ScheduleCard extends ConsumerWidget {
     // 일정 유형에 따른 색상
     final accentColor = isPt ? AppTheme.primary : AppTheme.tertiary;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2661,18 +2663,15 @@ class _ScheduleCard extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted
-                ? Colors.green.withValues(alpha: 0.3)
-                : isCancelled
-                ? Colors.grey.withValues(alpha: 0.3)
-                : Colors.grey[200]!,
+            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 4,
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],

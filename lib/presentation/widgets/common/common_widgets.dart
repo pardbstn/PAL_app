@@ -12,3 +12,4 @@ export 'app_avatar.dart';
 export 'app_bottom_sheet.dart';
 export 'app_dialog.dart';
 export 'app_snackbar.dart';
+export 'card_animations.dart';

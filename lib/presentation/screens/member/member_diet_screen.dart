@@ -5,11 +5,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../widgets/common/app_card.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/diet_analysis_model.dart';
+import '../../../data/models/diet_record_model.dart' as diet_record;
+import '../../../data/models/food_item_model.dart';
+import '../../../data/repositories/diet_analysis_repository.dart';
+import '../../../data/services/food_database_service.dart';
 import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/diet_analysis_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
+import '../../widgets/diet/food_search_bottom_sheet.dart';
 
 /// 회원 식단 기록 화면 (AI 분석 기능 포함)
 class MemberDietScreen extends ConsumerStatefulWidget {
@@ -26,6 +33,13 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
   final double _targetCarbs = 300;
   final double _targetFat = 65;
 
+  @override
+  void initState() {
+    super.initState();
+    // 음식 데이터베이스 초기화
+    FoodDatabaseService.instance.init();
+  }
+
   bool _isToday(DateTime date) {
     final now = DateTime.now();
     return date.year == now.year && date.month == now.month && date.day == now.day;
@@ -38,6 +52,139 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
     // 날짜 변경 시 해당 날짜의 데이터를 다시 조회하도록 invalidate
     if (member != null) {
       ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: newDate)));
+    }
+  }
+
+  /// 음식 검색 바텀시트 표시
+  Future<void> _showFoodSearch(MealType mealType) async {
+    final member = ref.read(currentMemberProvider);
+    if (member == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('회원 정보를 찾을 수 없습니다'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    // diet_analysis_model.MealType을 diet_record_model.MealType으로 변환
+    final recordMealType = _convertToRecordMealType(mealType);
+
+    await FoodSearchBottomSheet.show(
+      context: context,
+      mealType: recordMealType,
+      date: _selectedDate,
+      onFoodSelected: (food, multiplier) => _addFoodFromSearch(mealType, food, multiplier, member.id),
+    );
+  }
+
+  /// MealType 변환 (diet_analysis_model -> diet_record_model)
+  diet_record.MealType _convertToRecordMealType(MealType mealType) {
+    return switch (mealType) {
+      MealType.breakfast => diet_record.MealType.breakfast,
+      MealType.lunch => diet_record.MealType.lunch,
+      MealType.dinner => diet_record.MealType.dinner,
+      MealType.snack => diet_record.MealType.snack,
+    };
+  }
+
+  /// 검색에서 음식 추가
+  Future<void> _addFoodFromSearch(MealType mealType, FoodItem food, double multiplier, String memberId) async {
+    // FoodItem에 multiplier 적용
+    final adjustedFood = food.multiply(multiplier);
+
+    // DietAnalysisModel로 변환하여 저장
+    final record = DietAnalysisModel(
+      id: '', // Firestore가 생성
+      memberId: memberId,
+      mealType: mealType,
+      imageUrl: '', // 검색으로 추가한 음식은 이미지 없음
+      foodName: adjustedFood.name,
+      calories: adjustedFood.calories.toInt(),
+      protein: adjustedFood.protein,
+      carbs: adjustedFood.carbs,
+      fat: adjustedFood.fat,
+      confidence: 1.0, // 데이터베이스 검색은 신뢰도 100%
+      analyzedAt: _selectedDate,
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      // Repository를 통해 저장
+      final repository = ref.read(dietAnalysisRepositoryProvider);
+      await repository.create(record);
+
+      // 데이터 새로고침
+      final isToday = _isToday(_selectedDate);
+      if (isToday) {
+        ref.invalidate(dailyNutritionSummaryProvider(memberId));
+      } else {
+        ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: memberId, date: _selectedDate)));
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${adjustedFood.name} 추가 완료! (${adjustedFood.calories.toInt()} kcal)'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.secondary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('음식 추가 실패: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    }
+  }
+
+  /// 식단 기록 삭제
+  Future<void> _deleteDietRecord(DietAnalysisModel record) async {
+    final member = ref.read(currentMemberProvider);
+    if (member == null) return;
+
+    try {
+      final repository = ref.read(dietAnalysisRepositoryProvider);
+      await repository.delete(record.id);
+
+      // 데이터 새로고침
+      final isToday = _isToday(_selectedDate);
+      if (isToday) {
+        ref.invalidate(dailyNutritionSummaryProvider(member.id));
+      } else {
+        ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: _selectedDate)));
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${record.foodName} 삭제됨'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: '실행 취소',
+            onPressed: () async {
+              // 삭제 취소 - 다시 생성
+              await repository.create(record);
+              if (isToday) {
+                ref.invalidate(dailyNutritionSummaryProvider(member.id));
+              } else {
+                ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: _selectedDate)));
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('삭제 실패: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 
@@ -466,12 +613,9 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
   Widget _buildNutrientCard(String label, double current, double target, String unit, Color color, ColorScheme cs, TextTheme tt) {
     final progress = (current / target).clamp(0.0, 1.0);
 
-    return Container(
+    return AppCard(
+      variant: AppCardVariant.standard,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         children: [
           Text(label, style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6))),
@@ -505,49 +649,68 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
       MealType.snack: const Color(0xFF90EE90),
     };
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.1)),
-        boxShadow: [BoxShadow(color: cs.shadow.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AppCard(
+        variant: AppCardVariant.standard,
+        padding: EdgeInsets.zero,
+        child: Column(
         children: [
-          // 헤더
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors[mealType]!.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: colors[mealType]!.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Text(icons[mealType]!, style: const TextStyle(fontSize: 22))),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(labels[mealType]!, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      if (items.isNotEmpty) Text('${NumberFormat('#,###').format(sectionCal)} kcal', style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6))),
-                    ],
+          // 헤더 (탭하여 음식 검색 추가)
+          InkWell(
+            onTap: () => _showFoodSearch(mealType),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors[mealType]!.withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: colors[mealType]!.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                    child: Center(child: Text(icons[mealType]!, style: const TextStyle(fontSize: 22))),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(labels[mealType]!, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        if (items.isNotEmpty)
+                          Text('${NumberFormat('#,###').format(sectionCal)} kcal', style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)))
+                        else
+                          Text('탭하여 음식 추가', style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.4))),
+                      ],
+                    ),
+                  ),
+                  // 추가 버튼
+                  IconButton(
+                    onPressed: () => _showFoodSearch(mealType),
+                    icon: Icon(Icons.add_circle_outline, color: colors[mealType]),
+                    tooltip: '음식 추가',
+                  ),
+                ],
+              ),
             ),
           ),
           // 아이템 목록 또는 빈 상태
           if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('아직 기록이 없어요', style: tt.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.4))),
+            InkWell(
+              onTap: () => _showFoodSearch(mealType),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Icon(Icons.add_circle_outline, size: 32, color: cs.onSurface.withValues(alpha: 0.2)),
+                    const SizedBox(height: 8),
+                    Text('음식을 추가해보세요', style: tt.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.4))),
+                  ],
+                ),
+              ),
             )
           else
             ...items.asMap().entries.map((entry) =>
@@ -557,67 +720,118 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
                   .slideX(begin: 0.05, end: 0)
             ),
         ],
+        ),
       ),
     );
   }
 
   Widget _buildDietItemTile(DietAnalysisModel item, ColorScheme cs, TextTheme tt) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.1)))),
-      child: Row(
-        children: [
-          // 썸네일
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-              image: item.imageUrl.isNotEmpty
-                  ? DecorationImage(image: NetworkImage(item.imageUrl), fit: BoxFit.cover)
+    // 검색으로 추가한 음식인지 확인 (imageUrl이 비어있으면 검색 추가)
+    final isFromSearch = item.imageUrl.isEmpty;
+
+    return Dismissible(
+      key: Key(item.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _deleteDietRecord(item),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: AppTheme.error.withValues(alpha: 0.1),
+          border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.1))),
+        ),
+        child: Icon(Icons.delete_outline, color: AppTheme.error),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('음식 삭제'),
+            content: Text('${item.foodName}을(를) 삭제하시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.1)))),
+        child: Row(
+          children: [
+            // 썸네일
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                image: item.imageUrl.isNotEmpty
+                    ? DecorationImage(image: NetworkImage(item.imageUrl), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: item.imageUrl.isEmpty
+                  ? Icon(Icons.restaurant, color: cs.onSurface.withValues(alpha: 0.3))
                   : null,
             ),
-            child: item.imageUrl.isEmpty ? Icon(Icons.restaurant, color: cs.onSurface.withValues(alpha: 0.3)) : null,
-          ),
-          const SizedBox(width: 12),
-          // 정보
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(item.foodName, style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                    // AI 신뢰도 표시
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: item.confidenceColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+            const SizedBox(width: 12),
+            // 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(item.foodName, style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ),
-                      child: Text('AI ${item.confidenceLabel}', style: TextStyle(fontSize: 10, color: item.confidenceColor, fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                      child: Text(item.caloriesFormatted, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(item.nutritionSummary, style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.5))),
-                  ],
-                ),
-              ],
+                      // 입력 타입 표시 (AI 분석 or 검색)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isFromSearch
+                              ? AppTheme.primary.withValues(alpha: 0.1)
+                              : item.confidenceColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          isFromSearch ? '검색' : 'AI ${item.confidenceLabel}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isFromSearch ? AppTheme.primary : item.confidenceColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                        child: Text(item.caloriesFormatted, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(item.nutritionSummary, style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.5)), overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

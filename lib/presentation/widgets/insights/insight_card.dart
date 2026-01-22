@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
-import '../glass_card.dart';
+import '../common/app_card.dart';
 
 /// AI 인사이트 카드 위젯
 /// 스와이프 제스처로 읽음 처리/삭제 지원
@@ -160,43 +160,44 @@ class _InsightCardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
+      child: AppCard(
+        // 라이트모드: standard (흰색 배경 + 테두리 + 쉐도우)
+        // 다크모드: glass (반투명 블러 효과)
+        variant: isDark ? AppCardVariant.glass : AppCardVariant.standard,
+        padding: EdgeInsets.zero,
         onTap: onTap,
-        child: GlassCard(
-          padding: EdgeInsets.zero,
-          borderRadius: 16,
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                // 왼쪽 우선순위 색상 바
-                _buildPriorityBar(),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              // 왼쪽 우선순위 색상 바
+              _buildPriorityBar(),
 
-                // 메인 컨텐츠
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 상단: 타입 아이콘 + 제목 + AI 배지 + 읽지 않음 표시
-                        _buildHeader(colorScheme),
-                        const SizedBox(height: 8),
+              // 메인 컨텐츠
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 상단: 타입 아이콘 + 제목 + AI 배지 + 읽지 않음 표시
+                      _buildHeader(colorScheme),
+                      const SizedBox(height: 8),
 
-                        // 중간: 메시지 (최대 2줄)
-                        _buildMessage(colorScheme),
-                        const SizedBox(height: 12),
+                      // 중간: 메시지 (최대 2줄)
+                      _buildMessage(colorScheme),
+                      const SizedBox(height: 12),
 
-                        // 하단: 회원 이름 + 상대 시간
-                        _buildFooter(colorScheme),
-                      ],
-                    ),
+                      // 하단: 회원 이름 + 상대 시간
+                      _buildFooter(colorScheme),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

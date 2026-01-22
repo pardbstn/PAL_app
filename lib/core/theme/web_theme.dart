@@ -130,12 +130,23 @@ class WebTheme {
   // ============================================
 
   /// 카드 데코레이션 (다크모드 자동 대응)
+  /// 통일된 카드 스타일: borderRadius 16, border 1px, boxShadow blur 8
   static BoxDecoration cardDecoration(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
       color: isDark ? cardBgDark : cardBgLight,
       borderRadius: BorderRadius.circular(cardBorderRadius),
-      boxShadow: cardShadow,
+      border: Border.all(
+        color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.03),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
     );
   }
 

@@ -464,16 +464,21 @@ class _InfoTab extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context, String title, List<Widget> children) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -2167,16 +2172,21 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     Widget child, {
     Widget? trailing,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -2853,19 +2863,23 @@ class _CurriculumCard extends ConsumerWidget {
     final isCompleted = curriculum.isCompleted;
     final signatureAsync = ref.watch(signatureByCurriculumProvider(curriculum.id));
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: !isCompleted
-            ? Border.all(color: AppTheme.primary.withValues(alpha: 0.3), width: 2)
-            : null,
+        border: Border.all(
+          color: !isCompleted
+              ? AppTheme.primary.withValues(alpha: 0.3)
+              : (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+          width: !isCompleted ? 2 : 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -3103,6 +3117,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -3115,11 +3130,15 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -3161,9 +3180,10 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppTheme.primary.withValues(alpha: 0.2),
+                width: 1,
               ),
             ),
             child: const Row(

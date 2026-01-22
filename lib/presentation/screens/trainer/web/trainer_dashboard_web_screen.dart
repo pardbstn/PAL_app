@@ -708,6 +708,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
 }
 
 /// 대시보드 카드 공통 위젯
+/// 통일된 카드 스타일: borderRadius 16, border 1px #E5E7EB(라이트)/#374151(다크), shadow 0.03 alpha
 class _DashboardCard extends StatelessWidget {
   final Widget child;
   final bool isDark;
@@ -722,11 +723,11 @@ class _DashboardCard extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

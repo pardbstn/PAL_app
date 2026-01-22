@@ -34,6 +34,16 @@ import 'package:flutter_pal_app/presentation/screens/splash/splash_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/chat/chat_room_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/common/notifications_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/badges_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/trainer_review_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_reviews_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/subscription_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/self_training_home_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/monthly_report_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/trainer_question_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_requests_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_ranking_screen.dart';
 
 // ============================================================================
 // 페이지 전환 애니메이션
@@ -291,6 +301,36 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const TrainerInsightsScreen(),
         ),
       ),
+      // 내 평가 보기 (트레이너)
+      GoRoute(
+        path: AppRoutes.trainerReviews,
+        name: RouteNames.trainerReviews,
+        pageBuilder: (context, state) {
+          final trainerId = state.uri.queryParameters['trainerId'] ?? '';
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: TrainerReviewsScreen(trainerId: trainerId),
+          );
+        },
+      ),
+      // 트레이너 요청 관리 (트레이너용)
+      GoRoute(
+        path: AppRoutes.trainerRequests,
+        name: RouteNames.trainerRequests,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerRequestsScreen(),
+        ),
+      ),
+      // 트레이너 랭킹
+      GoRoute(
+        path: AppRoutes.trainerRanking,
+        name: RouteNames.trainerRanking,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerRankingScreen(),
+        ),
+      ),
 
       // 회원 라우트 (ShellRoute로 Bottom Navigation 유지)
       ShellRoute(
@@ -360,6 +400,84 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const MemberSettingsScreen(),
         ),
+      ),
+      // 배지 컬렉션
+      GoRoute(
+        path: AppRoutes.memberBadges,
+        name: RouteNames.memberBadges,
+        pageBuilder: (context, state) {
+          final memberId = state.uri.queryParameters['memberId'] ?? '';
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: BadgesScreen(memberId: memberId),
+          );
+        },
+      ),
+      // 트레이너 평가 작성 (회원)
+      GoRoute(
+        path: AppRoutes.memberReviewTrainer,
+        name: RouteNames.memberReviewTrainer,
+        pageBuilder: (context, state) {
+          final trainerId = state.pathParameters['trainerId']!;
+          final memberId = state.uri.queryParameters['memberId'] ?? '';
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: TrainerReviewScreen(
+              trainerId: trainerId,
+              memberId: memberId,
+            ),
+          );
+        },
+      ),
+      // 구독 관리
+      GoRoute(
+        path: AppRoutes.memberSubscription,
+        name: RouteNames.memberSubscription,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const SubscriptionScreen(),
+        ),
+      ),
+      // 셀프 트레이닝 홈
+      GoRoute(
+        path: AppRoutes.memberSelfTraining,
+        name: RouteNames.memberSelfTraining,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const SelfTrainingHomeScreen(),
+        ),
+      ),
+      // 월간 리포트
+      GoRoute(
+        path: AppRoutes.memberMonthlyReport,
+        name: RouteNames.memberMonthlyReport,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const MonthlyReportScreen(),
+        ),
+      ),
+      // 트레이너 질문
+      GoRoute(
+        path: AppRoutes.memberTrainerQuestion,
+        name: RouteNames.memberTrainerQuestion,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerQuestionScreen(),
+        ),
+      ),
+
+      // 공통 라우트 (회원/트레이너 모두 접근 가능)
+      // 알림
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: RouteNames.notifications,
+        pageBuilder: (context, state) {
+          final userId = state.uri.queryParameters['userId'] ?? '';
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: NotificationsScreen(userId: userId),
+          );
+        },
       ),
     ],
 

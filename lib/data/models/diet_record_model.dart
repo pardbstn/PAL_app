@@ -76,6 +76,30 @@ sealed class DietRecordModel with _$DietRecordModel {
     /// 메모
     String? note,
 
+    /// 로컬 DB 음식 ID (음식 검색으로 추가된 경우)
+    String? foodId,
+
+    /// 수량 배수 (기본 1.0, 예: 0.5 = 반 인분)
+    @Default(1.0) double servingMultiplier,
+
+    /// 입력 방식 (search: 검색, ai: AI분석, manual: 수동입력)
+    @Default('manual') String inputType,
+
+    /// 음식명 (검색으로 추가된 경우 저장)
+    String? foodName,
+
+    /// 칼로리 (검색/수동 입력 시 직접 저장)
+    double? calories,
+
+    /// 탄수화물 (g)
+    double? carbs,
+
+    /// 단백질 (g)
+    double? protein,
+
+    /// 지방 (g)
+    double? fat,
+
     /// 생성일
     @TimestampConverter() required DateTime createdAt,
 
@@ -128,6 +152,35 @@ extension DietRecordModelX on DietRecordModel {
         'P:${a.protein?.toStringAsFixed(0)}g '
         'C:${a.carbs?.toStringAsFixed(0)}g '
         'F:${a.fat?.toStringAsFixed(0)}g';
+  }
+
+  /// 실제 칼로리 계산 (수량 배수 적용)
+  double get actualCalories {
+    final base = calories ?? aiAnalysis?.calories ?? 0;
+    return base * servingMultiplier;
+  }
+
+  /// 실제 탄수화물 계산
+  double get actualCarbs {
+    final base = carbs ?? aiAnalysis?.carbs ?? 0;
+    return base * servingMultiplier;
+  }
+
+  /// 실제 단백질 계산
+  double get actualProtein {
+    final base = protein ?? aiAnalysis?.protein ?? 0;
+    return base * servingMultiplier;
+  }
+
+  /// 실제 지방 계산
+  double get actualFat {
+    final base = fat ?? aiAnalysis?.fat ?? 0;
+    return base * servingMultiplier;
+  }
+
+  /// 표시할 음식명
+  String get displayFoodName {
+    return foodName ?? aiAnalysis?.foodName ?? description ?? '음식';
   }
 }
 

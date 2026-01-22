@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/notification/notification_badge.dart';
 
 /// 트레이너 앱 셸 (Bottom Navigation)
 class TrainerShell extends ConsumerWidget {
@@ -12,7 +14,20 @@ class TrainerShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userId = authState.userId;
+
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_getTitle(context)),
+        actions: [
+          if (userId != null)
+            NotificationActionButton(
+              userId: userId,
+              onTap: () => context.push('/notifications'),
+            ),
+        ],
+      ),
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
@@ -60,6 +75,15 @@ class TrainerShell extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _getTitle(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/trainer/home')) return '홈';
+    if (location.startsWith('/trainer/members')) return '회원';
+    if (location.startsWith('/trainer/calendar')) return '캘린더';
+    if (location.startsWith('/trainer/messages')) return '메시지';
+    return 'PAL';
   }
 
   int _calculateSelectedIndex(BuildContext context) {

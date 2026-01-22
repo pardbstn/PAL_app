@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/notification/notification_badge.dart';
 
 /// 회원 앱 셸 (Bottom Navigation - 5개 탭)
 /// 1. 홈 2. 내 기록 3. 캘린더 4. 식단 5. 메시지
@@ -14,8 +16,20 @@ class MemberShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+    final authState = ref.watch(authProvider);
+    final userId = authState.userId;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_getTitle(context)),
+        actions: [
+          if (userId != null)
+            NotificationActionButton(
+              userId: userId,
+              onTap: () => context.push('/notifications'),
+            ),
+        ],
+      ),
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
@@ -57,6 +71,16 @@ class MemberShell extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _getTitle(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/member/home')) return '홈';
+    if (location.startsWith('/member/records')) return '내 기록';
+    if (location.startsWith('/member/calendar')) return '캘린더';
+    if (location.startsWith('/member/diet')) return '식단';
+    if (location.startsWith('/member/messages')) return '메시지';
+    return 'PAL';
   }
 
   int _calculateSelectedIndex(BuildContext context) {

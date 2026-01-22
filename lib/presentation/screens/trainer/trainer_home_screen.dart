@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
-import 'package:flutter_pal_app/core/utils/animation_utils.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
@@ -14,9 +13,13 @@ import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_alert_card.dart';
+import 'package:flutter_pal_app/presentation/providers/reregistration_provider.dart';
 
 /// 트레이너 홈 (대시보드) 화면
 /// Glassmorphism 효과로 프리미엄 UI 제공
@@ -67,6 +70,10 @@ class TrainerHomeScreen extends ConsumerWidget {
                     _buildSectionHeader(context, '회원 현황', Icons.people_alt),
                     const SizedBox(height: 16),
                     _MemberStatsSection(),
+                    const SizedBox(height: 28),
+
+                    // 재등록 대기
+                    _ReregistrationAlertSection(),
                     const SizedBox(height: 28),
 
                     // PT 종료 임박
@@ -523,39 +530,56 @@ class _MemberStatsSection extends ConsumerWidget {
     return statsAsync.when(
       loading: () => _buildStatsShimmer(),
       error: (error, _) => _buildErrorRow(context),
-      data: (stats) => Row(
-        children: [
-          Expanded(
-            child: _AnimatedStatCard(
-              label: '전체 회원',
-              value: stats.totalMembers,
-              suffix: '명',
-              icon: Icons.people,
-              iconColor: AppTheme.primary,
-              onTap: () => context.go('/trainer/members'),
-            ).animateListItem(0),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _AnimatedStatCard(
-              label: 'PT 진행중',
-              value: stats.activeMembers,
-              suffix: '명',
-              icon: Icons.fitness_center,
-              iconColor: AppTheme.secondary,
-            ).animateListItem(1),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _AnimatedStatCard(
-              label: 'PT 완료',
-              value: stats.completedMembers,
-              suffix: '명',
-              icon: Icons.check_circle_outline,
-              iconColor: Colors.grey,
-            ).animateListItem(2),
-          ),
-        ],
+      data: (stats) => AnimatedListWrapper(
+        child: Row(
+          children: [
+            Expanded(
+              child: AnimatedListWrapper.item(
+                index: 0,
+                horizontalOffset: 0.0,
+                verticalOffset: 30.0,
+                child: _AnimatedStatCard(
+                  label: '전체 회원',
+                  value: stats.totalMembers,
+                  suffix: '명',
+                  icon: Icons.people,
+                  iconColor: AppTheme.primary,
+                  onTap: () => context.go('/trainer/members'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AnimatedListWrapper.item(
+                index: 1,
+                horizontalOffset: 0.0,
+                verticalOffset: 30.0,
+                child: _AnimatedStatCard(
+                  label: 'PT 진행중',
+                  value: stats.activeMembers,
+                  suffix: '명',
+                  icon: Icons.fitness_center,
+                  iconColor: AppTheme.secondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AnimatedListWrapper.item(
+                index: 2,
+                horizontalOffset: 0.0,
+                verticalOffset: 30.0,
+                child: _AnimatedStatCard(
+                  label: 'PT 완료',
+                  value: stats.completedMembers,
+                  suffix: '명',
+                  icon: Icons.check_circle_outline,
+                  iconColor: Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -567,7 +591,7 @@ class _MemberStatsSection extends ConsumerWidget {
         (index) => Expanded(
           child: Padding(
             padding: EdgeInsets.only(left: index > 0 ? 12 : 0),
-            child: GlassCard(
+            child: AppCard(
               padding: const EdgeInsets.all(16),
               child: Builder(
                 builder: (context) {
@@ -601,15 +625,98 @@ class _MemberStatsSection extends ConsumerWidget {
         (index) => Expanded(
           child: Padding(
             padding: EdgeInsets.only(left: index > 0 ? 12 : 0),
-            child: GlassStatCard(
-              label: '-',
-              value: '-',
-              icon: Icons.error_outline,
-              iconColor: Colors.grey,
+            child: AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline,
+                      color: Colors.grey,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '-',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '-',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 재등록 대기 섹션
+class _ReregistrationAlertSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trainer = ref.watch(currentTrainerProvider);
+    final membersWithUserAsync = ref.watch(membersWithUserProvider);
+
+    // 트레이너 정보가 없으면 빈 위젯 반환
+    if (trainer == null) {
+      return const SizedBox.shrink();
+    }
+
+    final trainerId = trainer.id;
+
+    // 회원 이름 조회 함수
+    String getMemberName(String memberId) {
+      return membersWithUserAsync.when(
+        data: (members) {
+          final member = members.where((m) => m.member.id == memberId).firstOrNull;
+          return member?.name ?? '알 수 없는 회원';
+        },
+        loading: () => '로딩중...',
+        error: (_, _) => '알 수 없음',
+      );
+    }
+
+    // 회원 프로필 URL 조회 함수
+    String? getMemberProfileUrl(String memberId) {
+      return membersWithUserAsync.when(
+        data: (members) {
+          final member = members.where((m) => m.member.id == memberId).firstOrNull;
+          return member?.user?.profileImageUrl;
+        },
+        loading: () => null,
+        error: (_, _) => null,
+      );
+    }
+
+    return ReregistrationAlertList(
+      trainerId: trainerId,
+      getMemberName: getMemberName,
+      getMemberProfileUrl: getMemberProfileUrl,
+      maxItems: 3,
+      onContactMember: (memberId) {
+        // 회원 상세 페이지로 이동
+        context.go('/trainer/members/$memberId');
+      },
+      onMarkComplete: (memberId) {
+        // 재등록 완료 처리
+        ref.read(reregistrationNotifierProvider.notifier).markReregistered(memberId);
+      },
     );
   }
 }
@@ -1057,16 +1164,10 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
   Widget _buildEmptyState(BuildContext context, String? trainerId) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return AppCard(
+      variant: AppCardVariant.outlined,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.3),
-          width: 1,
-          strokeAlign: BorderSide.strokeAlignInside,
-        ),
-      ),
+      animate: true,
       child: Column(
         children: [
           Container(
@@ -1119,7 +1220,7 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 600.ms, duration: 500.ms).slideY(begin: 0.1);
+    );
   }
 
   /// AI 인사이트 카드 (InsightCard 사용)
@@ -1648,44 +1749,42 @@ class _AnimatedStatCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveIconColor = iconColor ?? colorScheme.primary;
 
-    return GestureDetector(
+    return AppCard(
       onTap: onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: effectiveIconColor.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: effectiveIconColor,
-                size: 24,
-              ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: effectiveIconColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 12),
-            // 카운트업 애니메이션 적용
-            AnimatedCounter(
-              value: value,
-              suffix: suffix,
-              duration: const Duration(milliseconds: 1000),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            child: Icon(
+              icon,
+              color: effectiveIconColor,
+              size: 24,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          // 카운트업 애니메이션 적용
+          AnimatedCounter(
+            value: value,
+            suffix: suffix,
+            duration: const Duration(milliseconds: 1000),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+          ),
+        ],
       ),
     );
   }

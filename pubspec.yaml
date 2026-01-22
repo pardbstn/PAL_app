@@ -108,6 +108,7 @@ flutter:
   assets:
     - assets/images/
     - assets/lottie/
+    - assets/data/food_database.json
 
   fonts:
     - family: Pretendard

@@ -19,6 +19,9 @@ abstract class AppRoutes {
   static const String trainerRevenue = '/trainer/revenue';
   static const String trainerSettings = '/trainer/settings';
   static const String trainerInsights = '/trainer/insights';
+  static const String trainerReviews = '/trainer/my-reviews';
+  static const String trainerRequests = '/trainer/trainer-requests';
+  static const String trainerRanking = '/trainer/ranking';
 
   // 회원 경로
   static const String memberHome = '/member/home';
@@ -28,6 +31,15 @@ abstract class AppRoutes {
   static const String memberMessages = '/member/messages';
   static const String memberChatRoom = '/member/messages/:chatRoomId';
   static const String memberSettings = '/member/settings';
+  static const String memberBadges = '/member/badges';
+  static const String memberReviewTrainer = '/member/review-trainer/:trainerId';
+  static const String memberSubscription = '/member/subscription';
+  static const String memberSelfTraining = '/member/self-training';
+  static const String memberMonthlyReport = '/member/monthly-report';
+  static const String memberTrainerQuestion = '/member/trainer-question';
+
+  // 공통 경로
+  static const String notifications = '/notifications';
 }
 
 /// 라우트 이름 상수
@@ -50,6 +62,9 @@ abstract class RouteNames {
   static const String trainerRevenue = 'trainer-revenue';
   static const String trainerSettings = 'trainer-settings';
   static const String trainerInsights = 'trainer-insights';
+  static const String trainerReviews = 'trainer-reviews';
+  static const String trainerRequests = 'trainer-requests';
+  static const String trainerRanking = 'trainerRanking';
 
   // 회원
   static const String memberHome = 'member-home';
@@ -59,4 +74,13 @@ abstract class RouteNames {
   static const String memberMessages = 'member-messages';
   static const String memberChatRoom = 'member-chat-room';
   static const String memberSettings = 'member-settings';
+  static const String memberBadges = 'member-badges';
+  static const String memberReviewTrainer = 'member-review-trainer';
+  static const String memberSubscription = 'member-subscription';
+  static const String memberSelfTraining = 'member-self-training';
+  static const String memberMonthlyReport = 'member-monthly-report';
+  static const String memberTrainerQuestion = 'member-trainer-question';
+
+  // 공통
+  static const String notifications = 'notifications';
 }

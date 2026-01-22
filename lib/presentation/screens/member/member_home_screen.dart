@@ -14,9 +14,15 @@ import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/benchmark_distribution_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/muscle_balance_donut.dart';
+import 'package:flutter_pal_app/presentation/widgets/streak/streak_counter_widget.dart';
+import 'package:flutter_pal_app/presentation/widgets/member/reregistration_banner.dart';
+import 'package:flutter_pal_app/presentation/providers/streak_provider.dart';
+import 'package:flutter_pal_app/data/models/streak_model.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
 
 /// 프리미엄 회원 홈 화면
 class MemberHomeScreen extends ConsumerWidget {
@@ -33,13 +39,11 @@ class MemberHomeScreen extends ConsumerWidget {
       // 인증되지 않았거나 로딩 중이면 스켈레톤 표시
       if (!authState.isAuthenticated) {
         return Scaffold(
-          appBar: _buildAppBar(context),
           body: _buildLoadingSkeleton(context),
         );
       }
       // 인증되었지만 회원 프로필이 없는 경우
       return Scaffold(
-        appBar: _buildAppBar(context),
         body: _buildNoMemberProfile(context, user?.name ?? '회원님', user?.memberCode),
       );
     }
@@ -51,7 +55,6 @@ class MemberHomeScreen extends ConsumerWidget {
     final memberInsightsAsync = ref.watch(memberInsightsStreamProvider(memberId));
 
     return Scaffold(
-      appBar: _buildAppBar(context),
       body: RefreshIndicator(
         onRefresh: () async {
           // 데이터 새로고침
@@ -68,7 +71,40 @@ class MemberHomeScreen extends ConsumerWidget {
               // 1. 상단 인사말 섹션 (index 0)
               _GreetingSection(userName: user?.name ?? '회원님')
                   .animateListItem(0),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // 재등록 배너 (80% 이상 완료 시)
+              ReregistrationBanner(memberId: memberId),
+              const SizedBox(height: 16),
+
+              // 스트릭 카운터
+              Consumer(
+                builder: (context, ref, child) {
+                  final streakAsync = ref.watch(memberStreakProvider(memberId));
+                  return streakAsync.when(
+                    data: (streak) => Row(
+                      children: [
+                        Expanded(
+                          child: StreakCounterWidget(
+                            streak: streak,
+                            type: StreakType.weight,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StreakCounterWidget(
+                            streak: streak,
+                            type: StreakType.diet,
+                          ),
+                        ),
+                      ],
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
 
               // 2. PT 진행 현황 카드 (index 1)
               _PtProgressCard(
@@ -132,25 +168,6 @@ class MemberHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      title: const Text('PAL'),
-      centerTitle: false,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {
-            // TODO: 알림 화면으로 이동
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => context.go('/member/settings'),
-        ),
-      ],
     );
   }
 
@@ -1254,15 +1271,8 @@ class _EmptyInsightSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final generationState = ref.watch(memberInsightsGenerationProvider);
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.2),
-        ),
-      ),
       child: Column(
         children: [
           Row(
@@ -1336,6 +1346,27 @@ class _EmptyInsightSection extends ConsumerWidget {
   }
 }
 
+/// _MemberInsightCard에서 사용할 통일된 카드 데코레이션
+BoxDecoration _getUnifiedCardDecoration(BuildContext context, Color? accentColor) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return BoxDecoration(
+    color: isDark ? const Color(0xFF1F2937) : Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: accentColor?.withValues(alpha: 0.3) ??
+          (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+      width: 1,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.03),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
+}
+
 /// AI 인사이트 카드 섹션
 class _InsightCardsSection extends ConsumerWidget {
   final List<MemberInsight> insights;
@@ -1395,14 +1426,21 @@ class _InsightCardsSection extends ConsumerWidget {
         ),
         SizedBox(
           height: 160,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: insights.length > 5 ? 5 : insights.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final insight = insights[index];
-              return _MemberInsightCard(insight: insight);
-            },
+          child: AnimatedListWrapper(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: insights.length > 5 ? 5 : insights.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final insight = insights[index];
+                return AnimatedListWrapper.item(
+                  index: index,
+                  horizontalOffset: 50.0,
+                  verticalOffset: 0.0,
+                  child: _MemberInsightCard(insight: insight),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -1468,21 +1506,7 @@ class _MemberInsightCard extends StatelessWidget {
         width: 200,
         margin: const EdgeInsets.only(right: 0),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: insight.priorityColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+        decoration: _getUnifiedCardDecoration(context, insight.priorityColor),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

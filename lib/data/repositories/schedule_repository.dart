@@ -64,6 +64,23 @@ class ScheduleRepository {
     return schedules;
   }
 
+  /// 회원 월별 일정 조회
+  Future<List<ScheduleModel>> getMemberSchedulesForMonth(
+      String memberId, DateTime month) async {
+    final startOfMonth = DateTime(month.year, month.month, 1);
+    final endOfMonth = DateTime(month.year, month.month + 1, 1);
+
+    // 복합 인덱스 사용: memberId + scheduledAt
+    final snapshot = await _collection
+        .where('memberId', isEqualTo: memberId)
+        .where('scheduledAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('scheduledAt', isLessThan: Timestamp.fromDate(endOfMonth))
+        .orderBy('scheduledAt')
+        .get();
+
+    return snapshot.docs.map((doc) => _docToSchedule(doc)).toList();
+  }
+
   /// 회원 일정 실시간 스트림
   Stream<List<ScheduleModel>> memberSchedulesStream(String memberId) {
     return _collection
@@ -104,7 +121,10 @@ class ScheduleRepository {
       'scheduledAt': Timestamp.fromDate(schedule.scheduledAt),
       'duration': schedule.duration,
       'status': schedule.status.name,
+      'title': schedule.title,
       'note': schedule.note,
+      'memberId': schedule.memberId,
+      'memberName': schedule.memberName,
     });
   }
 

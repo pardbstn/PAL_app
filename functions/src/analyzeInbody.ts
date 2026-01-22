@@ -61,7 +61,6 @@ export const analyzeInbody = functions
   .runWith({
     timeoutSeconds: 60,
     memory: "512MB",
-    secrets: ["OPENAI_API_KEY"],
   })
   .https.onCall(async (data: AnalyzeInbodyRequest, context) => {
     // 1. 인증 확인

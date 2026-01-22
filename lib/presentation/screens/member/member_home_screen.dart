@@ -8,8 +8,9 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
+import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
@@ -43,7 +44,7 @@ class MemberHomeScreen extends ConsumerWidget {
 
     final memberId = member.id;
     final weightChangeAsync = ref.watch(weightChangeProvider(memberId));
-    final nextCurriculumAsync = ref.watch(nextCurriculumProvider(memberId));
+    final nextPtScheduleAsync = ref.watch(nextMemberPtScheduleProvider(memberId));
     final weightHistoryAsync = ref.watch(weightHistoryProvider(memberId));
     final memberInsightsAsync = ref.watch(memberInsightsStreamProvider(memberId));
 
@@ -53,7 +54,7 @@ class MemberHomeScreen extends ConsumerWidget {
         onRefresh: () async {
           // 데이터 새로고침
           ref.invalidate(weightChangeProvider(memberId));
-          ref.invalidate(nextCurriculumProvider(memberId));
+          ref.invalidate(nextMemberPtScheduleProvider(memberId));
           ref.invalidate(weightHistoryProvider(memberId));
         },
         child: SingleChildScrollView(
@@ -75,12 +76,12 @@ class MemberHomeScreen extends ConsumerWidget {
               ).animateListItem(1),
               const SizedBox(height: 16),
 
-              // 3. 다음 수업 카드 (index 2)
-              nextCurriculumAsync.when(
+              // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
+              nextPtScheduleAsync.when(
                 loading: () => _buildNextClassSkeleton(context),
-                error: (error, _) => _NextClassCard(curriculum: null, error: error.toString())
+                error: (error, _) => _NextClassCard(schedule: null, error: error.toString())
                     .animateListItem(2),
-                data: (curriculum) => _NextClassCard(curriculum: curriculum)
+                data: (schedule) => _NextClassCard(schedule: schedule)
                     .animateListItem(2),
               ),
               const SizedBox(height: 16),
@@ -662,13 +663,13 @@ class _PtProgressCardState extends State<_PtProgressCard>
   }
 }
 
-/// 다음 수업 카드
+/// 다음 수업 카드 (캘린더 PT 일정 기반)
 class _NextClassCard extends StatelessWidget {
-  final dynamic curriculum; // CurriculumModel?
+  final ScheduleModel? schedule;
   final String? error;
 
   const _NextClassCard({
-    this.curriculum,
+    this.schedule,
     this.error,
   });
 
@@ -682,17 +683,29 @@ class _NextClassCard extends StatelessWidget {
     }
 
     // 예정된 수업 없음
-    if (curriculum == null) {
+    if (schedule == null) {
       return _buildEmptyCard(context);
     }
 
-    final scheduledDate = curriculum.scheduledDate;
-    final formattedDate = scheduledDate != null
-        ? _formatDate(scheduledDate)
-        : '날짜 미정';
-    final formattedTime = scheduledDate != null
-        ? _formatTime(scheduledDate)
-        : '';
+    final scheduledDate = schedule!.scheduledAt;
+    final formattedDate = _formatDate(scheduledDate);
+    final formattedTime = _formatTime(scheduledDate);
+    final duration = schedule!.duration;
+
+    // D-Day 계산
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduleDay = DateTime(scheduledDate.year, scheduledDate.month, scheduledDate.day);
+    final daysUntil = scheduleDay.difference(today).inDays;
+
+    String dDayText;
+    if (daysUntil == 0) {
+      dDayText = '오늘';
+    } else if (daysUntil == 1) {
+      dDayText = '내일';
+    } else {
+      dDayText = 'D-$daysUntil';
+    }
 
     return Card(
       elevation: 2,
@@ -702,7 +715,8 @@ class _NextClassCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: 수업 상세 페이지로 이동
+          // 캘린더 화면으로 이동
+          context.go('/member/calendar');
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -719,7 +733,7 @@ class _NextClassCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.calendar_today_outlined,
+                      Icons.fitness_center,
                       color: theme.colorScheme.primary,
                       size: 24,
                     ),
@@ -730,26 +744,36 @@ class _NextClassCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '다음 수업',
+                          '다음 PT 수업',
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        // 회차 카운트업 애니메이션 적용
                         Row(
                           children: [
-                            AnimatedCounter(
-                              value: curriculum.sessionNumber,
-                              duration: const Duration(milliseconds: 800),
-                              suffix: '회차',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: daysUntil == 0
+                                    ? AppTheme.secondary.withValues(alpha: 0.15)
+                                    : theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                dDayText,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: daysUntil == 0
+                                      ? AppTheme.secondary
+                                      : theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                ' - ${curriculum.title}',
+                                schedule!.memberName ?? 'PT 수업',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -785,7 +809,7 @@ class _NextClassCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      formattedTime.isNotEmpty ? '$formattedDate $formattedTime' : formattedDate,
+                      '$formattedDate $formattedTime (${duration}분)',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,

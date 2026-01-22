@@ -94,8 +94,8 @@ function buildCurriculumPrompt(
 }`;
 }
 
-// Gemini로 생성 (무료 티어)
-async function generateWithGemini(
+// Gemini로 생성 (예비용 - 향후 사용)
+export async function generateWithGemini(
   prompt: string,
   modelName: string
 ): Promise<{curriculums: unknown[]}> {

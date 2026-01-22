@@ -23,6 +23,28 @@ final memberSchedulesProvider =
   return repository.memberSchedulesStream(memberId);
 });
 
+/// 회원의 다음 PT 일정 Provider (홈화면용)
+final nextMemberPtScheduleProvider =
+    StreamProvider.family<ScheduleModel?, String>((ref, memberId) {
+  final repository = ref.watch(scheduleRepositoryProvider);
+  return repository.memberSchedulesStream(memberId).map((schedules) {
+    final now = DateTime.now();
+    // PT 일정만 필터링, 예정된 상태, 현재 시간 이후
+    final upcomingPt = schedules
+        .where((s) =>
+            s.scheduleType == ScheduleType.pt &&
+            s.status == ScheduleStatus.scheduled &&
+            s.scheduledAt.isAfter(now))
+        .toList();
+
+    if (upcomingPt.isEmpty) return null;
+
+    // 가장 빠른 일정 반환
+    upcomingPt.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    return upcomingPt.first;
+  });
+});
+
 /// 일정 상태 클래스
 class ScheduleState {
   final List<ScheduleModel> schedules;

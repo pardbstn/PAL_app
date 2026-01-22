@@ -13,6 +13,8 @@ enum InbodySource {
   inbodyApi,
   @JsonValue('inbody_app')
   inbodyApp,
+  @JsonValue('ai_analysis')
+  aiAnalysis,
 }
 
 /// 인바디 기록 모델
@@ -67,6 +69,12 @@ sealed class InbodyRecordModel with _$InbodyRecordModel {
 
     /// 메모
     String? memo,
+
+    /// 인바디 결과지 이미지 URL (AI 분석용)
+    String? imageUrl,
+
+    /// AI 분석 일시
+    @TimestampConverter() DateTime? analyzedAt,
 
     /// 생성 일시
     @TimestampConverter() required DateTime createdAt,

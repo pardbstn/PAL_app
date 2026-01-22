@@ -70,6 +70,10 @@ dependencies:
   # 캘린더
   table_calendar: ^3.0.0
 
+  # 파일 처리 & 파싱
+  file_picker: ^8.0.0
+  csv: ^6.0.0
+
   # 유틸리티
   intl: ^0.20.2
   uuid: ^4.2.0

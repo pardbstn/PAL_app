@@ -339,6 +339,40 @@ class AIService {
     }
   }
 
+  /// 인바디 결과지 AI 분석
+  ///
+  /// [memberId] 회원 ID
+  /// [imageUrl] 인바디 결과지 이미지 URL (Supabase Storage)
+  Future<InbodyAnalysisResult> analyzeInbody({
+    required String memberId,
+    required String imageUrl,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable(
+        'analyzeInbody',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
+      );
+
+      final result = await callable.call({
+        'memberId': memberId,
+        'imageUrl': imageUrl,
+      });
+
+      final data = _convertToStringDynamic(result.data);
+      return InbodyAnalysisResult.fromMap(data);
+    } on FirebaseFunctionsException catch (e) {
+      return InbodyAnalysisResult(
+        success: false,
+        error: _handleFunctionsException(e).toString().replaceFirst('Exception: ', ''),
+      );
+    } catch (e) {
+      return InbodyAnalysisResult(
+        success: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   /// Firebase Functions 예외 처리
   Exception _handleFunctionsException(FirebaseFunctionsException e) {
     switch (e.code) {
@@ -352,6 +386,8 @@ class AIService {
         return Exception(e.message ?? '사용량 한도를 초과했습니다.');
       case 'not-found':
         return Exception(e.message ?? '데이터를 찾을 수 없습니다.');
+      case 'failed-precondition':
+        return Exception(e.message ?? '사전 조건이 충족되지 않았습니다.');
       default:
         return Exception(e.message ?? '오류가 발생했습니다.');
     }
@@ -594,6 +630,77 @@ class GeneratedInsightSummary {
       message: map['message']?.toString() ?? '',
       memberName: map['memberName']?.toString(),
       actionSuggestion: map['actionSuggestion']?.toString(),
+    );
+  }
+}
+
+/// 인바디 AI 분석 결과
+class InbodyAnalysisResult {
+  final bool success;
+  final String? recordId;
+  final InbodyAnalysisData? analysis;
+  final String? error;
+
+  InbodyAnalysisResult({
+    required this.success,
+    this.recordId,
+    this.analysis,
+    this.error,
+  });
+
+  factory InbodyAnalysisResult.fromMap(Map<dynamic, dynamic> map) {
+    final analysisMap = map['analysis'] as Map<dynamic, dynamic>?;
+
+    return InbodyAnalysisResult(
+      success: map['success'] as bool? ?? false,
+      recordId: map['recordId']?.toString(),
+      analysis: analysisMap != null ? InbodyAnalysisData.fromMap(analysisMap) : null,
+      error: map['error']?.toString(),
+    );
+  }
+}
+
+/// 인바디 분석 데이터
+class InbodyAnalysisData {
+  final double? weight;
+  final double? skeletalMuscleMass;
+  final double? bodyFatMass;
+  final double? bodyFatPercent;
+  final double? bmi;
+  final double? basalMetabolicRate;
+  final double? totalBodyWater;
+  final double? protein;
+  final double? minerals;
+  final int? visceralFatLevel;
+  final int? inbodyScore;
+
+  InbodyAnalysisData({
+    this.weight,
+    this.skeletalMuscleMass,
+    this.bodyFatMass,
+    this.bodyFatPercent,
+    this.bmi,
+    this.basalMetabolicRate,
+    this.totalBodyWater,
+    this.protein,
+    this.minerals,
+    this.visceralFatLevel,
+    this.inbodyScore,
+  });
+
+  factory InbodyAnalysisData.fromMap(Map<dynamic, dynamic> map) {
+    return InbodyAnalysisData(
+      weight: (map['weight'] as num?)?.toDouble(),
+      skeletalMuscleMass: (map['skeletalMuscleMass'] as num?)?.toDouble(),
+      bodyFatMass: (map['bodyFatMass'] as num?)?.toDouble(),
+      bodyFatPercent: (map['bodyFatPercent'] as num?)?.toDouble(),
+      bmi: (map['bmi'] as num?)?.toDouble(),
+      basalMetabolicRate: (map['basalMetabolicRate'] as num?)?.toDouble(),
+      totalBodyWater: (map['totalBodyWater'] as num?)?.toDouble(),
+      protein: (map['protein'] as num?)?.toDouble(),
+      minerals: (map['minerals'] as num?)?.toDouble(),
+      visceralFatLevel: (map['visceralFatLevel'] as num?)?.toInt(),
+      inbodyScore: (map['inbodyScore'] as num?)?.toInt(),
     );
   }
 }

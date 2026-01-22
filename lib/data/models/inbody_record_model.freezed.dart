@@ -31,7 +31,9 @@ mixin _$InbodyRecordModel {
  int? get visceralFatLevel;/// 인바디 점수
  int? get inbodyScore;/// 데이터 소스
  InbodySource get source;/// 메모
- String? get memo;/// 생성 일시
+ String? get memo;/// 인바디 결과지 이미지 URL (AI 분석용)
+ String? get imageUrl;/// AI 분석 일시
+@TimestampConverter() DateTime? get analyzedAt;/// 생성 일시
 @TimestampConverter() DateTime get createdAt;
 /// Create a copy of InbodyRecordModel
 /// with the given fields replaced by the non-null parameter values.
@@ -45,16 +47,16 @@ $InbodyRecordModelCopyWith<InbodyRecordModel> get copyWith => _$InbodyRecordMode
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InbodyRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.measuredAt, measuredAt) || other.measuredAt == measuredAt)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.skeletalMuscleMass, skeletalMuscleMass) || other.skeletalMuscleMass == skeletalMuscleMass)&&(identical(other.bodyFatMass, bodyFatMass) || other.bodyFatMass == bodyFatMass)&&(identical(other.bodyFatPercent, bodyFatPercent) || other.bodyFatPercent == bodyFatPercent)&&(identical(other.bmi, bmi) || other.bmi == bmi)&&(identical(other.basalMetabolicRate, basalMetabolicRate) || other.basalMetabolicRate == basalMetabolicRate)&&(identical(other.totalBodyWater, totalBodyWater) || other.totalBodyWater == totalBodyWater)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.minerals, minerals) || other.minerals == minerals)&&(identical(other.visceralFatLevel, visceralFatLevel) || other.visceralFatLevel == visceralFatLevel)&&(identical(other.inbodyScore, inbodyScore) || other.inbodyScore == inbodyScore)&&(identical(other.source, source) || other.source == source)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InbodyRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.measuredAt, measuredAt) || other.measuredAt == measuredAt)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.skeletalMuscleMass, skeletalMuscleMass) || other.skeletalMuscleMass == skeletalMuscleMass)&&(identical(other.bodyFatMass, bodyFatMass) || other.bodyFatMass == bodyFatMass)&&(identical(other.bodyFatPercent, bodyFatPercent) || other.bodyFatPercent == bodyFatPercent)&&(identical(other.bmi, bmi) || other.bmi == bmi)&&(identical(other.basalMetabolicRate, basalMetabolicRate) || other.basalMetabolicRate == basalMetabolicRate)&&(identical(other.totalBodyWater, totalBodyWater) || other.totalBodyWater == totalBodyWater)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.minerals, minerals) || other.minerals == minerals)&&(identical(other.visceralFatLevel, visceralFatLevel) || other.visceralFatLevel == visceralFatLevel)&&(identical(other.inbodyScore, inbodyScore) || other.inbodyScore == inbodyScore)&&(identical(other.source, source) || other.source == source)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,measuredAt,weight,skeletalMuscleMass,bodyFatMass,bodyFatPercent,bmi,basalMetabolicRate,totalBodyWater,protein,minerals,visceralFatLevel,inbodyScore,source,memo,createdAt);
+int get hashCode => Object.hashAll([runtimeType,id,memberId,measuredAt,weight,skeletalMuscleMass,bodyFatMass,bodyFatPercent,bmi,basalMetabolicRate,totalBodyWater,protein,minerals,visceralFatLevel,inbodyScore,source,memo,imageUrl,analyzedAt,createdAt]);
 
 @override
 String toString() {
-  return 'InbodyRecordModel(id: $id, memberId: $memberId, measuredAt: $measuredAt, weight: $weight, skeletalMuscleMass: $skeletalMuscleMass, bodyFatMass: $bodyFatMass, bodyFatPercent: $bodyFatPercent, bmi: $bmi, basalMetabolicRate: $basalMetabolicRate, totalBodyWater: $totalBodyWater, protein: $protein, minerals: $minerals, visceralFatLevel: $visceralFatLevel, inbodyScore: $inbodyScore, source: $source, memo: $memo, createdAt: $createdAt)';
+  return 'InbodyRecordModel(id: $id, memberId: $memberId, measuredAt: $measuredAt, weight: $weight, skeletalMuscleMass: $skeletalMuscleMass, bodyFatMass: $bodyFatMass, bodyFatPercent: $bodyFatPercent, bmi: $bmi, basalMetabolicRate: $basalMetabolicRate, totalBodyWater: $totalBodyWater, protein: $protein, minerals: $minerals, visceralFatLevel: $visceralFatLevel, inbodyScore: $inbodyScore, source: $source, memo: $memo, imageUrl: $imageUrl, analyzedAt: $analyzedAt, createdAt: $createdAt)';
 }
 
 
@@ -65,7 +67,7 @@ abstract mixin class $InbodyRecordModelCopyWith<$Res>  {
   factory $InbodyRecordModelCopyWith(InbodyRecordModel value, $Res Function(InbodyRecordModel) _then) = _$InbodyRecordModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String memberId,@TimestampConverter() DateTime measuredAt, double weight, double skeletalMuscleMass, double? bodyFatMass, double bodyFatPercent, double? bmi, double? basalMetabolicRate, double? totalBodyWater, double? protein, double? minerals, int? visceralFatLevel, int? inbodyScore, InbodySource source, String? memo,@TimestampConverter() DateTime createdAt
+ String id, String memberId,@TimestampConverter() DateTime measuredAt, double weight, double skeletalMuscleMass, double? bodyFatMass, double bodyFatPercent, double? bmi, double? basalMetabolicRate, double? totalBodyWater, double? protein, double? minerals, int? visceralFatLevel, int? inbodyScore, InbodySource source, String? memo, String? imageUrl,@TimestampConverter() DateTime? analyzedAt,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -82,7 +84,7 @@ class _$InbodyRecordModelCopyWithImpl<$Res>
 
 /// Create a copy of InbodyRecordModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? measuredAt = null,Object? weight = null,Object? skeletalMuscleMass = null,Object? bodyFatMass = freezed,Object? bodyFatPercent = null,Object? bmi = freezed,Object? basalMetabolicRate = freezed,Object? totalBodyWater = freezed,Object? protein = freezed,Object? minerals = freezed,Object? visceralFatLevel = freezed,Object? inbodyScore = freezed,Object? source = null,Object? memo = freezed,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? measuredAt = null,Object? weight = null,Object? skeletalMuscleMass = null,Object? bodyFatMass = freezed,Object? bodyFatPercent = null,Object? bmi = freezed,Object? basalMetabolicRate = freezed,Object? totalBodyWater = freezed,Object? protein = freezed,Object? minerals = freezed,Object? visceralFatLevel = freezed,Object? inbodyScore = freezed,Object? source = null,Object? memo = freezed,Object? imageUrl = freezed,Object? analyzedAt = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -100,7 +102,9 @@ as double?,visceralFatLevel: freezed == visceralFatLevel ? _self.visceralFatLeve
 as int?,inbodyScore: freezed == inbodyScore ? _self.inbodyScore : inbodyScore // ignore: cast_nullable_to_non_nullable
 as int?,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as InbodySource,memo: freezed == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
@@ -183,10 +187,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo,  String? imageUrl, @TimestampConverter()  DateTime? analyzedAt, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InbodyRecordModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.createdAt);case _:
+return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.imageUrl,_that.analyzedAt,_that.createdAt);case _:
   return orElse();
 
 }
@@ -204,10 +208,10 @@ return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skel
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo,  String? imageUrl, @TimestampConverter()  DateTime? analyzedAt, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _InbodyRecordModel():
-return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.createdAt);}
+return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.imageUrl,_that.analyzedAt,_that.createdAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -221,10 +225,10 @@ return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skel
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId, @TimestampConverter()  DateTime measuredAt,  double weight,  double skeletalMuscleMass,  double? bodyFatMass,  double bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  double? totalBodyWater,  double? protein,  double? minerals,  int? visceralFatLevel,  int? inbodyScore,  InbodySource source,  String? memo,  String? imageUrl, @TimestampConverter()  DateTime? analyzedAt, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _InbodyRecordModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.createdAt);case _:
+return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skeletalMuscleMass,_that.bodyFatMass,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.totalBodyWater,_that.protein,_that.minerals,_that.visceralFatLevel,_that.inbodyScore,_that.source,_that.memo,_that.imageUrl,_that.analyzedAt,_that.createdAt);case _:
   return null;
 
 }
@@ -236,7 +240,7 @@ return $default(_that.id,_that.memberId,_that.measuredAt,_that.weight,_that.skel
 @JsonSerializable()
 
 class _InbodyRecordModel implements InbodyRecordModel {
-  const _InbodyRecordModel({required this.id, required this.memberId, @TimestampConverter() required this.measuredAt, required this.weight, required this.skeletalMuscleMass, this.bodyFatMass, required this.bodyFatPercent, this.bmi, this.basalMetabolicRate, this.totalBodyWater, this.protein, this.minerals, this.visceralFatLevel, this.inbodyScore, this.source = InbodySource.manual, this.memo, @TimestampConverter() required this.createdAt});
+  const _InbodyRecordModel({required this.id, required this.memberId, @TimestampConverter() required this.measuredAt, required this.weight, required this.skeletalMuscleMass, this.bodyFatMass, required this.bodyFatPercent, this.bmi, this.basalMetabolicRate, this.totalBodyWater, this.protein, this.minerals, this.visceralFatLevel, this.inbodyScore, this.source = InbodySource.manual, this.memo, this.imageUrl, @TimestampConverter() this.analyzedAt, @TimestampConverter() required this.createdAt});
   factory _InbodyRecordModel.fromJson(Map<String, dynamic> json) => _$InbodyRecordModelFromJson(json);
 
 /// 문서 ID
@@ -271,6 +275,10 @@ class _InbodyRecordModel implements InbodyRecordModel {
 @override@JsonKey() final  InbodySource source;
 /// 메모
 @override final  String? memo;
+/// 인바디 결과지 이미지 URL (AI 분석용)
+@override final  String? imageUrl;
+/// AI 분석 일시
+@override@TimestampConverter() final  DateTime? analyzedAt;
 /// 생성 일시
 @override@TimestampConverter() final  DateTime createdAt;
 
@@ -287,16 +295,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InbodyRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.measuredAt, measuredAt) || other.measuredAt == measuredAt)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.skeletalMuscleMass, skeletalMuscleMass) || other.skeletalMuscleMass == skeletalMuscleMass)&&(identical(other.bodyFatMass, bodyFatMass) || other.bodyFatMass == bodyFatMass)&&(identical(other.bodyFatPercent, bodyFatPercent) || other.bodyFatPercent == bodyFatPercent)&&(identical(other.bmi, bmi) || other.bmi == bmi)&&(identical(other.basalMetabolicRate, basalMetabolicRate) || other.basalMetabolicRate == basalMetabolicRate)&&(identical(other.totalBodyWater, totalBodyWater) || other.totalBodyWater == totalBodyWater)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.minerals, minerals) || other.minerals == minerals)&&(identical(other.visceralFatLevel, visceralFatLevel) || other.visceralFatLevel == visceralFatLevel)&&(identical(other.inbodyScore, inbodyScore) || other.inbodyScore == inbodyScore)&&(identical(other.source, source) || other.source == source)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InbodyRecordModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.measuredAt, measuredAt) || other.measuredAt == measuredAt)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.skeletalMuscleMass, skeletalMuscleMass) || other.skeletalMuscleMass == skeletalMuscleMass)&&(identical(other.bodyFatMass, bodyFatMass) || other.bodyFatMass == bodyFatMass)&&(identical(other.bodyFatPercent, bodyFatPercent) || other.bodyFatPercent == bodyFatPercent)&&(identical(other.bmi, bmi) || other.bmi == bmi)&&(identical(other.basalMetabolicRate, basalMetabolicRate) || other.basalMetabolicRate == basalMetabolicRate)&&(identical(other.totalBodyWater, totalBodyWater) || other.totalBodyWater == totalBodyWater)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.minerals, minerals) || other.minerals == minerals)&&(identical(other.visceralFatLevel, visceralFatLevel) || other.visceralFatLevel == visceralFatLevel)&&(identical(other.inbodyScore, inbodyScore) || other.inbodyScore == inbodyScore)&&(identical(other.source, source) || other.source == source)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,measuredAt,weight,skeletalMuscleMass,bodyFatMass,bodyFatPercent,bmi,basalMetabolicRate,totalBodyWater,protein,minerals,visceralFatLevel,inbodyScore,source,memo,createdAt);
+int get hashCode => Object.hashAll([runtimeType,id,memberId,measuredAt,weight,skeletalMuscleMass,bodyFatMass,bodyFatPercent,bmi,basalMetabolicRate,totalBodyWater,protein,minerals,visceralFatLevel,inbodyScore,source,memo,imageUrl,analyzedAt,createdAt]);
 
 @override
 String toString() {
-  return 'InbodyRecordModel(id: $id, memberId: $memberId, measuredAt: $measuredAt, weight: $weight, skeletalMuscleMass: $skeletalMuscleMass, bodyFatMass: $bodyFatMass, bodyFatPercent: $bodyFatPercent, bmi: $bmi, basalMetabolicRate: $basalMetabolicRate, totalBodyWater: $totalBodyWater, protein: $protein, minerals: $minerals, visceralFatLevel: $visceralFatLevel, inbodyScore: $inbodyScore, source: $source, memo: $memo, createdAt: $createdAt)';
+  return 'InbodyRecordModel(id: $id, memberId: $memberId, measuredAt: $measuredAt, weight: $weight, skeletalMuscleMass: $skeletalMuscleMass, bodyFatMass: $bodyFatMass, bodyFatPercent: $bodyFatPercent, bmi: $bmi, basalMetabolicRate: $basalMetabolicRate, totalBodyWater: $totalBodyWater, protein: $protein, minerals: $minerals, visceralFatLevel: $visceralFatLevel, inbodyScore: $inbodyScore, source: $source, memo: $memo, imageUrl: $imageUrl, analyzedAt: $analyzedAt, createdAt: $createdAt)';
 }
 
 
@@ -307,7 +315,7 @@ abstract mixin class _$InbodyRecordModelCopyWith<$Res> implements $InbodyRecordM
   factory _$InbodyRecordModelCopyWith(_InbodyRecordModel value, $Res Function(_InbodyRecordModel) _then) = __$InbodyRecordModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String memberId,@TimestampConverter() DateTime measuredAt, double weight, double skeletalMuscleMass, double? bodyFatMass, double bodyFatPercent, double? bmi, double? basalMetabolicRate, double? totalBodyWater, double? protein, double? minerals, int? visceralFatLevel, int? inbodyScore, InbodySource source, String? memo,@TimestampConverter() DateTime createdAt
+ String id, String memberId,@TimestampConverter() DateTime measuredAt, double weight, double skeletalMuscleMass, double? bodyFatMass, double bodyFatPercent, double? bmi, double? basalMetabolicRate, double? totalBodyWater, double? protein, double? minerals, int? visceralFatLevel, int? inbodyScore, InbodySource source, String? memo, String? imageUrl,@TimestampConverter() DateTime? analyzedAt,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -324,7 +332,7 @@ class __$InbodyRecordModelCopyWithImpl<$Res>
 
 /// Create a copy of InbodyRecordModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? measuredAt = null,Object? weight = null,Object? skeletalMuscleMass = null,Object? bodyFatMass = freezed,Object? bodyFatPercent = null,Object? bmi = freezed,Object? basalMetabolicRate = freezed,Object? totalBodyWater = freezed,Object? protein = freezed,Object? minerals = freezed,Object? visceralFatLevel = freezed,Object? inbodyScore = freezed,Object? source = null,Object? memo = freezed,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? measuredAt = null,Object? weight = null,Object? skeletalMuscleMass = null,Object? bodyFatMass = freezed,Object? bodyFatPercent = null,Object? bmi = freezed,Object? basalMetabolicRate = freezed,Object? totalBodyWater = freezed,Object? protein = freezed,Object? minerals = freezed,Object? visceralFatLevel = freezed,Object? inbodyScore = freezed,Object? source = null,Object? memo = freezed,Object? imageUrl = freezed,Object? analyzedAt = freezed,Object? createdAt = null,}) {
   return _then(_InbodyRecordModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -342,7 +350,9 @@ as double?,visceralFatLevel: freezed == visceralFatLevel ? _self.visceralFatLeve
 as int?,inbodyScore: freezed == inbodyScore ? _self.inbodyScore : inbodyScore // ignore: cast_nullable_to_non_nullable
 as int?,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as InbodySource,memo: freezed == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }

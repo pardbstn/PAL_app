@@ -18,6 +18,10 @@ _InsightModel _$InsightModelFromJson(Map<String, dynamic> json) =>
       message: json['message'] as String,
       actionSuggestion: json['actionSuggestion'] as String?,
       data: json['data'] as Map<String, dynamic>?,
+      graphData: (json['graphData'] as List<dynamic>?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList(),
+      graphType: json['graphType'] as String?,
       isRead: json['isRead'] as bool? ?? false,
       isActionTaken: json['isActionTaken'] as bool? ?? false,
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
@@ -37,6 +41,8 @@ Map<String, dynamic> _$InsightModelToJson(
   'message': instance.message,
   'actionSuggestion': instance.actionSuggestion,
   'data': instance.data,
+  'graphData': instance.graphData,
+  'graphType': instance.graphType,
   'isRead': instance.isRead,
   'isActionTaken': instance.isActionTaken,
   'createdAt': const TimestampConverter().toJson(instance.createdAt),
@@ -50,6 +56,19 @@ const _$InsightTypeEnumMap = {
   InsightType.recommendation: 'recommendation',
   InsightType.weightProgress: 'weightProgress',
   InsightType.workoutVolume: 'workoutVolume',
+  InsightType.churnRisk: 'churnRisk',
+  InsightType.renewalLikelihood: 'renewalLikelihood',
+  InsightType.plateauDetection: 'plateauDetection',
+  InsightType.workoutRecommendation: 'workoutRecommendation',
+  InsightType.noshowPattern: 'noshowPattern',
+  InsightType.performanceRanking: 'performanceRanking',
+  InsightType.bodyPrediction: 'bodyPrediction',
+  InsightType.workoutAchievement: 'workoutAchievement',
+  InsightType.attendanceHabit: 'attendanceHabit',
+  InsightType.nutritionBalance: 'nutritionBalance',
+  InsightType.bodyChangeReport: 'bodyChangeReport',
+  InsightType.conditionPattern: 'conditionPattern',
+  InsightType.goalProgress: 'goalProgress',
 };
 
 const _$InsightPriorityEnumMap = {

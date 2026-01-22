@@ -455,6 +455,16 @@ class MemberInsight {
   final DateTime createdAt;
   final DateTime? expiresAt;
 
+  /// 미니 그래프용 데이터 포인트
+  /// line: [{value: 75.5, isPrediction: false}, ...]
+  /// bar: [{label: '월', value: 3}, ...]
+  /// donut: [{name: '단백질', value: 75}, ...]
+  /// progress: [{value: 92, max: 100}]
+  final List<Map<String, dynamic>>? graphData;
+
+  /// 그래프 타입: 'line', 'bar', 'donut', 'progress'
+  final String? graphType;
+
   const MemberInsight({
     required this.id,
     required this.memberId,
@@ -465,6 +475,8 @@ class MemberInsight {
     this.isRead = false,
     required this.createdAt,
     this.expiresAt,
+    this.graphData,
+    this.graphType,
   });
 
   factory MemberInsight.fromJson(Map<String, dynamic> json) {
@@ -484,6 +496,12 @@ class MemberInsight {
               ? (json['expiresAt'] as Timestamp).toDate()
               : DateTime.parse(json['expiresAt'] as String))
           : null,
+      graphData: json['graphData'] != null
+          ? (json['graphData'] as List<dynamic>)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList()
+          : null,
+      graphType: json['graphType'] as String?,
     );
   }
 

@@ -102,16 +102,34 @@ class DietAnalysisRepository extends BaseRepository<DietAnalysisModel> {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    final snapshot = await collection
-        .where('memberId', isEqualTo: memberId)
-        .where('analyzedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('analyzedAt', isLessThan: Timestamp.fromDate(endOfDay))
-        .orderBy('analyzedAt', descending: false)
-        .get();
+    try {
+      // 복합 인덱스가 있는 경우 최적화된 쿼리
+      final snapshot = await collection
+          .where('memberId', isEqualTo: memberId)
+          .where('analyzedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('analyzedAt', isLessThan: Timestamp.fromDate(endOfDay))
+          .orderBy('analyzedAt', descending: false)
+          .get();
 
-    return snapshot.docs
-        .map((doc) => DietAnalysisModel.fromFirestore(doc))
-        .toList();
+      return snapshot.docs
+          .map((doc) => DietAnalysisModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      // 인덱스 오류 시 단순 쿼리 + 클라이언트 필터링
+      final snapshot = await collection
+          .where('memberId', isEqualTo: memberId)
+          .get();
+
+      final records = snapshot.docs
+          .map((doc) => DietAnalysisModel.fromFirestore(doc))
+          .where((record) =>
+              record.analyzedAt.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+              record.analyzedAt.isBefore(endOfDay))
+          .toList();
+
+      records.sort((a, b) => a.analyzedAt.compareTo(b.analyzedAt));
+      return records;
+    }
   }
 
   /// 오늘의 식단 기록 실시간 감시
@@ -122,16 +140,20 @@ class DietAnalysisRepository extends BaseRepository<DietAnalysisModel> {
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
+    // 단순 쿼리 사용 (인덱스 없이 작동) + 클라이언트 필터링
     return collection
         .where('memberId', isEqualTo: memberId)
-        .where('analyzedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('analyzedAt', isLessThan: Timestamp.fromDate(endOfDay))
-        .orderBy('analyzedAt', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final records = snapshot.docs
           .map((doc) => DietAnalysisModel.fromFirestore(doc))
+          .where((record) =>
+              record.analyzedAt.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+              record.analyzedAt.isBefore(endOfDay))
           .toList();
+
+      records.sort((a, b) => a.analyzedAt.compareTo(b.analyzedAt));
+      return records;
     });
   }
 

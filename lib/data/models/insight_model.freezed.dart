@@ -25,7 +25,9 @@ mixin _$InsightModel {
  String get title;/// 메시지 내용
  String get message;/// 권장 조치 사항 (nullable)
  String? get actionSuggestion;/// 추가 데이터 (nullable)
- Map<String, dynamic>? get data;/// 읽음 여부
+ Map<String, dynamic>? get data;/// 미니 그래프용 데이터 포인트 (nullable)
+ List<Map<String, dynamic>>? get graphData;/// 그래프 타입 ('line', 'bar', 'donut', 'progress')
+ String? get graphType;/// 읽음 여부
  bool get isRead;/// 조치 완료 여부
  bool get isActionTaken;/// 생성일
 @TimestampConverter() DateTime get createdAt;/// 만료일 (nullable)
@@ -42,16 +44,16 @@ $InsightModelCopyWith<InsightModel> get copyWith => _$InsightModelCopyWithImpl<I
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InsightModel&&(identical(other.id, id) || other.id == id)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.memberName, memberName) || other.memberName == memberName)&&(identical(other.type, type) || other.type == type)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.actionSuggestion, actionSuggestion) || other.actionSuggestion == actionSuggestion)&&const DeepCollectionEquality().equals(other.data, data)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.isActionTaken, isActionTaken) || other.isActionTaken == isActionTaken)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InsightModel&&(identical(other.id, id) || other.id == id)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.memberName, memberName) || other.memberName == memberName)&&(identical(other.type, type) || other.type == type)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.actionSuggestion, actionSuggestion) || other.actionSuggestion == actionSuggestion)&&const DeepCollectionEquality().equals(other.data, data)&&const DeepCollectionEquality().equals(other.graphData, graphData)&&(identical(other.graphType, graphType) || other.graphType == graphType)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.isActionTaken, isActionTaken) || other.isActionTaken == isActionTaken)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,trainerId,memberId,memberName,type,priority,title,message,actionSuggestion,const DeepCollectionEquality().hash(data),isRead,isActionTaken,createdAt,expiresAt);
+int get hashCode => Object.hash(runtimeType,id,trainerId,memberId,memberName,type,priority,title,message,actionSuggestion,const DeepCollectionEquality().hash(data),const DeepCollectionEquality().hash(graphData),graphType,isRead,isActionTaken,createdAt,expiresAt);
 
 @override
 String toString() {
-  return 'InsightModel(id: $id, trainerId: $trainerId, memberId: $memberId, memberName: $memberName, type: $type, priority: $priority, title: $title, message: $message, actionSuggestion: $actionSuggestion, data: $data, isRead: $isRead, isActionTaken: $isActionTaken, createdAt: $createdAt, expiresAt: $expiresAt)';
+  return 'InsightModel(id: $id, trainerId: $trainerId, memberId: $memberId, memberName: $memberName, type: $type, priority: $priority, title: $title, message: $message, actionSuggestion: $actionSuggestion, data: $data, graphData: $graphData, graphType: $graphType, isRead: $isRead, isActionTaken: $isActionTaken, createdAt: $createdAt, expiresAt: $expiresAt)';
 }
 
 
@@ -62,7 +64,7 @@ abstract mixin class $InsightModelCopyWith<$Res>  {
   factory $InsightModelCopyWith(InsightModel value, $Res Function(InsightModel) _then) = _$InsightModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String trainerId, String? memberId, String? memberName, InsightType type, InsightPriority priority, String title, String message, String? actionSuggestion, Map<String, dynamic>? data, bool isRead, bool isActionTaken,@TimestampConverter() DateTime createdAt,@NullableTimestampConverter() DateTime? expiresAt
+ String id, String trainerId, String? memberId, String? memberName, InsightType type, InsightPriority priority, String title, String message, String? actionSuggestion, Map<String, dynamic>? data, List<Map<String, dynamic>>? graphData, String? graphType, bool isRead, bool isActionTaken,@TimestampConverter() DateTime createdAt,@NullableTimestampConverter() DateTime? expiresAt
 });
 
 
@@ -79,7 +81,7 @@ class _$InsightModelCopyWithImpl<$Res>
 
 /// Create a copy of InsightModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? trainerId = null,Object? memberId = freezed,Object? memberName = freezed,Object? type = null,Object? priority = null,Object? title = null,Object? message = null,Object? actionSuggestion = freezed,Object? data = freezed,Object? isRead = null,Object? isActionTaken = null,Object? createdAt = null,Object? expiresAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? trainerId = null,Object? memberId = freezed,Object? memberName = freezed,Object? type = null,Object? priority = null,Object? title = null,Object? message = null,Object? actionSuggestion = freezed,Object? data = freezed,Object? graphData = freezed,Object? graphType = freezed,Object? isRead = null,Object? isActionTaken = null,Object? createdAt = null,Object? expiresAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
@@ -91,7 +93,9 @@ as InsightPriority,title: null == title ? _self.title : title // ignore: cast_nu
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,actionSuggestion: freezed == actionSuggestion ? _self.actionSuggestion : actionSuggestion // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,graphData: freezed == graphData ? _self.graphData : graphData // ignore: cast_nullable_to_non_nullable
+as List<Map<String, dynamic>>?,graphType: freezed == graphType ? _self.graphType : graphType // ignore: cast_nullable_to_non_nullable
+as String?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,isActionTaken: null == isActionTaken ? _self.isActionTaken : isActionTaken // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
@@ -177,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  List<Map<String, dynamic>>? graphData,  String? graphType,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InsightModel() when $default != null:
-return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);case _:
+return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.graphData,_that.graphType,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);case _:
   return orElse();
 
 }
@@ -198,10 +202,10 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  List<Map<String, dynamic>>? graphData,  String? graphType,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _InsightModel():
-return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);}
+return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.graphData,_that.graphType,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -215,10 +219,10 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String trainerId,  String? memberId,  String? memberName,  InsightType type,  InsightPriority priority,  String title,  String message,  String? actionSuggestion,  Map<String, dynamic>? data,  List<Map<String, dynamic>>? graphData,  String? graphType,  bool isRead,  bool isActionTaken, @TimestampConverter()  DateTime createdAt, @NullableTimestampConverter()  DateTime? expiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _InsightModel() when $default != null:
-return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);case _:
+return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.type,_that.priority,_that.title,_that.message,_that.actionSuggestion,_that.data,_that.graphData,_that.graphType,_that.isRead,_that.isActionTaken,_that.createdAt,_that.expiresAt);case _:
   return null;
 
 }
@@ -230,7 +234,7 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.t
 @JsonSerializable()
 
 class _InsightModel implements InsightModel {
-  const _InsightModel({required this.id, required this.trainerId, this.memberId, this.memberName, required this.type, required this.priority, required this.title, required this.message, this.actionSuggestion, final  Map<String, dynamic>? data, this.isRead = false, this.isActionTaken = false, @TimestampConverter() required this.createdAt, @NullableTimestampConverter() this.expiresAt}): _data = data;
+  const _InsightModel({required this.id, required this.trainerId, this.memberId, this.memberName, required this.type, required this.priority, required this.title, required this.message, this.actionSuggestion, final  Map<String, dynamic>? data, final  List<Map<String, dynamic>>? graphData, this.graphType, this.isRead = false, this.isActionTaken = false, @TimestampConverter() required this.createdAt, @NullableTimestampConverter() this.expiresAt}): _data = data,_graphData = graphData;
   factory _InsightModel.fromJson(Map<String, dynamic> json) => _$InsightModelFromJson(json);
 
 /// 문서 ID
@@ -262,6 +266,19 @@ class _InsightModel implements InsightModel {
   return EqualUnmodifiableMapView(value);
 }
 
+/// 미니 그래프용 데이터 포인트 (nullable)
+ final  List<Map<String, dynamic>>? _graphData;
+/// 미니 그래프용 데이터 포인트 (nullable)
+@override List<Map<String, dynamic>>? get graphData {
+  final value = _graphData;
+  if (value == null) return null;
+  if (_graphData is EqualUnmodifiableListView) return _graphData;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+/// 그래프 타입 ('line', 'bar', 'donut', 'progress')
+@override final  String? graphType;
 /// 읽음 여부
 @override@JsonKey() final  bool isRead;
 /// 조치 완료 여부
@@ -284,16 +301,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InsightModel&&(identical(other.id, id) || other.id == id)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.memberName, memberName) || other.memberName == memberName)&&(identical(other.type, type) || other.type == type)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.actionSuggestion, actionSuggestion) || other.actionSuggestion == actionSuggestion)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.isActionTaken, isActionTaken) || other.isActionTaken == isActionTaken)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InsightModel&&(identical(other.id, id) || other.id == id)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.memberName, memberName) || other.memberName == memberName)&&(identical(other.type, type) || other.type == type)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.actionSuggestion, actionSuggestion) || other.actionSuggestion == actionSuggestion)&&const DeepCollectionEquality().equals(other._data, _data)&&const DeepCollectionEquality().equals(other._graphData, _graphData)&&(identical(other.graphType, graphType) || other.graphType == graphType)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.isActionTaken, isActionTaken) || other.isActionTaken == isActionTaken)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,trainerId,memberId,memberName,type,priority,title,message,actionSuggestion,const DeepCollectionEquality().hash(_data),isRead,isActionTaken,createdAt,expiresAt);
+int get hashCode => Object.hash(runtimeType,id,trainerId,memberId,memberName,type,priority,title,message,actionSuggestion,const DeepCollectionEquality().hash(_data),const DeepCollectionEquality().hash(_graphData),graphType,isRead,isActionTaken,createdAt,expiresAt);
 
 @override
 String toString() {
-  return 'InsightModel(id: $id, trainerId: $trainerId, memberId: $memberId, memberName: $memberName, type: $type, priority: $priority, title: $title, message: $message, actionSuggestion: $actionSuggestion, data: $data, isRead: $isRead, isActionTaken: $isActionTaken, createdAt: $createdAt, expiresAt: $expiresAt)';
+  return 'InsightModel(id: $id, trainerId: $trainerId, memberId: $memberId, memberName: $memberName, type: $type, priority: $priority, title: $title, message: $message, actionSuggestion: $actionSuggestion, data: $data, graphData: $graphData, graphType: $graphType, isRead: $isRead, isActionTaken: $isActionTaken, createdAt: $createdAt, expiresAt: $expiresAt)';
 }
 
 
@@ -304,7 +321,7 @@ abstract mixin class _$InsightModelCopyWith<$Res> implements $InsightModelCopyWi
   factory _$InsightModelCopyWith(_InsightModel value, $Res Function(_InsightModel) _then) = __$InsightModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String trainerId, String? memberId, String? memberName, InsightType type, InsightPriority priority, String title, String message, String? actionSuggestion, Map<String, dynamic>? data, bool isRead, bool isActionTaken,@TimestampConverter() DateTime createdAt,@NullableTimestampConverter() DateTime? expiresAt
+ String id, String trainerId, String? memberId, String? memberName, InsightType type, InsightPriority priority, String title, String message, String? actionSuggestion, Map<String, dynamic>? data, List<Map<String, dynamic>>? graphData, String? graphType, bool isRead, bool isActionTaken,@TimestampConverter() DateTime createdAt,@NullableTimestampConverter() DateTime? expiresAt
 });
 
 
@@ -321,7 +338,7 @@ class __$InsightModelCopyWithImpl<$Res>
 
 /// Create a copy of InsightModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? trainerId = null,Object? memberId = freezed,Object? memberName = freezed,Object? type = null,Object? priority = null,Object? title = null,Object? message = null,Object? actionSuggestion = freezed,Object? data = freezed,Object? isRead = null,Object? isActionTaken = null,Object? createdAt = null,Object? expiresAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? trainerId = null,Object? memberId = freezed,Object? memberName = freezed,Object? type = null,Object? priority = null,Object? title = null,Object? message = null,Object? actionSuggestion = freezed,Object? data = freezed,Object? graphData = freezed,Object? graphType = freezed,Object? isRead = null,Object? isActionTaken = null,Object? createdAt = null,Object? expiresAt = freezed,}) {
   return _then(_InsightModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
@@ -333,7 +350,9 @@ as InsightPriority,title: null == title ? _self.title : title // ignore: cast_nu
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,actionSuggestion: freezed == actionSuggestion ? _self.actionSuggestion : actionSuggestion // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,graphData: freezed == graphData ? _self._graphData : graphData // ignore: cast_nullable_to_non_nullable
+as List<Map<String, dynamic>>?,graphType: freezed == graphType ? _self.graphType : graphType // ignore: cast_nullable_to_non_nullable
+as String?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,isActionTaken: null == isActionTaken ? _self.isActionTaken : isActionTaken // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable

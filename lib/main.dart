@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -55,12 +56,15 @@ void main() async {
       // Firebase 초기화
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-      // FCM 백그라운드 핸들러 등록
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      // FCM 초기화 (웹에서는 지원하지 않음)
+      if (!kIsWeb) {
+        // FCM 백그라운드 핸들러 등록
+        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // FCM 서비스 초기화
-      final fcmService = FCMService();
-      await fcmService.initialize();
+        // FCM 서비스 초기화
+        final fcmService = FCMService();
+        await fcmService.initialize();
+      }
 
       // Supabase 초기화
       await Supabase.initialize(

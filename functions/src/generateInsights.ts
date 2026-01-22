@@ -19,7 +19,13 @@ type InsightType =
   | "performance"
   | "recommendation"
   | "weightProgress"
-  | "workoutVolume";
+  | "workoutVolume"
+  | "churnRisk"
+  | "renewalLikelihood"
+  | "plateauDetection"
+  | "workoutRecommendation"
+  | "noshowPattern"
+  | "performanceRanking";
 
 type InsightPriority = "high" | "medium" | "low";
 
@@ -57,6 +63,20 @@ interface BodyRecordData {
   weight?: number;
   bodyFat?: number;
   muscleMass?: number;
+}
+
+interface SessionData {
+  memberId: string;
+  trainerId: string;
+  scheduledAt: admin.firestore.Timestamp;
+  status: "scheduled" | "completed" | "cancelled" | "noshow";
+  workoutType?: string;
+}
+
+interface MessageData {
+  memberId: string;
+  trainerId: string;
+  sentAt: admin.firestore.Timestamp;
 }
 
 // Google AI 클라이언트 (지연 초기화)
@@ -289,6 +309,573 @@ function analyzeWeightProgress(
 }
 
 /**
+ * 이탈 위험 예측 분석
+ * 출석률 하락, 메시지 부재, 체중 정체 등을 종합하여 이탈 위험도 계산
+ */
+function analyzeChurnRisk(
+  member: MemberData,
+  bodyRecords: BodyRecordData[],
+  sessions: SessionData[],
+  messages: MessageData[],
+  trainerId: string
+): InsightData | null {
+  const now = new Date();
+  const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  // 1. 출석률 하락 분석 (최근 2주 vs 이전 2주)
+  const memberSessions = sessions.filter((s) => s.memberId === member.id);
+  const recentSessions = memberSessions.filter(
+    (s) => s.scheduledAt.toDate() >= twoWeeksAgo && s.status === "completed"
+  );
+  const previousSessions = memberSessions.filter(
+    (s) =>
+      s.scheduledAt.toDate() >= fourWeeksAgo &&
+      s.scheduledAt.toDate() < twoWeeksAgo &&
+      s.status === "completed"
+  );
+
+  let attendanceDropScore = 0;
+  if (previousSessions.length > 0) {
+    const dropRate = 1 - recentSessions.length / previousSessions.length;
+    if (dropRate > 0.4) {
+      attendanceDropScore = Math.min(dropRate * 100, 40); // 최대 40점
+    }
+  }
+
+  // 2. 메시지 부재 분석 (2주간 메시지 없음)
+  const memberMessages = messages.filter((m) => m.memberId === member.id);
+  const recentMessages = memberMessages.filter(
+    (m) => m.sentAt.toDate() >= twoWeeksAgo
+  );
+  const noMessageScore = recentMessages.length === 0 ? 30 : 0; // 30점
+
+  // 3. 체중 정체 분석 (4주 이상 0.5kg 미만 변화)
+  const memberRecords = bodyRecords
+    .filter((r) => r.memberId === member.id && r.weight !== undefined)
+    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+
+  let plateauScore = 0;
+  if (memberRecords.length >= 2) {
+    const fourWeeksRecords = memberRecords.filter(
+      (r) => r.recordDate.toDate() >= fourWeeksAgo
+    );
+    if (fourWeeksRecords.length >= 2) {
+      const firstWeight = fourWeeksRecords[0].weight!;
+      const lastWeight = fourWeeksRecords[fourWeeksRecords.length - 1].weight!;
+      if (Math.abs(lastWeight - firstWeight) < 0.5) {
+        plateauScore = 30; // 30점
+      }
+    }
+  }
+
+  // 이탈 위험도 계산
+  const churnRisk = attendanceDropScore + noMessageScore + plateauScore;
+
+  if (churnRisk < 40) return null;
+
+  const priority: InsightPriority = churnRisk > 70 ? "high" : "medium";
+  const riskFactors: string[] = [];
+  if (attendanceDropScore > 0) riskFactors.push(`출석률 ${Math.round(attendanceDropScore)}% 하락`);
+  if (noMessageScore > 0) riskFactors.push("2주간 메시지 없음");
+  if (plateauScore > 0) riskFactors.push("4주간 체중 정체");
+
+  return {
+    trainerId,
+    memberId: member.id,
+    memberName: member.name,
+    type: "churnRisk",
+    priority,
+    title: `${member.name} 회원 이탈 위험`,
+    message: `${member.name} 회원 이탈 위험도 ${churnRisk}% - ${riskFactors.join(", ")}`,
+    actionSuggestion: "개인 연락으로 동기 부여 필요",
+    data: {
+      churnRisk,
+      attendanceDropScore,
+      noMessageScore,
+      plateauScore,
+      riskFactors,
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
+ * 재등록 가능성 분석
+ * 목표 달성률, 출석률, 잔여 세션 등을 종합하여 재등록 가능성 예측
+ */
+function analyzeRenewalLikelihood(
+  member: MemberData,
+  bodyRecords: BodyRecordData[],
+  sessions: SessionData[],
+  trainerId: string
+): InsightData | null {
+  // 종료 7일 이내 회원만 분석
+  if (!member.endDate) return null;
+  const endDate = member.endDate.toDate();
+  const now = new Date();
+  const daysUntilExpiry = Math.ceil(
+    (endDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
+  );
+
+  if (daysUntilExpiry < 0 || daysUntilExpiry > 14) return null;
+
+  // 1. 목표 달성률 계산
+  let goalAchievement = 50; // 기본값
+  if (member.targetWeight) {
+    const memberRecords = bodyRecords
+      .filter((r) => r.memberId === member.id && r.weight !== undefined)
+      .sort((a, b) => b.recordDate.toDate().getTime() - a.recordDate.toDate().getTime());
+
+    if (memberRecords.length >= 2) {
+      const startWeight = memberRecords[memberRecords.length - 1].weight!;
+      const currentWeight = memberRecords[0].weight!;
+      const targetChange = Math.abs(member.targetWeight - startWeight);
+      const actualChange = Math.abs(currentWeight - startWeight);
+
+      if (targetChange > 0) {
+        goalAchievement = Math.min(Math.round((actualChange / targetChange) * 100), 100);
+      }
+    }
+  }
+
+  // 2. 출석률 계산
+  const memberSessions = sessions.filter((s) => s.memberId === member.id);
+  const completedSessions = memberSessions.filter((s) => s.status === "completed").length;
+  const totalScheduled = memberSessions.length;
+  const attendanceRate = totalScheduled > 0
+    ? Math.round((completedSessions / totalScheduled) * 100)
+    : 50;
+
+  // 3. 잔여 세션 상태
+  const remainingSessions = member.remainingSessions ?? 0;
+  const totalSessions = member.totalSessions ?? 1;
+  const sessionUtilization = Math.round(
+    ((totalSessions - remainingSessions) / totalSessions) * 100
+  );
+
+  // 재등록 가능성 계산 (가중 평균)
+  const renewalLikelihood = Math.round(
+    goalAchievement * 0.4 + attendanceRate * 0.4 + sessionUtilization * 0.2
+  );
+
+  // 60% 이상일 때만 인사이트 생성
+  if (renewalLikelihood < 60) return null;
+
+  return {
+    trainerId,
+    memberId: member.id,
+    memberName: member.name,
+    type: "renewalLikelihood",
+    priority: "medium",
+    title: `${member.name}님 재등록 가능성 ${renewalLikelihood}%`,
+    message: `${member.name} 회원 재등록 가능성 ${renewalLikelihood}% - 목표 ${goalAchievement}% 달성`,
+    actionSuggestion: "재등록 혜택 제안 타이밍",
+    data: {
+      renewalLikelihood,
+      goalAchievement,
+      attendanceRate,
+      sessionUtilization,
+      daysUntilExpiry,
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(endDate),
+  };
+}
+
+/**
+ * 정체기 감지 분석
+ * 4주 이상 0.5kg 미만 체중 변화 시 정체기로 판단
+ */
+function analyzePlateauDetection(
+  member: MemberData,
+  bodyRecords: BodyRecordData[],
+  trainerId: string
+): InsightData | null {
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const memberRecords = bodyRecords
+    .filter(
+      (r) =>
+        r.memberId === member.id &&
+        r.weight !== undefined &&
+        r.recordDate.toDate() >= fourWeeksAgo
+    )
+    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+
+  if (memberRecords.length < 2) return null;
+
+  const firstWeight = memberRecords[0].weight!;
+  const lastWeight = memberRecords[memberRecords.length - 1].weight!;
+  const weightChange = Math.abs(lastWeight - firstWeight);
+
+  // 4주간 체중 변화가 0.5kg 미만이면 정체기
+  if (weightChange >= 0.5) return null;
+
+  // 정체 주차 계산
+  const weeksDiff = Math.ceil(
+    (memberRecords[memberRecords.length - 1].recordDate.toDate().getTime() -
+      memberRecords[0].recordDate.toDate().getTime()) /
+      (7 * 24 * 60 * 60 * 1000)
+  );
+  const plateauWeeks = Math.max(weeksDiff, 4);
+
+  return {
+    trainerId,
+    memberId: member.id,
+    memberName: member.name,
+    type: "plateauDetection",
+    priority: "medium",
+    title: `${member.name}님 ${plateauWeeks}주째 체중 정체`,
+    message: `${member.name} 회원 ${plateauWeeks}주째 체중 정체 - 식단 조절 또는 운동 강도 변경 권장`,
+    actionSuggestion: "프로그램 변경 상담 필요",
+    data: {
+      plateauWeeks,
+      firstWeight,
+      lastWeight,
+      weightChange,
+      recordCount: memberRecords.length,
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
+ * 최적 운동 추천 분석
+ * 운동 유형별 체성분 변화 상관관계 분석
+ */
+function analyzeWorkoutRecommendation(
+  member: MemberData,
+  bodyRecords: BodyRecordData[],
+  sessions: SessionData[],
+  trainerId: string
+): InsightData | null {
+  const memberSessions = sessions.filter(
+    (s) => s.memberId === member.id && s.status === "completed" && s.workoutType
+  );
+
+  if (memberSessions.length < 4) return null;
+
+  const memberRecords = bodyRecords
+    .filter((r) => r.memberId === member.id && r.bodyFat !== undefined)
+    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+
+  if (memberRecords.length < 2) return null;
+
+  // 운동 유형별 그룹화
+  const workoutTypeGroups: Record<string, SessionData[]> = {};
+  memberSessions.forEach((session) => {
+    const type = session.workoutType!;
+    if (!workoutTypeGroups[type]) {
+      workoutTypeGroups[type] = [];
+    }
+    workoutTypeGroups[type].push(session);
+  });
+
+  // 운동 유형별 체지방 감량 효과 분석
+  const workoutEffects: Array<{ type: string; effect: number; count: number }> = [];
+
+  for (const [workoutType, typeSessions] of Object.entries(workoutTypeGroups)) {
+    if (typeSessions.length < 2) continue;
+
+    // 해당 운동 전후 체지방 변화 계산
+    let totalEffect = 0;
+    let effectCount = 0;
+
+    typeSessions.forEach((session) => {
+      const sessionDate = session.scheduledAt.toDate();
+      const beforeRecord = memberRecords.find(
+        (r) => r.recordDate.toDate() <= sessionDate
+      );
+      const afterRecord = memberRecords.find(
+        (r) =>
+          r.recordDate.toDate() > sessionDate &&
+          r.recordDate.toDate().getTime() - sessionDate.getTime() < 7 * 24 * 60 * 60 * 1000
+      );
+
+      if (beforeRecord?.bodyFat && afterRecord?.bodyFat) {
+        totalEffect += beforeRecord.bodyFat - afterRecord.bodyFat;
+        effectCount++;
+      }
+    });
+
+    if (effectCount > 0) {
+      workoutEffects.push({
+        type: workoutType,
+        effect: totalEffect / effectCount,
+        count: typeSessions.length,
+      });
+    }
+  }
+
+  if (workoutEffects.length === 0) return null;
+
+  // 효과순 정렬
+  workoutEffects.sort((a, b) => b.effect - a.effect);
+  const bestWorkout = workoutEffects[0];
+
+  if (bestWorkout.effect <= 0) return null;
+
+  // 상위 3개 추천 운동
+  const recommendedWorkouts = workoutEffects
+    .filter((w) => w.effect > 0)
+    .slice(0, 3)
+    .map((w) => w.type);
+
+  const effectMultiplier = workoutEffects.length > 1 && workoutEffects[1].effect > 0
+    ? (bestWorkout.effect / workoutEffects[1].effect).toFixed(1)
+    : "1.5";
+
+  return {
+    trainerId,
+    memberId: member.id,
+    memberName: member.name,
+    type: "workoutRecommendation",
+    priority: "low",
+    title: `${member.name}님 최적 운동 분석`,
+    message: `${member.name} 회원은 ${bestWorkout.type} 운동 시 체지방 감량 ${effectMultiplier}배 효과`,
+    actionSuggestion: `${recommendedWorkouts.join(", ")} 운동 프로그램 권장`,
+    data: {
+      recommendedWorkouts,
+      workoutEffects,
+      bestWorkout: bestWorkout.type,
+      effectMultiplier: parseFloat(effectMultiplier),
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
+ * 노쇼 패턴 분석
+ * 요일/시간대별 노쇼율 분석
+ */
+function analyzeNoshowPattern(
+  sessions: SessionData[],
+  trainerId: string
+): InsightData | null {
+  const noshowSessions = sessions.filter((s) => s.status === "noshow");
+  const totalSessions = sessions.filter(
+    (s) => s.status === "completed" || s.status === "noshow"
+  );
+
+  if (totalSessions.length < 10) return null;
+
+  const overallNoshowRate = noshowSessions.length / totalSessions.length;
+  if (overallNoshowRate < 0.1) return null; // 전체 노쇼율 10% 미만이면 스킵
+
+  // 요일별 노쇼율 계산
+  const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+  const dayStats: Record<number, { total: number; noshow: number }> = {};
+
+  for (let i = 0; i < 7; i++) {
+    dayStats[i] = {total: 0, noshow: 0};
+  }
+
+  totalSessions.forEach((session) => {
+    const day = session.scheduledAt.toDate().getDay();
+    dayStats[day].total++;
+    if (session.status === "noshow") {
+      dayStats[day].noshow++;
+    }
+  });
+
+  // 시간대별 노쇼율 계산 (오전/오후)
+  const timeStats: Record<string, { total: number; noshow: number }> = {
+    morning: {total: 0, noshow: 0}, // 06-12시
+    afternoon: {total: 0, noshow: 0}, // 12-18시
+    evening: {total: 0, noshow: 0}, // 18-24시
+  };
+
+  totalSessions.forEach((session) => {
+    const hour = session.scheduledAt.toDate().getHours();
+    let timeSlot: string;
+    if (hour >= 6 && hour < 12) timeSlot = "morning";
+    else if (hour >= 12 && hour < 18) timeSlot = "afternoon";
+    else timeSlot = "evening";
+
+    timeStats[timeSlot].total++;
+    if (session.status === "noshow") {
+      timeStats[timeSlot].noshow++;
+    }
+  });
+
+  // 최고 노쇼율 요일 찾기
+  let highestNoshowDay = 0;
+  let highestNoshowRate = 0;
+
+  for (let day = 0; day < 7; day++) {
+    if (dayStats[day].total >= 3) {
+      // 최소 3회 이상 세션이 있는 요일만
+      const rate = dayStats[day].noshow / dayStats[day].total;
+      if (rate > highestNoshowRate) {
+        highestNoshowRate = rate;
+        highestNoshowDay = day;
+      }
+    }
+  }
+
+  // 최고 노쇼율 시간대 찾기
+  let highestNoshowTime = "morning";
+  let highestTimeRate = 0;
+  const timeLabels: Record<string, string> = {
+    morning: "오전",
+    afternoon: "오후",
+    evening: "저녁",
+  };
+
+  for (const [slot, stats] of Object.entries(timeStats)) {
+    if (stats.total >= 3) {
+      const rate = stats.noshow / stats.total;
+      if (rate > highestTimeRate) {
+        highestTimeRate = rate;
+        highestNoshowTime = slot;
+      }
+    }
+  }
+
+  if (highestNoshowRate < 0.2) return null; // 최고 노쇼율이 20% 미만이면 스킵
+
+  const noshowPercent = Math.round(highestNoshowRate * 100);
+
+  return {
+    trainerId,
+    type: "noshowPattern",
+    priority: noshowPercent > 30 ? "high" : "medium",
+    title: `${dayNames[highestNoshowDay]} ${timeLabels[highestNoshowTime]} 노쇼 주의`,
+    message: `${dayNames[highestNoshowDay]} ${timeLabels[highestNoshowTime]} 노쇼율 ${noshowPercent}% - 전날 리마인더 권장`,
+    actionSuggestion: "자동 알림 설정 권장",
+    data: {
+      overallNoshowRate: Math.round(overallNoshowRate * 100),
+      highestNoshowDay: dayNames[highestNoshowDay],
+      highestNoshowRate: noshowPercent,
+      highestNoshowTime: timeLabels[highestNoshowTime],
+      dayStats: Object.entries(dayStats).map(([day, stats]) => ({
+        day: dayNames[parseInt(day)],
+        total: stats.total,
+        noshow: stats.noshow,
+        rate: stats.total > 0 ? Math.round((stats.noshow / stats.total) * 100) : 0,
+      })),
+      timeStats: Object.entries(timeStats).map(([slot, stats]) => ({
+        slot: timeLabels[slot],
+        total: stats.total,
+        noshow: stats.noshow,
+        rate: stats.total > 0 ? Math.round((stats.noshow / stats.total) * 100) : 0,
+      })),
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
+ * 회원 성과 랭킹 분석
+ * 이번 달 체성분 개선 순위 생성
+ */
+function analyzePerformanceRanking(
+  members: MemberData[],
+  bodyRecords: BodyRecordData[],
+  trainerId: string
+): InsightData | null {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // 각 회원별 이번 달 체지방 변화 계산
+  const memberChanges: Array<{
+    memberId: string;
+    memberName: string;
+    bodyFatChange: number;
+    startBodyFat: number;
+    endBodyFat: number;
+  }> = [];
+
+  for (const member of members) {
+    const memberRecords = bodyRecords
+      .filter(
+        (r) =>
+          r.memberId === member.id &&
+          r.bodyFat !== undefined &&
+          r.recordDate.toDate() >= monthStart
+      )
+      .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+
+    if (memberRecords.length < 2) continue;
+
+    const startBodyFat = memberRecords[0].bodyFat!;
+    const endBodyFat = memberRecords[memberRecords.length - 1].bodyFat!;
+    const bodyFatChange = startBodyFat - endBodyFat; // 양수면 감량
+
+    memberChanges.push({
+      memberId: member.id,
+      memberName: member.name,
+      bodyFatChange,
+      startBodyFat,
+      endBodyFat,
+    });
+  }
+
+  if (memberChanges.length < 3) return null;
+
+  // 체지방 감량순 정렬
+  memberChanges.sort((a, b) => b.bodyFatChange - a.bodyFatChange);
+
+  const top3 = memberChanges.slice(0, 3);
+  const rankings = top3.map((m, index) => ({
+    rank: index + 1,
+    memberName: m.memberName,
+    memberId: m.memberId,
+    change: m.bodyFatChange,
+  }));
+
+  const rankingMessage = top3
+    .map(
+      (m, index) =>
+        `${index + 1}위 ${m.memberName}(${m.bodyFatChange > 0 ? "-" : "+"}${Math.abs(m.bodyFatChange).toFixed(1)}kg)`
+    )
+    .join(", ");
+
+  return {
+    trainerId,
+    type: "performanceRanking",
+    priority: "low",
+    title: "이번 달 체지방 감량 TOP3",
+    message: `이번 달 체지방 감량 TOP3: ${rankingMessage}`,
+    data: {
+      rankings,
+      month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+      totalMembers: memberChanges.length,
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
  * AI 기반 종합 추천 생성 (Gemini)
  */
 async function generateAIRecommendations(
@@ -488,6 +1075,56 @@ async function generateInsightsForTrainer(
     recordCount: bodyRecords.length,
   });
 
+  // 2-2. 최근 2개월 세션 기록 조회
+  const sessions: SessionData[] = [];
+  for (let i = 0; i < memberIds.length; i += batchSize) {
+    const batchIds = memberIds.slice(i, i + batchSize);
+    const sessionsSnapshot = await db
+      .collection("sessions")
+      .where("memberId", "in", batchIds)
+      .where("trainerId", "==", trainerId)
+      .where(
+        "scheduledAt",
+        ">=",
+        admin.firestore.Timestamp.fromDate(twoMonthsAgo)
+      )
+      .get();
+
+    sessionsSnapshot.docs.forEach((doc) => {
+      sessions.push(doc.data() as SessionData);
+    });
+  }
+
+  functions.logger.info("[generateInsightsForTrainer] 세션 기록 조회 완료", {
+    sessionCount: sessions.length,
+  });
+
+  // 2-3. 최근 2주 메시지 기록 조회
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const messages: MessageData[] = [];
+  for (let i = 0; i < memberIds.length; i += batchSize) {
+    const batchIds = memberIds.slice(i, i + batchSize);
+    const messagesSnapshot = await db
+      .collection("messages")
+      .where("memberId", "in", batchIds)
+      .where("trainerId", "==", trainerId)
+      .where(
+        "sentAt",
+        ">=",
+        admin.firestore.Timestamp.fromDate(twoWeeksAgo)
+      )
+      .get();
+
+    messagesSnapshot.docs.forEach((doc) => {
+      messages.push(doc.data() as MessageData);
+    });
+  }
+
+  functions.logger.info("[generateInsightsForTrainer] 메시지 기록 조회 완료", {
+    messageCount: messages.length,
+  });
+
   // 3. 인사이트 생성
   const insights: InsightData[] = [];
 
@@ -521,9 +1158,65 @@ async function generateInsightsForTrainer(
     if (weightInsight) {
       insights.push(weightInsight);
     }
+
+    // 3-4. 이탈 위험 예측
+    const churnRiskInsight = analyzeChurnRisk(
+      member,
+      bodyRecords,
+      sessions,
+      messages,
+      trainerId
+    );
+    if (churnRiskInsight) {
+      insights.push(churnRiskInsight);
+    }
+
+    // 3-5. 재등록 가능성 분석
+    const renewalInsight = analyzeRenewalLikelihood(
+      member,
+      bodyRecords,
+      sessions,
+      trainerId
+    );
+    if (renewalInsight) {
+      insights.push(renewalInsight);
+    }
+
+    // 3-6. 정체기 감지
+    const plateauInsight = analyzePlateauDetection(
+      member,
+      bodyRecords,
+      trainerId
+    );
+    if (plateauInsight) {
+      insights.push(plateauInsight);
+    }
+
+    // 3-7. 최적 운동 추천
+    const workoutRecInsight = analyzeWorkoutRecommendation(
+      member,
+      bodyRecords,
+      sessions,
+      trainerId
+    );
+    if (workoutRecInsight) {
+      insights.push(workoutRecInsight);
+    }
   }
 
-  // 3-4. AI 기반 종합 추천 (옵션)
+  // 3-8. 노쇼 패턴 분석 (트레이너 전체)
+  const noshowInsight = analyzeNoshowPattern(sessions, trainerId);
+  if (noshowInsight) {
+    insights.push(noshowInsight);
+  }
+
+  // 3-9. 회원 성과 랭킹 (트레이너 전체)
+  const rankingInsight = analyzePerformanceRanking(members, bodyRecords, trainerId);
+  if (rankingInsight) {
+    insights.push(rankingInsight);
+  }
+
+  // 3-10. AI 기반 종합 추천 (옵션)
   if (includeAI && members.length > 0) {
     const aiInsights = await generateAIRecommendations(
       trainerId,
@@ -544,6 +1237,18 @@ async function generateInsightsForTrainer(
         .length,
       recommendation: insights.filter((i) => i.type === "recommendation")
         .length,
+      churnRisk: insights.filter((i) => i.type === "churnRisk").length,
+      renewalLikelihood: insights.filter((i) => i.type === "renewalLikelihood")
+        .length,
+      plateauDetection: insights.filter((i) => i.type === "plateauDetection")
+        .length,
+      workoutRecommendation: insights.filter(
+        (i) => i.type === "workoutRecommendation"
+      ).length,
+      noshowPattern: insights.filter((i) => i.type === "noshowPattern").length,
+      performanceRanking: insights.filter(
+        (i) => i.type === "performanceRanking"
+      ).length,
     },
   });
 

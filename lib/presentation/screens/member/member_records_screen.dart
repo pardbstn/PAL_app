@@ -6,11 +6,13 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../data/models/body_composition_prediction_model.dart';
 import '../../../data/models/body_record_model.dart';
 import '../../../data/models/curriculum_model.dart';
 import '../../../data/repositories/body_record_repository.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/body_composition_prediction_provider.dart';
 import '../../providers/body_records_provider.dart';
 import '../../providers/curriculums_provider.dart';
 
@@ -136,11 +138,30 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
 }
 
 /// 체성분 탭
-class _BodyCompositionTab extends ConsumerWidget {
+class _BodyCompositionTab extends ConsumerStatefulWidget {
   const _BodyCompositionTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BodyCompositionTab> createState() => _BodyCompositionTabState();
+}
+
+class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
+  String _selectedMetric = 'weight'; // 'weight', 'muscle', 'bodyFat', 'all'
+
+  @override
+  void initState() {
+    super.initState();
+    // 화면 로드 시 AI 예측 요청
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final member = ref.read(currentMemberProvider);
+      if (member != null) {
+        ref.read(bodyCompositionPredictionProvider.notifier).predictBodyComposition(member.id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final member = ref.watch(currentMemberProvider);
     final memberId = member?.id ?? '';
     final bodyRecordsAsync = ref.watch(bodyRecordsProvider(memberId));
@@ -185,11 +206,26 @@ class _BodyCompositionTab extends ConsumerWidget {
                   const SliverToBoxAdapter(
                     child: SizedBox(height: 24),
                   ),
-                  // 체중 변화 그래프
+                  // 메트릭 선택 세그먼트 버튼
+                  SliverToBoxAdapter(
+                    child: _MetricSegmentedButton(
+                      selectedMetric: _selectedMetric,
+                      onSelectionChanged: (metric) {
+                        setState(() => _selectedMetric = metric);
+                      },
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 16),
+                  ),
+                  // 체성분 변화 그래프
                   SliverToBoxAdapter(
                     child: weightHistoryAsync.when(
                       data: (history) => history.length >= 2
-                          ? _WeightChart(history: history)
+                          ? _BodyCompositionChart(
+                              history: history,
+                              selectedMetric: _selectedMetric,
+                            )
                           : const _ChartPlaceholder(
                               message: '2개 이상의 기록이 필요합니다',
                             ),
@@ -198,6 +234,13 @@ class _BodyCompositionTab extends ConsumerWidget {
                         message: '차트를 불러오는데 실패했습니다',
                       ),
                     ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 16),
+                  ),
+                  // AI 예측 카드
+                  SliverToBoxAdapter(
+                    child: _AIPredictionCard(memberId: memberId),
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: 24),
@@ -251,6 +294,321 @@ class _BodyCompositionTab extends ConsumerWidget {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (context) => const _AddBodyRecordSheet(),
+    );
+  }
+}
+
+/// 메트릭 선택 세그먼트 버튼
+class _MetricSegmentedButton extends StatelessWidget {
+  const _MetricSegmentedButton({
+    required this.selectedMetric,
+    required this.onSelectionChanged,
+  });
+
+  final String selectedMetric;
+  final ValueChanged<String> onSelectionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(value: 'weight', label: Text('체중')),
+            ButtonSegment(value: 'muscle', label: Text('골격근량')),
+            ButtonSegment(value: 'bodyFat', label: Text('체지방률')),
+            ButtonSegment(value: 'all', label: Text('전체')),
+          ],
+          selected: {selectedMetric},
+          onSelectionChanged: (Set<String> selection) {
+            onSelectionChanged(selection.first);
+          },
+          style: SegmentedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            selectedBackgroundColor: colorScheme.primary,
+            selectedForegroundColor: colorScheme.onPrimary,
+            foregroundColor: colorScheme.onSurfaceVariant,
+            side: BorderSide.none,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          showSelectedIcon: false,
+        ),
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+/// AI 예측 카드
+class _AIPredictionCard extends ConsumerWidget {
+  const _AIPredictionCard({required this.memberId});
+
+  final String memberId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final predictionState = ref.watch(bodyCompositionPredictionProvider);
+
+    if (predictionState.isLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
+    final prediction = predictionState.prediction;
+    if (prediction == null) {
+      if (predictionState.error != null) {
+        return const SizedBox.shrink();
+      }
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primary.withValues(alpha: 0.2),
+                        AppTheme.secondary.withValues(alpha: 0.2),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    size: 20,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'AI 예측 (4주 후)',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getConfidenceColor(prediction.overallConfidence)
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '신뢰도 ${(prediction.overallConfidence * 100).toInt()}%',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: _getConfidenceColor(prediction.overallConfidence),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 체중 예측
+            if (prediction.weightPrediction != null)
+              _buildPredictionRow(
+                context,
+                '체중',
+                prediction.weightPrediction!,
+                'kg',
+                AppTheme.primary,
+                Icons.monitor_weight_rounded,
+              ),
+            // 골격근량 예측
+            if (prediction.musclePrediction != null)
+              _buildPredictionRow(
+                context,
+                '골격근량',
+                prediction.musclePrediction!,
+                'kg',
+                Colors.green,
+                Icons.fitness_center_rounded,
+              ),
+            // 체지방률 예측
+            if (prediction.bodyFatPrediction != null)
+              _buildPredictionRow(
+                context,
+                '체지방률',
+                prediction.bodyFatPrediction!,
+                '%',
+                Colors.orange,
+                Icons.water_drop_rounded,
+              ),
+            if (prediction.analysisMessage.isNotEmpty) ...[
+              const Divider(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      prediction.analysisMessage,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 500.ms, delay: 300.ms)
+        .slideY(begin: 0.2, end: 0, duration: 500.ms, delay: 300.ms);
+  }
+
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.7) return Colors.green;
+    if (confidence >= 0.4) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildPredictionRow(
+    BuildContext context,
+    String label,
+    MetricPrediction pred,
+    String unit,
+    Color color,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // 변화에 따른 색상 결정 (체중/체지방은 감소가 좋음, 근육량은 증가가 좋음)
+    Color changeColor;
+    if (label == '골격근량') {
+      changeColor = pred.weeklyTrend > 0 ? Colors.green : Colors.red;
+    } else {
+      changeColor = pred.weeklyTrend < 0 ? Colors.green : Colors.red;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      '${pred.current.toStringAsFixed(1)}$unit',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${pred.predicted.toStringAsFixed(1)}$unit',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: changeColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${pred.changeIcon}${pred.formattedChange}$unit',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: changeColor,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -391,25 +749,48 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// 체중 변화 그래프
-class _WeightChart extends StatelessWidget {
-  const _WeightChart({required this.history});
+/// 체성분 변화 그래프 (체중/골격근량/체지방률 지원)
+class _BodyCompositionChart extends ConsumerWidget {
+  const _BodyCompositionChart({
+    required this.history,
+    required this.selectedMetric,
+  });
 
   final List<WeightHistoryData> history;
+  final String selectedMetric;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final predictionState = ref.watch(bodyCompositionPredictionProvider);
 
     // 최근 10개만 표시
     final chartData = history.length > 10
         ? history.sublist(history.length - 10)
         : history;
 
-    final minWeight = chartData.map((e) => e.weight).reduce((a, b) => a < b ? a : b);
-    final maxWeight = chartData.map((e) => e.weight).reduce((a, b) => a > b ? a : b);
-    final padding = (maxWeight - minWeight) * 0.2;
+    // 선택된 메트릭에 따른 타이틀과 색상
+    String chartTitle;
+    Color primaryColor;
+
+    switch (selectedMetric) {
+      case 'muscle':
+        chartTitle = '골격근량 변화 추이';
+        primaryColor = Colors.green;
+        break;
+      case 'bodyFat':
+        chartTitle = '체지방률 변화 추이';
+        primaryColor = Colors.orange;
+        break;
+      case 'all':
+        chartTitle = '체성분 종합 추이';
+        primaryColor = AppTheme.primary;
+        break;
+      default:
+        chartTitle = '체중 변화 추이';
+        primaryColor = AppTheme.primary;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -437,158 +818,34 @@ class _WeightChart extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    color: primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.trending_up_rounded,
                     size: 20,
-                    color: AppTheme.primary,
+                    color: primaryColor,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '체중 변화 추이',
+                  chartTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (selectedMetric == 'all') ...[
+                  const Spacer(),
+                  _buildLegend(context),
+                ],
               ],
             ),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: (maxWeight - minWeight) / 4,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) => Text(
-                          '${value.toInt()}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 32,
-                        interval: 1,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= chartData.length) {
-                            return const SizedBox.shrink();
-                          }
-                          // 3개 간격으로만 표시
-                          if (index % 3 != 0 && index != chartData.length - 1) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              DateFormat('M/d').format(chartData[index].date),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 10,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  minX: 0,
-                  maxX: (chartData.length - 1).toDouble(),
-                  minY: minWeight - padding,
-                  maxY: maxWeight + padding,
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: chartData.asMap().entries.map((entry) {
-                        return FlSpot(
-                          entry.key.toDouble(),
-                          entry.value.weight,
-                        );
-                      }).toList(),
-                      isCurved: true,
-                      color: AppTheme.primary,
-                      barWidth: 3,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 4,
-                            color: colorScheme.surface,
-                            strokeWidth: 2,
-                            strokeColor: AppTheme.primary,
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppTheme.primary.withValues(alpha: 0.3),
-                            AppTheme.primary.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (spot) => colorScheme.inverseSurface,
-                      tooltipBorderRadius: BorderRadius.circular(8),
-                      getTooltipItems: (spots) {
-                        return spots.map((spot) {
-                          final data = chartData[spot.spotIndex];
-                          return LineTooltipItem(
-                            '${data.weight.toStringAsFixed(1)}kg\n',
-                            TextStyle(
-                              color: colorScheme.onInverseSurface,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: DateFormat('yyyy.MM.dd').format(data.date),
-                                style: TextStyle(
-                                  color: colorScheme.onInverseSurface
-                                      .withValues(alpha: 0.7),
-                                  fontWeight: FontWeight.normal,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
-                ),
-              ),
+              child: selectedMetric == 'all'
+                  ? _buildMultiLineChart(context, chartData, colorScheme, theme, predictionState)
+                  : _buildSingleLineChart(context, chartData, colorScheme, theme, selectedMetric, primaryColor, predictionState),
             ),
           ],
         ),
@@ -597,6 +854,446 @@ class _WeightChart extends StatelessWidget {
         .animate()
         .fadeIn(duration: 500.ms, delay: 200.ms)
         .slideY(begin: 0.2, end: 0, duration: 500.ms, delay: 200.ms);
+  }
+
+  /// 범례 위젯
+  Widget _buildLegend(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _legendItem(context, '체중', AppTheme.primary),
+        const SizedBox(width: 8),
+        _legendItem(context, '근육', Colors.green),
+        const SizedBox(width: 8),
+        _legendItem(context, '체지방', Colors.orange),
+      ],
+    );
+  }
+
+  Widget _legendItem(BuildContext context, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 단일 라인 차트 (체중/골격근량/체지방률 중 하나)
+  Widget _buildSingleLineChart(
+    BuildContext context,
+    List<WeightHistoryData> chartData,
+    ColorScheme colorScheme,
+    ThemeData theme,
+    String metric,
+    Color color,
+    BodyCompositionPredictionState predictionState,
+  ) {
+    // 데이터 추출
+    List<double?> values;
+    String unit;
+    MetricPrediction? prediction;
+
+    switch (metric) {
+      case 'muscle':
+        values = chartData.map((e) => e.muscleMass).toList();
+        unit = 'kg';
+        prediction = predictionState.prediction?.musclePrediction;
+        break;
+      case 'bodyFat':
+        values = chartData.map((e) => e.bodyFatPercent).toList();
+        unit = '%';
+        prediction = predictionState.prediction?.bodyFatPrediction;
+        break;
+      default:
+        values = chartData.map((e) => e.weight as double?).toList();
+        unit = 'kg';
+        prediction = predictionState.prediction?.weightPrediction;
+    }
+
+    // null이 아닌 값만 필터링
+    final validValues = values.whereType<double>().toList();
+    if (validValues.isEmpty) {
+      return Center(
+        child: Text(
+          '데이터가 없습니다',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    final minValue = validValues.reduce((a, b) => a < b ? a : b);
+    final maxValue = validValues.reduce((a, b) => a > b ? a : b);
+    final valuePadding = (maxValue - minValue) * 0.2;
+    final adjustedMin = minValue - valuePadding;
+    final adjustedMax = maxValue + valuePadding;
+
+    // 실제 데이터 스팟 생성
+    final spots = <FlSpot>[];
+    for (int i = 0; i < chartData.length; i++) {
+      final value = values[i];
+      if (value != null) {
+        spots.add(FlSpot(i.toDouble(), value));
+      }
+    }
+
+    // 예측 데이터 스팟 생성 (1주 후)
+    final predictionSpots = <FlSpot>[];
+    if (prediction != null && spots.isNotEmpty) {
+      // 마지막 실제 데이터 포인트
+      final lastSpot = spots.last;
+      predictionSpots.add(lastSpot);
+      // 1주 후 예측값 (주간 추세 기반)
+      final predictedValue = prediction.current + prediction.weeklyTrend;
+      predictionSpots.add(FlSpot(lastSpot.x + 1, predictedValue));
+    }
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: (adjustedMax - adjustedMin) / 4,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 1,
+          ),
+        ),
+        titlesData: _buildTitlesData(chartData, theme, colorScheme),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: (chartData.length - 1 + (predictionSpots.isNotEmpty ? 1 : 0)).toDouble(),
+        minY: adjustedMin,
+        maxY: adjustedMax,
+        lineBarsData: [
+          // 실제 데이터 라인 (실선)
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: color,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: colorScheme.surface,
+                  strokeWidth: 2,
+                  strokeColor: color,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: 0.3),
+                  color.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+          // 예측 데이터 라인 (점선)
+          if (predictionSpots.isNotEmpty)
+            LineChartBarData(
+              spots: predictionSpots,
+              isCurved: true,
+              color: color.withValues(alpha: 0.6),
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dashArray: [5, 5],
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  // 마지막 점만 표시 (예측값)
+                  if (index == 0) {
+                    return FlDotCirclePainter(
+                      radius: 0,
+                      color: Colors.transparent,
+                      strokeWidth: 0,
+                      strokeColor: Colors.transparent,
+                    );
+                  }
+                  return FlDotCirclePainter(
+                    radius: 5,
+                    color: colorScheme.surface,
+                    strokeWidth: 2,
+                    strokeColor: color.withValues(alpha: 0.6),
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => colorScheme.inverseSurface,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            getTooltipItems: (spots) {
+              return spots.map((spot) {
+                final index = spot.spotIndex;
+                final isPrediction = spot.x >= chartData.length;
+
+                if (isPrediction) {
+                  return LineTooltipItem(
+                    '예측: ${spot.y.toStringAsFixed(1)}$unit\n',
+                    TextStyle(
+                      color: colorScheme.onInverseSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: '1주 후',
+                        style: TextStyle(
+                          color: colorScheme.onInverseSurface.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                if (index >= 0 && index < chartData.length) {
+                  final data = chartData[index];
+                  return LineTooltipItem(
+                    '${spot.y.toStringAsFixed(1)}$unit\n',
+                    TextStyle(
+                      color: colorScheme.onInverseSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: DateFormat('yyyy.MM.dd').format(data.date),
+                        style: TextStyle(
+                          color: colorScheme.onInverseSurface.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return null;
+              }).whereType<LineTooltipItem>().toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 멀티 라인 차트 (전체 메트릭)
+  Widget _buildMultiLineChart(
+    BuildContext context,
+    List<WeightHistoryData> chartData,
+    ColorScheme colorScheme,
+    ThemeData theme,
+    BodyCompositionPredictionState predictionState,
+  ) {
+    // 각 메트릭 별 스팟 생성
+    final weightSpots = <FlSpot>[];
+    final muscleSpots = <FlSpot>[];
+    final bodyFatSpots = <FlSpot>[];
+
+    for (int i = 0; i < chartData.length; i++) {
+      final data = chartData[i];
+      weightSpots.add(FlSpot(i.toDouble(), data.weight));
+      if (data.muscleMass != null) {
+        muscleSpots.add(FlSpot(i.toDouble(), data.muscleMass!));
+      }
+      if (data.bodyFatPercent != null) {
+        bodyFatSpots.add(FlSpot(i.toDouble(), data.bodyFatPercent!));
+      }
+    }
+
+    // 모든 값의 범위 계산
+    final allValues = <double>[
+      ...weightSpots.map((s) => s.y),
+      ...muscleSpots.map((s) => s.y),
+      ...bodyFatSpots.map((s) => s.y),
+    ];
+
+    if (allValues.isEmpty) {
+      return Center(
+        child: Text(
+          '데이터가 없습니다',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    final minValue = allValues.reduce((a, b) => a < b ? a : b);
+    final maxValue = allValues.reduce((a, b) => a > b ? a : b);
+    final valuePadding = (maxValue - minValue) * 0.2;
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: (maxValue - minValue + valuePadding * 2) / 4,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 1,
+          ),
+        ),
+        titlesData: _buildTitlesData(chartData, theme, colorScheme),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: (chartData.length - 1).toDouble(),
+        minY: minValue - valuePadding,
+        maxY: maxValue + valuePadding,
+        lineBarsData: [
+          // 체중 라인
+          if (weightSpots.isNotEmpty)
+            _buildLineBarData(weightSpots, AppTheme.primary, colorScheme),
+          // 골격근량 라인
+          if (muscleSpots.isNotEmpty)
+            _buildLineBarData(muscleSpots, Colors.green, colorScheme),
+          // 체지방률 라인
+          if (bodyFatSpots.isNotEmpty)
+            _buildLineBarData(bodyFatSpots, Colors.orange, colorScheme),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => colorScheme.inverseSurface,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            getTooltipItems: (spots) {
+              return spots.map((spot) {
+                final index = spot.spotIndex;
+                if (index < 0 || index >= chartData.length) return null;
+
+                String label;
+                String unit;
+
+                // 색상으로 어떤 라인인지 판별
+                if (spot.bar.color == AppTheme.primary) {
+                  label = '체중';
+                  unit = 'kg';
+                } else if (spot.bar.color == Colors.green) {
+                  label = '골격근량';
+                  unit = 'kg';
+                } else {
+                  label = '체지방률';
+                  unit = '%';
+                }
+
+                return LineTooltipItem(
+                  '$label: ${spot.y.toStringAsFixed(1)}$unit',
+                  TextStyle(
+                    color: colorScheme.onInverseSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).whereType<LineTooltipItem>().toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  LineChartBarData _buildLineBarData(
+    List<FlSpot> spots,
+    Color color,
+    ColorScheme colorScheme,
+  ) {
+    return LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      color: color,
+      barWidth: 2,
+      isStrokeCapRound: true,
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, barData, index) {
+          return FlDotCirclePainter(
+            radius: 3,
+            color: colorScheme.surface,
+            strokeWidth: 2,
+            strokeColor: color,
+          );
+        },
+      ),
+      belowBarData: BarAreaData(show: false),
+    );
+  }
+
+  FlTitlesData _buildTitlesData(
+    List<WeightHistoryData> chartData,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return FlTitlesData(
+      show: true,
+      rightTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+      topTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 40,
+          getTitlesWidget: (value, meta) => Text(
+            '${value.toInt()}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 32,
+          interval: 1,
+          getTitlesWidget: (value, meta) {
+            final index = value.toInt();
+            if (index < 0 || index >= chartData.length) {
+              return const SizedBox.shrink();
+            }
+            // 3개 간격으로만 표시
+            if (index % 3 != 0 && index != chartData.length - 1) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                DateFormat('M/d').format(chartData[index].date),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 10,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 

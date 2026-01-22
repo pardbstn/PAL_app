@@ -26,6 +26,8 @@ _InbodyRecordModel _$InbodyRecordModelFromJson(Map<String, dynamic> json) =>
           $enumDecodeNullable(_$InbodySourceEnumMap, json['source']) ??
           InbodySource.manual,
       memo: json['memo'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      analyzedAt: const TimestampConverter().fromJson(json['analyzedAt']),
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
 
@@ -47,6 +49,11 @@ Map<String, dynamic> _$InbodyRecordModelToJson(_InbodyRecordModel instance) =>
       'inbodyScore': instance.inbodyScore,
       'source': _$InbodySourceEnumMap[instance.source]!,
       'memo': instance.memo,
+      'imageUrl': instance.imageUrl,
+      'analyzedAt': _$JsonConverterToJson<dynamic, DateTime>(
+        instance.analyzedAt,
+        const TimestampConverter().toJson,
+      ),
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
     };
 
@@ -54,4 +61,10 @@ const _$InbodySourceEnumMap = {
   InbodySource.manual: 'manual',
   InbodySource.inbodyApi: 'inbody_api',
   InbodySource.inbodyApp: 'inbody_app',
+  InbodySource.aiAnalysis: 'ai_analysis',
 };
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);

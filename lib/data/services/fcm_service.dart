@@ -70,8 +70,8 @@ class FCMService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Android 알림 채널 생성
-    if (Platform.isAndroid) {
+    // Android 알림 채널 생성 (웹에서는 Platform 사용 불가)
+    if (!kIsWeb && Platform.isAndroid) {
       const channel = AndroidNotificationChannel(
         'high_importance_channel',
         '중요 알림',

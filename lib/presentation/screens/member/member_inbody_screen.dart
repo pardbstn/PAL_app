@@ -1,15 +1,20 @@
+import 'dart:io';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/models/inbody_record_model.dart';
+import '../../../data/services/ai_service.dart';
 import '../../providers/inbody_provider.dart';
-import '../../widgets/inbody/inbody_input_form.dart';
 
 /// 회원 인바디 화면
 /// 최근 인바디 결과, 체성분 차트, 히스토리 표시
+/// AI 사진 분석을 통해 인바디 결과지를 자동으로 입력
 class MemberInbodyScreen extends ConsumerWidget {
   final String memberId;
   final String? memberName;
@@ -64,9 +69,9 @@ class MemberInbodyScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showInputForm(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('기록 추가'),
+        onPressed: () => _showImageSourceDialog(context, ref),
+        icon: const Icon(Icons.camera_alt),
+        label: const Text('인바디 촬영'),
       ),
     );
   }
@@ -92,16 +97,16 @@ class MemberInbodyScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '첫 번째 인바디 기록을 추가해보세요',
+            '인바디 결과지를 촬영하여 기록을 추가해보세요',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
           ),
           const SizedBox(height: 32),
           FilledButton.icon(
-            onPressed: () => _showInputForm(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('기록 추가'),
+            onPressed: () => _showImageSourceDialog(context, ref),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('인바디 촬영'),
           ),
         ],
       ).animate().fadeIn(duration: 300.ms),
@@ -195,7 +200,7 @@ class MemberInbodyScreen extends ConsumerWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: history.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final record = history[index];
                 return _InbodyHistoryTile(
@@ -213,42 +218,364 @@ class MemberInbodyScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showInputForm(BuildContext context, WidgetRef ref) async {
-    final data = await InbodyInputForm.showAsBottomSheet(
-      context,
-      memberId: memberId,
+  /// 이미지 소스 선택 다이얼로그 표시
+  void _showImageSourceDialog(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '인바디 결과지 촬영',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'AI가 결과지를 분석하여 자동으로 기록합니다',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.camera_alt,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                title: const Text('카메라로 촬영'),
+                subtitle: const Text('인바디 결과지를 직접 촬영합니다'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndAnalyzeImage(context, ref, ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.photo_library,
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+                ),
+                title: const Text('갤러리에서 선택'),
+                subtitle: const Text('저장된 인바디 결과지 사진을 불러옵니다'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndAnalyzeImage(context, ref, ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 이미지 선택 및 AI 분석
+  Future<void> _pickAndAnalyzeImage(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+  ) async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: source, imageQuality: 85);
+    if (image == null) return;
+
+    if (!context.mounted) return;
+
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              '인바디 결과지를 분석 중입니다...',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'AI가 사진에서 데이터를 추출하고 있습니다',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
 
-    if (data != null) {
-      final notifier = ref.read(inbodyNotifierProvider.notifier);
-      final id = await notifier.saveManualEntry(
-        memberId: data.memberId,
-        weight: data.weight,
-        skeletalMuscleMass: data.skeletalMuscleMass,
-        bodyFatPercent: data.bodyFatPercent,
-        bodyFatMass: data.bodyFatMass,
-        bmi: data.bmi,
-        basalMetabolicRate: data.basalMetabolicRate,
-        totalBodyWater: data.totalBodyWater,
-        protein: data.protein,
-        minerals: data.minerals,
-        visceralFatLevel: data.visceralFatLevel,
-        inbodyScore: data.inbodyScore,
-        memo: data.memo,
-        measuredAt: data.measuredAt,
+    try {
+      // 1. Supabase Storage에 업로드
+      final supabase = Supabase.instance.client;
+      final file = File(image.path);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$memberId/$timestamp.jpg';
+
+      await supabase.storage.from('inbody-images').upload(
+            fileName,
+            file,
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+
+      final imageUrl =
+          supabase.storage.from('inbody-images').getPublicUrl(fileName);
+
+      // 2. AI 분석 호출
+      final notifier = ref.read(inbodyAnalysisProvider.notifier);
+      final result = await notifier.analyzeInbodyImage(
+        memberId: memberId,
+        imageUrl: imageUrl,
       );
 
-      if (id != null && context.mounted) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+      if (result.success) {
+        // 성공 시 분석 결과 다이얼로그 표시
+        _showAnalysisResultDialog(context, ref, result);
+      } else {
+        // 에러 표시
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인바디 기록이 저장되었습니다'),
+          SnackBar(
+            content: Text(result.error ?? '분석에 실패했습니다.'),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
           ),
         );
       }
+    } on StorageException catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('이미지 업로드 실패: ${e.message}'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('오류가 발생했습니다: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  /// AI 분석 결과 다이얼로그 표시
+  void _showAnalysisResultDialog(
+    BuildContext context,
+    WidgetRef ref,
+    InbodyAnalysisResult result,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final analysis = result.analysis;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('분석 완료'),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '인바디 결과지에서 추출된 데이터입니다.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+              ),
+              const SizedBox(height: 16),
+              if (analysis != null) ...[
+                _buildAnalysisRow(
+                  context,
+                  '체중',
+                  analysis.weight != null
+                      ? '${analysis.weight!.toStringAsFixed(1)} kg'
+                      : '-',
+                  Icons.monitor_weight_outlined,
+                  colorScheme.primary,
+                ),
+                _buildAnalysisRow(
+                  context,
+                  '골격근량',
+                  analysis.skeletalMuscleMass != null
+                      ? '${analysis.skeletalMuscleMass!.toStringAsFixed(1)} kg'
+                      : '-',
+                  Icons.fitness_center,
+                  Colors.green,
+                ),
+                _buildAnalysisRow(
+                  context,
+                  '체지방률',
+                  analysis.bodyFatPercent != null
+                      ? '${analysis.bodyFatPercent!.toStringAsFixed(1)} %'
+                      : '-',
+                  Icons.water_drop_outlined,
+                  Colors.orange,
+                ),
+                _buildAnalysisRow(
+                  context,
+                  '체지방량',
+                  analysis.bodyFatMass != null
+                      ? '${analysis.bodyFatMass!.toStringAsFixed(1)} kg'
+                      : '-',
+                  Icons.pie_chart_outline,
+                  Colors.orange.shade300,
+                ),
+                _buildAnalysisRow(
+                  context,
+                  'BMI',
+                  analysis.bmi != null
+                      ? analysis.bmi!.toStringAsFixed(1)
+                      : '-',
+                  Icons.straighten,
+                  Colors.blue,
+                ),
+                if (analysis.basalMetabolicRate != null)
+                  _buildAnalysisRow(
+                    context,
+                    '기초대사량',
+                    '${analysis.basalMetabolicRate!.toStringAsFixed(0)} kcal',
+                    Icons.local_fire_department,
+                    Colors.red,
+                  ),
+                if (analysis.inbodyScore != null)
+                  _buildAnalysisRow(
+                    context,
+                    '인바디 점수',
+                    '${analysis.inbodyScore}점',
+                    Icons.star,
+                    Colors.amber,
+                  ),
+              ] else
+                const Text('분석 데이터를 불러올 수 없습니다.'),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // 프로바이더 갱신
+              ref.invalidate(latestInbodyProvider(memberId));
+              ref.invalidate(inbodyHistoryProvider(memberId));
+            },
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 분석 결과 행 빌더
+  Widget _buildAnalysisRow(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
+            ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 인바디 기록 삭제
   Future<void> _deleteRecord(
     BuildContext context,
     WidgetRef ref,
@@ -458,7 +785,8 @@ class _BodyCompositionChart extends StatelessWidget {
 
     // 체성분 비율 계산
     final totalWeight = record.weight;
-    final fatMass = record.bodyFatMass ?? (totalWeight * record.bodyFatPercent / 100);
+    final fatMass =
+        record.bodyFatMass ?? (totalWeight * record.bodyFatPercent / 100);
     final muscleMass = record.skeletalMuscleMass;
     final otherMass = totalWeight - fatMass - muscleMass;
 
@@ -704,8 +1032,7 @@ class _InbodyHistoryChart extends StatelessWidget {
                     // 체중 라인
                     LineChartBarData(
                       spots: displayRecords.asMap().entries.map((e) {
-                        return FlSpot(
-                            e.key.toDouble(), e.value.weight);
+                        return FlSpot(e.key.toDouble(), e.value.weight);
                       }).toList(),
                       isCurved: true,
                       color: colorScheme.primary,
@@ -715,8 +1042,8 @@ class _InbodyHistoryChart extends StatelessWidget {
                     // 골격근량 라인
                     LineChartBarData(
                       spots: displayRecords.asMap().entries.map((e) {
-                        return FlSpot(e.key.toDouble(),
-                            e.value.skeletalMuscleMass);
+                        return FlSpot(
+                            e.key.toDouble(), e.value.skeletalMuscleMass);
                       }).toList(),
                       isCurved: true,
                       color: Colors.green,
@@ -789,7 +1116,8 @@ class _InbodyHistoryTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 48,
           height: 48,

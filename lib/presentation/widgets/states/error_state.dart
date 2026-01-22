@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 
 enum ErrorType {
   network,
@@ -38,7 +37,7 @@ class ErrorState extends StatelessWidget {
 
   static ErrorType _getErrorType(Object error) {
     final message = error.toString().toLowerCase();
-    if (error is SocketException || message.contains('network') || message.contains('connection')) {
+    if (message.contains('socketexception') || message.contains('network') || message.contains('connection')) {
       return ErrorType.network;
     }
     if (message.contains('permission') || message.contains('denied')) {
@@ -99,6 +98,26 @@ class ErrorState extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            // 디버그 모드에서 실제 오류 메시지 표시
+            if (error != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SelectableText(
+                  error.toString(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
             // 재시도 버튼
             if (onRetry != null) ...[
               const SizedBox(height: 24),
@@ -133,7 +152,7 @@ class ErrorState extends StatelessWidget {
     }
 
     // 네트워크 에러
-    if (error is SocketException) {
+    if (message.toLowerCase().contains('socketexception')) {
       return '인터넷 연결을 확인해주세요.';
     }
 

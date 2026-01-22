@@ -296,7 +296,14 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
                 firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now().add(const Duration(days: 7)),
               );
-              if (picked != null) setState(() => _selectedDate = picked);
+              if (picked != null) {
+                final member = ref.read(currentMemberProvider);
+                setState(() => _selectedDate = picked);
+                // 날짜 변경 시 해당 날짜의 데이터를 다시 조회하도록 invalidate
+                if (member != null) {
+                  ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: picked)));
+                }
+              }
             },
             child: Column(
               children: [

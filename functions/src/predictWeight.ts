@@ -12,7 +12,6 @@ import {
   PredictedPoint,
   MIN_DATA_POINTS,
   MAX_WEEKS_AHEAD,
-  // PREDICTION_LIMITS, // 테스트용 임시 주석
   calculateLinearRegression,
   calculateWeightedTrend,
   calculateStandardDeviation,
@@ -22,7 +21,6 @@ import {
   calculateWeeksToTarget,
   generateAnalysisMessage,
   generatePredictedWeights,
-  // isQuotaExceeded, // 테스트용 임시 주석
   generateDataSummary,
   generateGoalScenarios,
   generateCoachingMessages,
@@ -53,7 +51,6 @@ const db = admin.firestore();
  * @throws {HttpsError} MEMBER_NOT_FOUND - 회원 없음
  * @throws {HttpsError} INSUFFICIENT_DATA - 데이터 부족
  * @throws {HttpsError} INVALID_PARAMETER - 잘못된 파라미터
- * @throws {HttpsError} QUOTA_EXCEEDED - 사용량 초과
  */
 export const predictWeight = functions
   .region("asia-northeast3")
@@ -116,53 +113,8 @@ export const predictWeight = functions
 
       const trainerDoc = trainerSnapshot.docs[0];
       const trainerId = trainerDoc.id;
-      const trainerData = trainerDoc.data();
 
-      // 4. 사용량 한도 체크
-      const tier = trainerData.subscriptionTier || "free";
-      const aiUsage = trainerData.aiUsage || {
-        curriculumCount: 0,
-        predictionCount: 0,
-        resetDate: null,
-      };
-
-      // 리셋 날짜 확인
-      let resetDate: Date;
-      if (aiUsage.resetDate?.toDate) {
-        resetDate = aiUsage.resetDate.toDate();
-      } else if (aiUsage.resetDate) {
-        resetDate = new Date(aiUsage.resetDate);
-      } else {
-        resetDate = new Date(0); // 기본값: 매우 오래된 날짜
-      }
-
-      const now = new Date();
-      const shouldReset =
-        now.getMonth() !== resetDate.getMonth() ||
-        now.getFullYear() !== resetDate.getFullYear();
-
-      const currentPredictionCount = shouldReset
-        ? 0
-        : aiUsage.predictionCount || 0;
-
-      // TODO: 테스트 완료 후 한도 체크 다시 활성화
-      // 한도 체크 (Pro 티어는 무제한) - 테스트용 임시 비활성화
-      // if (tier.toLowerCase() !== "pro" && isQuotaExceeded(tier, currentPredictionCount)) {
-      //   const limit = PREDICTION_LIMITS[tier.toLowerCase()] || PREDICTION_LIMITS.free;
-      //   functions.logger.warn("[predictWeight] 사용량 초과", {
-      //     trainerId,
-      //     tier,
-      //     currentCount: currentPredictionCount,
-      //     limit,
-      //   });
-      //   throw new functions.https.HttpsError(
-      //     "resource-exhausted",
-      //     `이번 달 AI 예측 사용량을 초과했습니다. (${currentPredictionCount}/${limit}회) ` +
-      //     "Pro 플랜으로 업그레이드하시면 무제한으로 사용 가능합니다."
-      //   );
-      // }
-
-      // 5. 회원 정보 확인
+      // 4. 회원 정보 확인
       const memberDoc = await db.collection("members").doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
@@ -306,31 +258,27 @@ export const predictWeight = functions
         dataPointsUsed: rawData.length,
       });
 
-      // 13-4. Pro 사용자 전용: Gemini AI 심층 분석
+      // 13-4. Gemini AI 심층 분석 (모든 사용자)
       let geminiAnalysis: GeminiAnalysisResult | null = null;
-      const isPro = tier.toLowerCase() === "pro";
-
-      if (isPro) {
-        const geminiApiKey = functions.config().gemini?.api_key || process.env.GEMINI_API_KEY;
-        if (geminiApiKey) {
-          functions.logger.info("[predictWeight] Pro 사용자 - Gemini 분석 시작");
-          geminiAnalysis = await generateGeminiAnalysis({
-            currentWeight,
-            targetWeight,
-            weeklyTrend,
-            dataSummary,
-            goal,
-            confidence,
-            dataPointsUsed: rawData.length,
-            estimatedWeeksToTarget,
-            apiKey: geminiApiKey,
-          });
-          functions.logger.info("[predictWeight] Gemini 분석 완료", {
-            success: geminiAnalysis.success,
-          });
-        } else {
-          functions.logger.warn("[predictWeight] Gemini API 키 미설정");
-        }
+      const geminiApiKey = functions.config().gemini?.api_key || process.env.GEMINI_API_KEY;
+      if (geminiApiKey) {
+        functions.logger.info("[predictWeight] Gemini 분석 시작");
+        geminiAnalysis = await generateGeminiAnalysis({
+          currentWeight,
+          targetWeight,
+          weeklyTrend,
+          dataSummary,
+          goal,
+          confidence,
+          dataPointsUsed: rawData.length,
+          estimatedWeeksToTarget,
+          apiKey: geminiApiKey,
+        });
+        functions.logger.info("[predictWeight] Gemini 분석 완료", {
+          success: geminiAnalysis.success,
+        });
+      } else {
+        functions.logger.warn("[predictWeight] Gemini API 키 미설정");
       }
 
       functions.logger.info("[predictWeight] 예측 계산 완료", {
@@ -360,7 +308,7 @@ export const predictWeight = functions
         createdAt: admin.firestore.Timestamp.now(),
       };
 
-      // Pro 사용자 Gemini 분석 결과 추가
+      // Gemini 분석 결과 추가
       if (geminiAnalysis?.success) {
         predictionData.geminiAnalysis = {
           aiInsight: geminiAnalysis.aiInsight,
@@ -374,17 +322,6 @@ export const predictWeight = functions
       functions.logger.info("[predictWeight] 예측 저장 완료", {
         predictionId: predictionRef.id,
       });
-
-      // 15. 트레이너 AI 사용량 업데이트
-      const updateData: Record<string, unknown> = {
-        "aiUsage.predictionCount": currentPredictionCount + 1,
-      };
-      if (shouldReset) {
-        updateData["aiUsage.resetDate"] = admin.firestore.Timestamp.now();
-        updateData["aiUsage.curriculumCount"] = 0;
-      }
-
-      await trainerDoc.ref.update(updateData);
 
       const duration = Date.now() - startTime;
       functions.logger.info("[predictWeight] 함수 완료", {
@@ -413,7 +350,7 @@ export const predictWeight = functions
           dataSummary,
           goalScenarios,
           coachingMessages,
-          // Pro 사용자 전용 Gemini AI 분석
+          // Gemini AI 분석
           ...(geminiAnalysis?.success && {
             geminiAnalysis: {
               aiInsight: geminiAnalysis.aiInsight,

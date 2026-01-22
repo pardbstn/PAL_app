@@ -10,6 +10,7 @@ import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
@@ -110,10 +111,13 @@ class MemberHomeScreen extends ConsumerWidget {
               // 5. AI 인사이트 카드 (index 4)
               memberInsightsAsync.when(
                 loading: () => _buildInsightSkeleton(context),
-                error: (_, _) => const SizedBox.shrink(),
+                error: (e, s) => const SizedBox.shrink(),
                 data: (insights) => insights.isEmpty
                     ? const SizedBox.shrink()
-                    : _InsightCardsSection(insights: insights).animateListItem(4),
+                    : _InsightCardsSection(
+                        insights: insights,
+                        memberId: memberId,
+                      ).animateListItem(4),
               ),
               const SizedBox(height: 24),
 
@@ -1214,14 +1218,19 @@ class _QuickActionButton extends StatelessWidget {
 }
 
 /// AI 인사이트 카드 섹션
-class _InsightCardsSection extends StatelessWidget {
+class _InsightCardsSection extends ConsumerWidget {
   final List<MemberInsight> insights;
+  final String memberId;
 
-  const _InsightCardsSection({required this.insights});
+  const _InsightCardsSection({
+    required this.insights,
+    required this.memberId,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final generationState = ref.watch(memberInsightsGenerationProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1229,45 +1238,69 @@ class _InsightCardsSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'AI 인사이트',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                'AI 인사이트',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              // 새로고침 버튼
+              IconButton(
+                icon: generationState.isGenerating
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh, size: 20),
+                onPressed: generationState.isGenerating
+                    ? null
+                    : () => _refreshInsights(ref),
+                tooltip: '인사이트 새로고침',
               ),
             ],
           ),
         ),
         SizedBox(
-          height: 120,
+          height: 160,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: insights.length > 5 ? 5 : insights.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final insight = insights[index];
-              return _InsightCard(insight: insight);
+              return _MemberInsightCard(insight: insight);
             },
           ),
         ),
       ],
     );
   }
+
+  /// 인사이트 새로고침
+  void _refreshInsights(WidgetRef ref) {
+    ref.read(memberInsightsGenerationProvider.notifier).generate(memberId);
+  }
 }
 
-/// 개별 인사이트 카드
-class _InsightCard extends StatelessWidget {
+/// 개별 인사이트 카드 (미니 그래프 지원)
+class _MemberInsightCard extends StatelessWidget {
   final MemberInsight insight;
 
-  const _InsightCard({required this.insight});
+  const _MemberInsightCard({required this.insight});
 
   @override
   Widget build(BuildContext context) {
@@ -1275,18 +1308,19 @@ class _InsightCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      width: 260,
-      padding: const EdgeInsets.all(16),
+      width: 200,
+      margin: const EdgeInsets.only(right: 0),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: insight.priorityColor.withValues(alpha: 0.3),
-          width: 1.5,
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: insight.priorityColor.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1295,23 +1329,27 @@ class _InsightCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 헤더: 아이콘 + 우선순위 배지
           Row(
             children: [
+              Icon(
+                insight.typeIcon,
+                size: 20,
+                color: insight.priorityColor,
+              ),
+              const Spacer(),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: insight.priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: Icon(insight.typeIcon, size: 18, color: insight.priorityColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
                 child: Text(
                   insight.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: insight.priorityColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1319,20 +1357,32 @@ class _InsightCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Text(
-              insight.message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark ? Colors.white70 : Colors.black54,
-                height: 1.4,
+          const SizedBox(height: 8),
+          // 미니 그래프 영역 (데이터가 있는 경우)
+          if (insight.graphData != null && insight.graphType != null)
+            Expanded(
+              child: InsightMiniChart(
+                graphType: insight.graphType!,
+                data: insight.graphData!,
+                primaryColor: insight.priorityColor,
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+            )
+          else
+            const Spacer(),
+          const SizedBox(height: 8),
+          // 메시지
+          Text(
+            insight.message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black54,
+              height: 1.3,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 }
+

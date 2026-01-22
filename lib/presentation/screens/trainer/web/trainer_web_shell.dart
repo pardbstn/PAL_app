@@ -167,6 +167,14 @@ class _WebSidebar extends ConsumerWidget {
             currentPath: currentPath,
             isExpanded: isExpanded,
           ),
+          _NavItem(
+            icon: Icons.payments_outlined,
+            selectedIcon: Icons.payments,
+            label: '매출 관리',
+            path: '/trainer/revenue',
+            currentPath: currentPath,
+            isExpanded: isExpanded,
+          ),
 
           const Spacer(),
 
@@ -371,6 +379,7 @@ class _WebHeader extends ConsumerWidget {
     if (currentPath.contains('/members')) title = '회원 관리';
     if (currentPath.contains('/calendar')) title = '캘린더';
     if (currentPath.contains('/messages')) title = '메시지';
+    if (currentPath.contains('/revenue')) title = '매출 관리';
     if (currentPath.contains('/settings')) title = '설정';
 
     return Container(

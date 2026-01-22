@@ -13,7 +13,6 @@ import 'package:flutter_pal_app/data/models/inbody_record_model.dart';
 import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/web/web_widgets.dart';
-import 'package:flutter_pal_app/presentation/widgets/inbody/inbody_input_form.dart';
 
 // ============================================================================
 // 회원 상세 조회용 Provider (로컬 정의)
@@ -1190,16 +1189,10 @@ class _TrainerMemberDetailWebScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            '첫 번째 인바디 기록을 추가해보세요',
+            '회원이 인바디 측정을 완료하면 여기에 표시됩니다',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => _showInbodyInputForm(context, memberId),
-            icon: const Icon(Icons.add),
-            label: const Text('기록 추가'),
           ),
         ],
       ).animate().fadeIn(duration: 300.ms),
@@ -1217,19 +1210,9 @@ class _TrainerMemberDetailWebScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '인바디 측정 기록',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              FilledButton.icon(
-                onPressed: () => _showInbodyInputForm(context, memberId),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('기록 추가'),
-              ),
-            ],
+          Text(
+            '인바디 측정 기록',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 24),
 
@@ -1302,34 +1285,6 @@ class _TrainerMemberDetailWebScreenState
         ],
       ),
     );
-  }
-
-  Future<void> _showInbodyInputForm(BuildContext context, String memberId) async {
-    final data = await InbodyInputForm.showAsBottomSheet(context, memberId: memberId);
-    if (data != null) {
-      final notifier = ref.read(inbodyNotifierProvider.notifier);
-      final id = await notifier.saveManualEntry(
-        memberId: data.memberId,
-        weight: data.weight,
-        skeletalMuscleMass: data.skeletalMuscleMass,
-        bodyFatPercent: data.bodyFatPercent,
-        bodyFatMass: data.bodyFatMass,
-        bmi: data.bmi,
-        basalMetabolicRate: data.basalMetabolicRate,
-        totalBodyWater: data.totalBodyWater,
-        protein: data.protein,
-        minerals: data.minerals,
-        visceralFatLevel: data.visceralFatLevel,
-        inbodyScore: data.inbodyScore,
-        memo: data.memo,
-        measuredAt: data.measuredAt,
-      );
-      if (id != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('인바디 기록이 저장되었습니다'), behavior: SnackBarBehavior.floating),
-        );
-      }
-    }
   }
 
   Future<void> _deleteInbodyRecord(BuildContext context, String memberId, InbodyRecordModel record) async {

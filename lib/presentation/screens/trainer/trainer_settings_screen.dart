@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
-import 'package:flutter_pal_app/data/models/trainer_model.dart';
-import 'package:flutter_pal_app/data/repositories/trainer_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
-
-/// 개발자 테스트용 이메일 (구독 티어 변경 가능)
-const _devTestEmail = '10lys0404@naver.com';
 
 /// 트레이너 설정 화면
 class TrainerSettingsScreen extends ConsumerWidget {
@@ -60,37 +55,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
           ),
           const Divider(height: 32),
 
-          // 구독 정보
-          _buildSectionHeader('구독 정보'),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.workspace_premium, color: AppTheme.primary),
-            ),
-            title: const Text('현재 플랜'),
-            subtitle: const Text('Free'),
-            trailing: TextButton(
-              onPressed: () {
-                // TODO: 플랜 업그레이드 화면
-              },
-              child: const Text('업그레이드'),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.analytics_outlined),
-            title: const Text('AI 사용량'),
-            subtitle: const Text('이번 달: 0/1회'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: AI 사용량 상세
-            },
-          ),
-          const Divider(height: 32),
-
           // 지원
           _buildSectionHeader('지원'),
           ListTile(
@@ -131,13 +95,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
             },
           ),
           const Divider(height: 32),
-
-          // 개발자 옵션 (테스트 계정만)
-          if (authState.email == _devTestEmail) ...[
-            _buildSectionHeader('🛠️ 개발자 옵션'),
-            _buildDevSubscriptionTier(context, ref, authState),
-            const Divider(height: 32),
-          ],
 
           // 로그아웃
           ListTile(
@@ -380,149 +337,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
             child: const Text('저장'),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 개발자 옵션: 구독 티어 변경
-  Widget _buildDevSubscriptionTier(
-    BuildContext context,
-    WidgetRef ref,
-    AuthState authState,
-  ) {
-    final trainer = authState.trainerModel;
-    final currentTier = trainer?.subscriptionTier ?? SubscriptionTier.free;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.developer_mode, color: Colors.amber, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                '구독 티어 변경 (현재: ${currentTier.name.toUpperCase()})',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildTierButton(
-                context,
-                ref,
-                tier: SubscriptionTier.free,
-                currentTier: currentTier,
-                trainerId: trainer?.id,
-                color: Colors.grey,
-              ),
-              const SizedBox(width: 8),
-              _buildTierButton(
-                context,
-                ref,
-                tier: SubscriptionTier.basic,
-                currentTier: currentTier,
-                trainerId: trainer?.id,
-                color: Colors.blue,
-              ),
-              const SizedBox(width: 8),
-              _buildTierButton(
-                context,
-                ref,
-                tier: SubscriptionTier.pro,
-                currentTier: currentTier,
-                trainerId: trainer?.id,
-                color: Colors.purple,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '⚠️ 테스트 목적으로만 사용하세요',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 티어 변경 버튼
-  Widget _buildTierButton(
-    BuildContext context,
-    WidgetRef ref, {
-    required SubscriptionTier tier,
-    required SubscriptionTier currentTier,
-    required String? trainerId,
-    required Color color,
-  }) {
-    final isSelected = tier == currentTier;
-
-    return Expanded(
-      child: ElevatedButton(
-        onPressed: isSelected || trainerId == null
-            ? null
-            : () async {
-                try {
-                  await ref
-                      .read(trainerRepositoryProvider)
-                      .updateSubscriptionTier(trainerId, tier);
-
-                  // Auth 상태에서 트레이너 데이터 새로고침
-                  await ref.read(authProvider.notifier).refreshTrainerData();
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${tier.name.toUpperCase()} 플랜으로 변경되었습니다'),
-                        backgroundColor: color,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('변경 실패: $e'),
-                        backgroundColor: AppTheme.error,
-                      ),
-                    );
-                  }
-                }
-              },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? color : color.withValues(alpha: 0.1),
-          foregroundColor: isSelected ? Colors.white : color,
-          elevation: isSelected ? 2 : 0,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: color.withValues(alpha: isSelected ? 1.0 : 0.5),
-            ),
-          ),
-        ),
-        child: Text(
-          tier.name.toUpperCase(),
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
-          ),
-        ),
       ),
     );
   }

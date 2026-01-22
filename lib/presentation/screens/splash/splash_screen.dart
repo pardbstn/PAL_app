@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -23,19 +24,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigateNext() async {
-    // 애니메이션을 위해 2초 대기
-    await Future.delayed(const Duration(seconds: 2));
+    // 애니메이션을 위해 2초 대기 (웹에서는 1초)
+    await Future.delayed(Duration(seconds: kIsWeb ? 1 : 2));
 
     if (!mounted) return;
 
-    // 첫 실행 여부 확인
-    final isFirstRun = await ref.read(isFirstRunProvider.future);
+    // 웹에서는 온보딩 건너뛰기
+    if (!kIsWeb) {
+      // 첫 실행 여부 확인
+      final isFirstRun = await ref.read(isFirstRunProvider.future);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (isFirstRun) {
-      context.go(AppRoutes.onboarding);
-      return;
+      if (isFirstRun) {
+        context.go(AppRoutes.onboarding);
+        return;
+      }
     }
 
     // 로그인 상태 확인

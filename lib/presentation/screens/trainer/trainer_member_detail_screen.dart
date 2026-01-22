@@ -27,7 +27,8 @@ import 'package:flutter_pal_app/data/repositories/session_signature_repository.d
 import 'package:flutter_pal_app/presentation/providers/weight_prediction_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
 import 'package:flutter_pal_app/data/models/inbody_record_model.dart';
-import 'package:flutter_pal_app/presentation/widgets/inbody/inbody_input_form.dart';
+import 'package:flutter_pal_app/presentation/providers/body_composition_prediction_provider.dart';
+import 'package:flutter_pal_app/data/models/body_composition_prediction_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -509,18 +510,38 @@ class _InfoTab extends StatelessWidget {
 // Graph Tab
 // ============================================================================
 
-class _GraphTab extends ConsumerWidget {
+/// 그래프 지표 선택 타입
+enum GraphMetricType {
+  weight('체중', 'kg'),
+  muscle('골격근량', 'kg'),
+  bodyFat('체지방률', '%'),
+  all('전체', '');
+
+  final String label;
+  final String unit;
+  const GraphMetricType(this.label, this.unit);
+}
+
+class _GraphTab extends ConsumerStatefulWidget {
   final String memberId;
   final MemberModel member;
 
   const _GraphTab({required this.memberId, required this.member});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bodyRecordsAsync = ref.watch(bodyRecordsProvider(memberId));
-    final weightHistoryAsync = ref.watch(weightHistoryProvider(memberId));
-    final latestRecordAsync = ref.watch(latestBodyRecordProvider(memberId));
-    final predictionAsync = ref.watch(latestPredictionProvider(memberId));
+  ConsumerState<_GraphTab> createState() => _GraphTabState();
+}
+
+class _GraphTabState extends ConsumerState<_GraphTab> {
+  GraphMetricType _selectedMetric = GraphMetricType.weight;
+
+  @override
+  Widget build(BuildContext context) {
+    final bodyRecordsAsync = ref.watch(bodyRecordsProvider(widget.memberId));
+    final weightHistoryAsync = ref.watch(weightHistoryProvider(widget.memberId));
+    final latestRecordAsync = ref.watch(latestBodyRecordProvider(widget.memberId));
+    final predictionAsync = ref.watch(latestPredictionProvider(widget.memberId));
+    final bodyCompPredictionState = ref.watch(bodyCompositionPredictionProvider);
 
     return Stack(
       children: [
@@ -538,6 +559,7 @@ class _GraphTab extends ConsumerWidget {
               weightHistoryAsync,
               latestRecordAsync,
               predictionAsync,
+              bodyCompPredictionState,
             );
           },
         ),
@@ -546,7 +568,7 @@ class _GraphTab extends ConsumerWidget {
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => AddBodyRecordSheet.show(context, memberId),
+            onPressed: () => AddBodyRecordSheet.show(context, widget.memberId),
             backgroundColor: AppTheme.primary,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add),
@@ -554,6 +576,58 @@ class _GraphTab extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// 지표 선택 탭 바 빌드
+  Widget _buildMetricSelector(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: GraphMetricType.values.map((metric) {
+          final isSelected = _selectedMetric == metric;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedMetric = metric),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  metric.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -597,14 +671,14 @@ class _GraphTab extends ConsumerWidget {
   Widget _buildErrorView(BuildContext context, WidgetRef ref, Object error) {
     return ErrorState.fromError(
       error,
-      onRetry: () => ref.invalidate(bodyRecordsProvider(memberId)),
+      onRetry: () => ref.invalidate(bodyRecordsProvider(widget.memberId)),
     );
   }
 
   Widget _buildEmptyView(BuildContext context) {
     return EmptyState(
       type: EmptyStateType.bodyRecords,
-      onAction: () => AddBodyRecordSheet.show(context, memberId),
+      onAction: () => AddBodyRecordSheet.show(context, widget.memberId),
     );
   }
 
@@ -615,6 +689,7 @@ class _GraphTab extends ConsumerWidget {
     AsyncValue<List<WeightHistoryData>> weightHistoryAsync,
     AsyncValue<dynamic> latestRecordAsync,
     AsyncValue<dynamic> predictionAsync,
+    BodyCompositionPredictionState bodyCompPredictionState,
   ) {
     // 예측 데이터를 WeightData로 변환
     List<WeightData> predictedData = [];
@@ -645,7 +720,7 @@ class _GraphTab extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // 목표 달성률
-          if (member.targetWeight != null)
+          if (widget.member.targetWeight != null)
             latestRecordAsync.whenData((record) {
               if (record == null) return const SizedBox.shrink();
               return _buildSectionCard(
@@ -667,11 +742,11 @@ class _GraphTab extends ConsumerWidget {
                     }
                     return GoalProgressIndicator(
                       currentValue: record.weight,
-                      targetValue: member.targetWeight!,
+                      targetValue: widget.member.targetWeight!,
                       startValue: history.first.weight,
-                      label: member.goalLabel,
+                      label: widget.member.goalLabel,
                       unit: 'kg',
-                      isDecreaseGoal: member.goal == FitnessGoal.diet,
+                      isDecreaseGoal: widget.member.goal == FitnessGoal.diet,
                     );
                   },
                 ),
@@ -680,52 +755,27 @@ class _GraphTab extends ConsumerWidget {
                 const SizedBox.shrink(),
           const SizedBox(height: 24),
 
-          // 체중 변화 그래프 (예측 포함)
-          _buildSectionCard(
+          // 지표 선택 탭
+          _buildMetricSelector(context),
+          const SizedBox(height: 16),
+
+          // 체성분 변화 그래프 (선택된 지표에 따라)
+          _buildBodyCompositionChart(
             context,
-            '체중 변화',
-            weightHistoryAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (error, _) => Center(
-                child: Text('로드 실패: $error'),
-              ),
-              data: (history) {
-                if (history.length < 2) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text('그래프를 표시하려면 2개 이상의 기록이 필요합니다'),
-                    ),
-                  );
-                }
-
-                final weightData = history.map((h) {
-                  return WeightData(
-                    label: DateFormat('M/d').format(h.date),
-                    weight: h.weight,
-                  );
-                }).toList();
-
-                final targetWeight =
-                    member.targetWeight ?? history.last.weight - 5;
-
-                return WeightLineChart(
-                  actualData: weightData,
-                  predictedData: predictedData,
-                  targetWeight: targetWeight,
-                );
-              },
-            ),
+            weightHistoryAsync,
+            records,
+            predictedData,
+            bodyCompPredictionState,
           ),
           const SizedBox(height: 16),
 
-          // AI 체중 예측 섹션
-          _buildPredictionSection(context, ref, predictionAsync, records.length),
+          // AI 체성분 예측 섹션
+          _buildBodyCompositionPredictionSection(
+            context,
+            ref,
+            bodyCompPredictionState,
+            records.length,
+          ),
           const SizedBox(height: 24),
 
           // 체성분 비율
@@ -751,33 +801,969 @@ class _GraphTab extends ConsumerWidget {
     );
   }
 
-  /// AI 체중 예측 섹션
-  Widget _buildPredictionSection(
+  /// 체성분 변화 그래프 빌드
+  Widget _buildBodyCompositionChart(
+    BuildContext context,
+    AsyncValue<List<WeightHistoryData>> weightHistoryAsync,
+    List records,
+    List<WeightData> predictedData,
+    BodyCompositionPredictionState bodyCompPredictionState,
+  ) {
+    final bodyCompPrediction = bodyCompPredictionState.prediction;
+
+    return _buildSectionCard(
+      context,
+      _getChartTitle(),
+      weightHistoryAsync.when(
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        error: (error, _) => Center(
+          child: Text('로드 실패: $error'),
+        ),
+        data: (history) {
+          if (history.length < 2) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('그래프를 표시하려면 2개 이상의 기록이 필요합니다'),
+              ),
+            );
+          }
+
+          // 선택된 지표에 따라 차트 빌드
+          if (_selectedMetric == GraphMetricType.all) {
+            return _buildMultiMetricChart(context, history, records, bodyCompPrediction);
+          } else {
+            return _buildSingleMetricChart(
+              context,
+              history,
+              records,
+              predictedData,
+              bodyCompPrediction,
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  String _getChartTitle() {
+    return switch (_selectedMetric) {
+      GraphMetricType.weight => '체중 변화',
+      GraphMetricType.muscle => '골격근량 변화',
+      GraphMetricType.bodyFat => '체지방률 변화',
+      GraphMetricType.all => '체성분 종합 변화',
+    };
+  }
+
+  /// 단일 지표 차트 빌드
+  Widget _buildSingleMetricChart(
+    BuildContext context,
+    List<WeightHistoryData> history,
+    List records,
+    List<WeightData> predictedData,
+    BodyCompositionPredictionModel? bodyCompPrediction,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // 데이터 추출
+    List<_ChartDataPoint> dataPoints = [];
+    List<_ChartDataPoint> predictionPoints = [];
+
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final date = record.recordDate as DateTime;
+      double? value;
+
+      switch (_selectedMetric) {
+        case GraphMetricType.weight:
+          value = record.weight as double?;
+          break;
+        case GraphMetricType.muscle:
+          value = record.muscleMass as double?;
+          break;
+        case GraphMetricType.bodyFat:
+          value = record.bodyFatPercent as double?;
+          break;
+        case GraphMetricType.all:
+          break;
+      }
+
+      if (value != null) {
+        dataPoints.add(_ChartDataPoint(
+          date: date,
+          value: value,
+          label: DateFormat('M/d').format(date),
+        ));
+      }
+    }
+
+    // 예측 데이터 추가
+    if (bodyCompPrediction != null && dataPoints.isNotEmpty) {
+      final MetricPrediction? metricPred = switch (_selectedMetric) {
+        GraphMetricType.weight => bodyCompPrediction.weightPrediction,
+        GraphMetricType.muscle => bodyCompPrediction.musclePrediction,
+        GraphMetricType.bodyFat => bodyCompPrediction.bodyFatPrediction,
+        GraphMetricType.all => null,
+      };
+
+      if (metricPred != null) {
+        final lastDate = dataPoints.last.date;
+        for (var i = 1; i <= 4; i++) {
+          final predDate = lastDate.add(Duration(days: i * 7));
+          final predValue = metricPred.current + (metricPred.weeklyTrend * i);
+          predictionPoints.add(_ChartDataPoint(
+            date: predDate,
+            value: predValue,
+            label: DateFormat('M/d').format(predDate),
+          ));
+        }
+      }
+    }
+
+    if (dataPoints.length < 2) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text('${_selectedMetric.label} 데이터가 부족합니다'),
+        ),
+      );
+    }
+
+    // 차트 빌드
+    final allValues = [
+      ...dataPoints.map((e) => e.value),
+      ...predictionPoints.map((e) => e.value),
+    ];
+    final minY = allValues.reduce((a, b) => a < b ? a : b) - 2;
+    final maxY = allValues.reduce((a, b) => a > b ? a : b) + 2;
+
+    final metricColor = _getMetricColor(_selectedMetric);
+
+    return SizedBox(
+      height: 220,
+      child: LineChart(
+        LineChartData(
+          minY: minY,
+          maxY: maxY,
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: (maxY - minY) / 4,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+              strokeWidth: 1,
+            ),
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 45,
+                getTitlesWidget: (value, meta) => Text(
+                  '${value.toStringAsFixed(1)}${_selectedMetric.unit}',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  final allPoints = [...dataPoints, ...predictionPoints];
+                  if (index < 0 || index >= allPoints.length) {
+                    return const SizedBox();
+                  }
+                  if (index % 2 != 0 && allPoints.length > 6) {
+                    return const SizedBox();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      allPoints[index].label,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (spot) => colorScheme.inverseSurface,
+              tooltipBorderRadius: BorderRadius.circular(8),
+              getTooltipItems: (spots) => spots.map((spot) {
+                final isActual = spot.x < dataPoints.length;
+                return LineTooltipItem(
+                  '${spot.y.toStringAsFixed(1)}${_selectedMetric.unit}',
+                  TextStyle(
+                    color: colorScheme.onInverseSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '\n${isActual ? "실제" : "예측"}',
+                      style: TextStyle(
+                        color: colorScheme.onInverseSurface.withValues(alpha: 0.7),
+                        fontSize: 11,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+          lineBarsData: [
+            // 실제 데이터
+            LineChartBarData(
+              spots: dataPoints.asMap().entries.map((e) {
+                return FlSpot(e.key.toDouble(), e.value.value);
+              }).toList(),
+              isCurved: true,
+              curveSmoothness: 0.3,
+              color: metricColor,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 5,
+                    color: colorScheme.surface,
+                    strokeWidth: 3,
+                    strokeColor: metricColor,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    metricColor.withValues(alpha: 0.3),
+                    metricColor.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+            // 예측 데이터
+            if (predictionPoints.isNotEmpty)
+              LineChartBarData(
+                spots: predictionPoints.asMap().entries.map((e) {
+                  return FlSpot(
+                    (dataPoints.length + e.key).toDouble(),
+                    e.value.value,
+                  );
+                }).toList(),
+                isCurved: true,
+                curveSmoothness: 0.3,
+                color: metricColor.withValues(alpha: 0.6),
+                barWidth: 3,
+                isStrokeCapRound: true,
+                dashArray: [8, 4],
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 5,
+                      color: colorScheme.surface,
+                      strokeWidth: 3,
+                      strokeColor: metricColor.withValues(alpha: 0.6),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 다중 지표 차트 빌드 (전체)
+  Widget _buildMultiMetricChart(
+    BuildContext context,
+    List<WeightHistoryData> history,
+    List records,
+    BodyCompositionPredictionModel? prediction,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // 데이터 추출
+    List<_ChartDataPoint> weightData = [];
+    List<_ChartDataPoint> muscleData = [];
+    List<_ChartDataPoint> bodyFatData = [];
+
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final date = record.recordDate as DateTime;
+      final label = DateFormat('M/d').format(date);
+
+      if (record.weight != null) {
+        weightData.add(_ChartDataPoint(
+          date: date,
+          value: record.weight as double,
+          label: label,
+        ));
+      }
+      if (record.muscleMass != null) {
+        muscleData.add(_ChartDataPoint(
+          date: date,
+          value: record.muscleMass as double,
+          label: label,
+        ));
+      }
+      if (record.bodyFatPercent != null) {
+        bodyFatData.add(_ChartDataPoint(
+          date: date,
+          value: record.bodyFatPercent as double,
+          label: label,
+        ));
+      }
+    }
+
+    final hasWeight = weightData.length >= 2;
+    final hasMuscle = muscleData.length >= 2;
+    final hasBodyFat = bodyFatData.length >= 2;
+
+    if (!hasWeight && !hasMuscle && !hasBodyFat) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text('표시할 데이터가 부족합니다'),
+        ),
+      );
+    }
+
+    // 최대 길이 계산
+    final maxLength = [weightData.length, muscleData.length, bodyFatData.length]
+        .reduce((a, b) => a > b ? a : b);
+
+    // Y 범위 계산
+    List<double> allValues = [];
+    if (hasWeight) allValues.addAll(weightData.map((e) => e.value));
+    if (hasMuscle) allValues.addAll(muscleData.map((e) => e.value));
+    if (hasBodyFat) allValues.addAll(bodyFatData.map((e) => e.value));
+
+    final minY = allValues.reduce((a, b) => a < b ? a : b) - 5;
+    final maxY = allValues.reduce((a, b) => a > b ? a : b) + 5;
+
+    return Column(
+      children: [
+        // 범례
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (hasWeight) _buildLegendItem('체중', AppTheme.primary),
+            if (hasMuscle) ...[
+              const SizedBox(width: 16),
+              _buildLegendItem('골격근량', AppTheme.secondary),
+            ],
+            if (hasBodyFat) ...[
+              const SizedBox(width: 16),
+              _buildLegendItem('체지방률', AppTheme.tertiary),
+            ],
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 220,
+          child: LineChart(
+            LineChartData(
+              minY: minY,
+              maxY: maxY,
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: (maxY - minY) / 4,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  strokeWidth: 1,
+                ),
+              ),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (value, meta) => Text(
+                      value.toStringAsFixed(0),
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 30,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      if (index < 0 || index >= maxLength) return const SizedBox();
+                      if (index % 2 != 0 && maxLength > 6) return const SizedBox();
+
+                      // weightData 기준으로 라벨 표시
+                      String label = '';
+                      if (index < weightData.length) {
+                        label = weightData[index].label;
+                      } else if (index < muscleData.length) {
+                        label = muscleData[index].label;
+                      } else if (index < bodyFatData.length) {
+                        label = bodyFatData[index].label;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                if (hasWeight)
+                  _buildLineBarData(weightData, AppTheme.primary, colorScheme),
+                if (hasMuscle)
+                  _buildLineBarData(muscleData, AppTheme.secondary, colorScheme),
+                if (hasBodyFat)
+                  _buildLineBarData(bodyFatData, AppTheme.tertiary, colorScheme),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  LineChartBarData _buildLineBarData(
+    List<_ChartDataPoint> data,
+    Color color,
+    ColorScheme colorScheme,
+  ) {
+    return LineChartBarData(
+      spots: data.asMap().entries.map((e) {
+        return FlSpot(e.key.toDouble(), e.value.value);
+      }).toList(),
+      isCurved: true,
+      curveSmoothness: 0.3,
+      color: color,
+      barWidth: 2,
+      isStrokeCapRound: true,
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, barData, index) {
+          return FlDotCirclePainter(
+            radius: 4,
+            color: colorScheme.surface,
+            strokeWidth: 2,
+            strokeColor: color,
+          );
+        },
+      ),
+    );
+  }
+
+  Color _getMetricColor(GraphMetricType metric) {
+    return switch (metric) {
+      GraphMetricType.weight => AppTheme.primary,
+      GraphMetricType.muscle => AppTheme.secondary,
+      GraphMetricType.bodyFat => AppTheme.tertiary,
+      GraphMetricType.all => AppTheme.primary,
+    };
+  }
+
+  /// AI 체성분 예측 섹션
+  Widget _buildBodyCompositionPredictionSection(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<dynamic> predictionAsync,
+    BodyCompositionPredictionState predictionState,
     int recordCount,
   ) {
     return _buildSectionCard(
       context,
-      'AI 체중 예측',
-      predictionAsync.when(
-        loading: () => const Center(
+      'AI 체성분 예측',
+      predictionState.isLoading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : predictionState.error != null
+              ? _buildBodyCompPredictionError(context, ref, predictionState.error!)
+              : predictionState.prediction != null
+                  ? _buildBodyCompPredictionResult(
+                      context, ref, predictionState.prediction!)
+                  : _buildBodyCompPredictionEmpty(context, ref, recordCount),
+      trailing: _buildBodyCompPredictionButton(context, ref, recordCount),
+    );
+  }
+
+  /// 체성분 예측 버튼
+  Widget _buildBodyCompPredictionButton(
+    BuildContext context,
+    WidgetRef ref,
+    int recordCount,
+  ) {
+    final canPredict = recordCount >= 4;
+
+    return TextButton.icon(
+      onPressed: canPredict
+          ? () => _runBodyCompositionPrediction(context, ref)
+          : null,
+      icon: Icon(
+        Icons.auto_graph,
+        size: 18,
+        color: canPredict ? AppTheme.primary : Colors.grey,
+      ),
+      label: Text(
+        '예측하기',
+        style: TextStyle(
+          color: canPredict ? AppTheme.primary : Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  /// 체성분 예측 실행
+  Future<void> _runBodyCompositionPrediction(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
           child: Padding(
             padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('AI가 체성분 변화를 분석 중입니다...'),
+              ],
+            ),
           ),
         ),
-        error: (error, _) => _buildPredictionError(context, ref, error.toString()),
-        data: (prediction) {
-          if (prediction == null) {
-            return _buildPredictionEmpty(context, ref, recordCount);
-          }
-          return _buildPredictionResult(context, ref, prediction);
-        },
       ),
-      trailing: _buildPredictionButton(context, ref, recordCount),
     );
+
+    try {
+      await ref
+          .read(bodyCompositionPredictionProvider.notifier)
+          .predictBodyComposition(widget.memberId);
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('체성분 예측이 완료되었습니다!'),
+            backgroundColor: AppTheme.secondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 체성분 예측 결과 없음 상태
+  Widget _buildBodyCompPredictionEmpty(
+    BuildContext context,
+    WidgetRef ref,
+    int recordCount,
+  ) {
+    final canPredict = recordCount >= 4;
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.auto_graph,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            canPredict
+                ? 'AI 체성분 예측을 실행해보세요\n체중, 골격근량, 체지방률 변화를 예측합니다'
+                : '예측을 위해 최소 4개의 기록이 필요합니다',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (canPredict) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _runBodyCompositionPrediction(context, ref),
+              icon: const Icon(Icons.auto_graph),
+              label: const Text('예측 시작'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              '현재 $recordCount개 기록',
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 체성분 예측 에러 상태
+  Widget _buildBodyCompPredictionError(
+    BuildContext context,
+    WidgetRef ref,
+    String error,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            error.replaceAll('Exception: ', ''),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () => _runBodyCompositionPrediction(context, ref),
+            icon: const Icon(Icons.refresh),
+            label: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 체성분 예측 결과 표시
+  Widget _buildBodyCompPredictionResult(
+    BuildContext context,
+    WidgetRef ref,
+    BodyCompositionPredictionModel prediction,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 예측 결과 카드들
+          Row(
+            children: [
+              if (prediction.weightPrediction != null)
+                Expanded(
+                  child: _buildMetricPredictionCard(
+                    context,
+                    '체중',
+                    prediction.weightPrediction!,
+                    'kg',
+                    AppTheme.primary,
+                  ),
+                ),
+              if (prediction.musclePrediction != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricPredictionCard(
+                    context,
+                    '골격근량',
+                    prediction.musclePrediction!,
+                    'kg',
+                    AppTheme.secondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (prediction.bodyFatPrediction != null) ...[
+            const SizedBox(height: 8),
+            _buildMetricPredictionCard(
+              context,
+              '체지방률',
+              prediction.bodyFatPrediction!,
+              '%',
+              AppTheme.tertiary,
+              fullWidth: true,
+            ),
+          ],
+          const SizedBox(height: 16),
+
+          // 신뢰도 표시
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _getConfidenceColor(prediction.overallConfidence)
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.verified,
+                  size: 18,
+                  color: _getConfidenceColor(prediction.overallConfidence),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '예측 신뢰도: ${(prediction.overallConfidence * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    color: _getConfidenceColor(prediction.overallConfidence),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _getConfidenceLabel(prediction.overallConfidence),
+                  style: TextStyle(
+                    color: _getConfidenceColor(prediction.overallConfidence),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 분석 메시지
+          if (prediction.analysisMessage.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline,
+                    color: Colors.amber.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      prediction.analysisMessage,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // 예측 정보
+          const SizedBox(height: 12),
+          Text(
+            '데이터 기반: ${prediction.dataPointsUsed.entries.map((e) => '${_getMetricLabel(e.key)} ${e.value}개').join(', ')} | ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 개별 지표 예측 카드 빌드
+  Widget _buildMetricPredictionCard(
+    BuildContext context,
+    String label,
+    MetricPrediction prediction,
+    String unit,
+    Color color, {
+    bool fullWidth = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isPositive = prediction.weeklyTrend > 0;
+    final isNeutral = prediction.weeklyTrend.abs() < 0.05;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                isNeutral
+                    ? Icons.trending_flat
+                    : (isPositive ? Icons.trending_up : Icons.trending_down),
+                size: 16,
+                color: color,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                prediction.current.toStringAsFixed(1),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward,
+                size: 14,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                prediction.predicted.toStringAsFixed(1),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                unit,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${prediction.changeIcon} ${prediction.weeklyTrend > 0 ? '+' : ''}${prediction.weeklyTrend.toStringAsFixed(2)}$unit/주',
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.7) return AppTheme.secondary;
+    if (confidence >= 0.4) return AppTheme.primary;
+    return AppTheme.tertiary;
+  }
+
+  String _getConfidenceLabel(double confidence) {
+    if (confidence >= 0.7) return '높음';
+    if (confidence >= 0.4) return '보통';
+    return '낮음';
+  }
+
+  String _getMetricLabel(String key) {
+    return switch (key) {
+      'weight' => '체중',
+      'skeletalMuscleMass' => '골격근량',
+      'bodyFatPercent' => '체지방률',
+      _ => key,
+    };
   }
 
   /// 예측 버튼
@@ -827,10 +1813,10 @@ class _GraphTab extends ConsumerWidget {
 
     try {
       final service = ref.read(weightPredictionServiceProvider);
-      await service.predict(memberId: memberId, weeksAhead: 8);
+      await service.predict(memberId: widget.memberId, weeksAhead: 8);
 
       // 예측 데이터 갱신
-      ref.invalidate(latestPredictionProvider(memberId));
+      ref.invalidate(latestPredictionProvider(widget.memberId));
 
       if (context.mounted) {
         Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
@@ -2386,16 +3372,11 @@ class _InbodyTab extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '첫 번째 인바디 기록을 추가해보세요',
+            '회원이 인바디 결과지를 촬영하면 여기에 표시됩니다',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
-          ),
-          const SizedBox(height: 32),
-          FilledButton.icon(
-            onPressed: () => _showInputForm(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('기록 추가'),
+            textAlign: TextAlign.center,
           ),
         ],
       ).animate().fadeIn(duration: 300.ms),
@@ -2409,66 +3390,51 @@ class _InbodyTab extends ConsumerWidget {
     AsyncValue<List<InbodyRecordModel>> historyAsync,
     ColorScheme colorScheme,
   ) {
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 최신 인바디 결과 카드
-              _InbodyResultCardCompact(record: latest)
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 최신 인바디 결과 카드
+          _InbodyResultCardCompact(record: latest)
+              .animate()
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 16),
+
+          // 체성분 도넛 차트
+          _InbodyPieChartCard(record: latest)
+              .animate()
+              .fadeIn(duration: 300.ms, delay: 100.ms)
+              .slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 16),
+
+          // 히스토리 그래프
+          historyAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (e, st) => const SizedBox.shrink(),
+            data: (history) {
+              if (history.length < 2) {
+                return const SizedBox.shrink();
+              }
+              return _InbodyLineChartCard(records: history)
                   .animate()
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.1, end: 0),
-
-              const SizedBox(height: 16),
-
-              // 체성분 도넛 차트
-              _InbodyPieChartCard(record: latest)
-                  .animate()
-                  .fadeIn(duration: 300.ms, delay: 100.ms)
-                  .slideY(begin: 0.1, end: 0),
-
-              const SizedBox(height: 16),
-
-              // 히스토리 그래프
-              historyAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (e, st) => const SizedBox.shrink(),
-                data: (history) {
-                  if (history.length < 2) {
-                    return const SizedBox.shrink();
-                  }
-                  return _InbodyLineChartCard(records: history)
-                      .animate()
-                      .fadeIn(duration: 300.ms, delay: 200.ms)
-                      .slideY(begin: 0.1, end: 0);
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // 히스토리 리스트
-              _buildHistorySection(context, ref, historyAsync),
-
-              const SizedBox(height: 80), // FAB 공간
-            ],
+                  .fadeIn(duration: 300.ms, delay: 200.ms)
+                  .slideY(begin: 0.1, end: 0);
+            },
           ),
-        ),
-        // FAB
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton.extended(
-            heroTag: 'inbody_fab',
-            onPressed: () => _showInputForm(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('기록 추가'),
-          ),
-        ),
-      ],
+
+          const SizedBox(height: 16),
+
+          // 히스토리 리스트
+          _buildHistorySection(context, ref, historyAsync),
+
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
@@ -2518,42 +3484,6 @@ class _InbodyTab extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _showInputForm(BuildContext context, WidgetRef ref) async {
-    final data = await InbodyInputForm.showAsBottomSheet(
-      context,
-      memberId: memberId,
-    );
-
-    if (data != null) {
-      final notifier = ref.read(inbodyNotifierProvider.notifier);
-      final id = await notifier.saveManualEntry(
-        memberId: data.memberId,
-        weight: data.weight,
-        skeletalMuscleMass: data.skeletalMuscleMass,
-        bodyFatPercent: data.bodyFatPercent,
-        bodyFatMass: data.bodyFatMass,
-        bmi: data.bmi,
-        basalMetabolicRate: data.basalMetabolicRate,
-        totalBodyWater: data.totalBodyWater,
-        protein: data.protein,
-        minerals: data.minerals,
-        visceralFatLevel: data.visceralFatLevel,
-        inbodyScore: data.inbodyScore,
-        memo: data.memo,
-        measuredAt: data.measuredAt,
-      );
-
-      if (id != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인바디 기록이 저장되었습니다'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _deleteRecord(
@@ -3041,10 +3971,80 @@ class _InbodyHistoryListTile extends StatelessWidget {
             color: colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, size: 18),
-          onPressed: onDelete,
-          color: colorScheme.error,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (record.imageUrl != null && record.imageUrl!.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.photo_outlined, size: 18),
+                onPressed: () => _showImageDialog(context, record.imageUrl!),
+                color: colorScheme.primary,
+                tooltip: '인바디 결과지 보기',
+              ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 18),
+              onPressed: onDelete,
+              color: colorScheme.error,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: const Text('인바디 결과지'),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48),
+                        SizedBox(height: 8),
+                        Text('이미지를 불러올 수 없습니다'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -3084,4 +4084,21 @@ class _InbodyTabSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+// ============================================================================
+// Helper Classes
+// ============================================================================
+
+/// 차트 데이터 포인트 헬퍼 클래스
+class _ChartDataPoint {
+  final DateTime date;
+  final double value;
+  final String label;
+
+  const _ChartDataPoint({
+    required this.date,
+    required this.value,
+    required this.label,
+  });
 }

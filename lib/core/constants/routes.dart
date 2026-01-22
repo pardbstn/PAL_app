@@ -16,6 +16,7 @@ abstract class AppRoutes {
   static const String trainerCurriculumCreate = '/trainer/curriculum/create';
   static const String trainerMessages = '/trainer/messages';
   static const String trainerChatRoom = '/trainer/messages/:chatRoomId';
+  static const String trainerRevenue = '/trainer/revenue';
   static const String trainerSettings = '/trainer/settings';
   static const String trainerInsights = '/trainer/insights';
 
@@ -46,6 +47,7 @@ abstract class RouteNames {
   static const String trainerCurriculumCreate = 'trainer-curriculum-create';
   static const String trainerMessages = 'trainer-messages';
   static const String trainerChatRoom = 'trainer-chat-room';
+  static const String trainerRevenue = 'trainer-revenue';
   static const String trainerSettings = 'trainer-settings';
   static const String trainerInsights = 'trainer-insights';
 

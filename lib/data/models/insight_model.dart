@@ -14,6 +14,7 @@ part 'insight_model.g.dart';
 
 /// 인사이트 유형
 enum InsightType {
+  // ========== 기존 트레이너 인사이트 ==========
   /// 출석률 하락 경고
   @JsonValue('attendanceAlert')
   attendanceAlert,
@@ -37,6 +38,60 @@ enum InsightType {
   /// 운동량 변화
   @JsonValue('workoutVolume')
   workoutVolume,
+
+  // ========== 신규 트레이너 인사이트 ==========
+  /// 이탈 위험 예측
+  @JsonValue('churnRisk')
+  churnRisk,
+
+  /// 재등록 가능성
+  @JsonValue('renewalLikelihood')
+  renewalLikelihood,
+
+  /// 정체기 감지
+  @JsonValue('plateauDetection')
+  plateauDetection,
+
+  /// 최적 운동 추천
+  @JsonValue('workoutRecommendation')
+  workoutRecommendation,
+
+  /// 노쇼 패턴
+  @JsonValue('noshowPattern')
+  noshowPattern,
+
+  /// 회원 성과 랭킹
+  @JsonValue('performanceRanking')
+  performanceRanking,
+
+  // ========== 신규 회원 인사이트 ==========
+  /// 체성분 예측
+  @JsonValue('bodyPrediction')
+  bodyPrediction,
+
+  /// 운동 성과
+  @JsonValue('workoutAchievement')
+  workoutAchievement,
+
+  /// 출석 습관
+  @JsonValue('attendanceHabit')
+  attendanceHabit,
+
+  /// 영양 밸런스
+  @JsonValue('nutritionBalance')
+  nutritionBalance,
+
+  /// 체성분 변화 리포트
+  @JsonValue('bodyChangeReport')
+  bodyChangeReport,
+
+  /// 컨디션 패턴
+  @JsonValue('conditionPattern')
+  conditionPattern,
+
+  /// 목표 달성률
+  @JsonValue('goalProgress')
+  goalProgress,
 }
 
 /// 인사이트 우선순위
@@ -88,6 +143,12 @@ sealed class InsightModel with _$InsightModel {
 
     /// 추가 데이터 (nullable)
     Map<String, dynamic>? data,
+
+    /// 미니 그래프용 데이터 포인트 (nullable)
+    List<Map<String, dynamic>>? graphData,
+
+    /// 그래프 타입 ('line', 'bar', 'donut', 'progress')
+    String? graphType,
 
     /// 읽음 여부
     @Default(false) bool isRead,
@@ -154,6 +215,7 @@ extension InsightModelX on InsightModel {
   /// 인사이트 유형 아이콘
   IconData get typeIcon {
     switch (type) {
+      // 기존 트레이너 인사이트
       case InsightType.attendanceAlert:
         return Icons.event_busy;
       case InsightType.ptExpiry:
@@ -166,6 +228,34 @@ extension InsightModelX on InsightModel {
         return Icons.monitor_weight;
       case InsightType.workoutVolume:
         return Icons.fitness_center;
+      // 신규 트레이너 인사이트
+      case InsightType.churnRisk:
+        return Icons.person_off;
+      case InsightType.renewalLikelihood:
+        return Icons.refresh;
+      case InsightType.plateauDetection:
+        return Icons.trending_flat;
+      case InsightType.workoutRecommendation:
+        return Icons.sports_gymnastics;
+      case InsightType.noshowPattern:
+        return Icons.event_busy;
+      case InsightType.performanceRanking:
+        return Icons.leaderboard;
+      // 신규 회원 인사이트
+      case InsightType.bodyPrediction:
+        return Icons.analytics;
+      case InsightType.workoutAchievement:
+        return Icons.emoji_events;
+      case InsightType.attendanceHabit:
+        return Icons.calendar_month;
+      case InsightType.nutritionBalance:
+        return Icons.restaurant_menu;
+      case InsightType.bodyChangeReport:
+        return Icons.compare_arrows;
+      case InsightType.conditionPattern:
+        return Icons.psychology;
+      case InsightType.goalProgress:
+        return Icons.flag;
     }
   }
 

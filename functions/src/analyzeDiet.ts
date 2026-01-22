@@ -5,13 +5,6 @@ import OpenAI from "openai";
 
 const db = admin.firestore();
 
-// 식단 분석 티어별 제한 (Free: 사용불가, Basic: 월 50회, Pro: 무제한)
-const DIET_TIER_LIMITS: Record<string, number> = {
-  free: 0,        // 사용 불가
-  basic: 50,      // 월 50회
-  pro: -1,        // 무제한
-};
-
 // MealType 타입
 type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -54,7 +47,7 @@ export const analyzeDiet = functions
     }
 
     try {
-      // 3. 회원의 트레이너 ID 가져오기
+      // 3. 회원 정보 확인
       const memberDoc = await db.collection("members").doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
@@ -62,60 +55,8 @@ export const analyzeDiet = functions
           "회원 정보를 찾을 수 없습니다."
         );
       }
-      const memberData = memberDoc.data()!;
-      const trainerId = memberData.trainerId;
 
-      // 4. 트레이너 정보 확인 및 티어 체크
-      const trainerDoc = await db.collection("trainers").doc(trainerId).get();
-      if (!trainerDoc.exists) {
-        throw new functions.https.HttpsError(
-          "not-found",
-          "트레이너 정보를 찾을 수 없습니다."
-        );
-      }
-
-      const trainerData = trainerDoc.data()!;
-      const tier = trainerData.subscriptionTier || "free";
-      const tierLimit = DIET_TIER_LIMITS[tier] ?? 0;
-
-      // Free 티어는 사용 불가
-      if (tierLimit === 0) {
-        throw new functions.https.HttpsError(
-          "permission-denied",
-          "무료 플랜에서는 식단 분석 기능을 사용할 수 없습니다. 플랜을 업그레이드해주세요."
-        );
-      }
-
-      // 5. 월간 사용량 체크
-      const aiUsage = trainerData.aiUsage || {
-        dietAnalysisCount: 0,
-        resetDate: new Date(),
-      };
-
-      let resetDate: Date;
-      if (aiUsage.resetDate?.toDate) {
-        resetDate = aiUsage.resetDate.toDate();
-      } else if (aiUsage.resetDate) {
-        resetDate = new Date(aiUsage.resetDate);
-      } else {
-        resetDate = new Date();
-      }
-
-      const now = new Date();
-      const shouldReset =
-        now.getMonth() !== resetDate.getMonth() ||
-        now.getFullYear() !== resetDate.getFullYear();
-
-      let currentUsage = shouldReset ? 0 : (aiUsage.dietAnalysisCount || 0);
-
-      if (tierLimit !== -1 && currentUsage >= tierLimit) {
-        throw new functions.https.HttpsError(
-          "resource-exhausted",
-          `월간 식단 분석 한도(${tierLimit}회)를 초과했습니다. 플랜을 업그레이드해주세요.`
-        );
-      }
-
-      // 6. GPT-4o Vision으로 이미지 분석
+      // 4. GPT-4o Vision으로 이미지 분석
       const openai = getOpenAIClient();
 
       const response = await openai.chat.completions.create({
@@ -159,7 +100,7 @@ export const analyzeDiet = functions
 
       const analysisResult = JSON.parse(content);
 
-      // 7. diet_records 컬렉션에 저장
+      // 5. diet_records 컬렉션에 저장
       const dietRecord = {
         memberId,
         mealType,
@@ -176,30 +117,13 @@ export const analyzeDiet = functions
 
       const docRef = await db.collection("diet_records").add(dietRecord);
 
-      // 8. 사용량 업데이트
-      currentUsage += 1;
-      const updateData: Record<string, unknown> = {
-        "aiUsage.dietAnalysisCount": currentUsage,
-      };
-
-      if (shouldReset) {
-        updateData["aiUsage.resetDate"] = admin.firestore.Timestamp.now();
-      }
-
-      await trainerDoc.ref.update(updateData);
-
-      // 9. 결과 반환
+      // 6. 결과 반환
       return {
         success: true,
         id: docRef.id,
         ...dietRecord,
         analyzedAt: dietRecord.analyzedAt.toDate().toISOString(),
         createdAt: dietRecord.createdAt.toDate().toISOString(),
-        usage: {
-          current: currentUsage,
-          limit: tierLimit,
-          tier: tier,
-        },
       };
     } catch (error) {
       console.error("analyzeDiet error:", error);

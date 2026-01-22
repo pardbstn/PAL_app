@@ -1640,6 +1640,7 @@ class _AiCurriculumGeneratorScreenState
 
   // 액션 메서드들
   void _generateCurriculum() async {
+    // AI 기능은 이제 무제한 사용 가능
     setState(() {
       _isGenerating = true;
       _currentStep = 1;

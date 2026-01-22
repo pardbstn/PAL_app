@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -47,8 +47,15 @@ class ErrorHandler {
       return _handleSupabaseStorageException(error);
     }
 
-    // 소켓/연결 에러 처리
-    if (error is SocketException) {
+    // 소켓/연결 에러 처리 (웹에서는 SocketException 사용 불가)
+    if (!kIsWeb && error.runtimeType.toString() == 'SocketException') {
+      return NetworkFailure.noConnection(
+        message: '인터넷 연결을 확인해주세요',
+      );
+    }
+    // 웹에서 네트워크 에러 처리
+    if (error.toString().contains('SocketException') ||
+        error.toString().contains('XMLHttpRequest error')) {
       return NetworkFailure.noConnection(
         message: '인터넷 연결을 확인해주세요',
       );
@@ -176,7 +183,9 @@ class ErrorHandler {
         );
 
       case DioExceptionType.unknown:
-        if (error.error is SocketException) {
+        // 웹에서는 SocketException 타입 체크 불가
+        final errorStr = error.error?.toString() ?? '';
+        if (errorStr.contains('SocketException') || errorStr.contains('XMLHttpRequest')) {
           return NetworkFailure.noConnection();
         }
         return const UnknownFailure(

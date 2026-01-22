@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
@@ -81,106 +81,93 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('캘린더'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.today),
-            onPressed: _goToToday,
-            tooltip: '오늘',
-          ),
-        ],
       ),
       body: _isLoading
           ? const CalendarSkeleton()
           : Column(
               children: [
-                // 월 네비게이션
-                _buildMonthNavigation(theme, colorScheme),
+                // 헤더 (년/월 + 오늘 버튼)
+                _buildHeader(theme),
 
                 // 요일 헤더
-                _buildWeekdayHeader(theme, colorScheme),
+                _buildWeekdayHeader(theme),
 
                 // 달력 그리드
                 Expanded(
                   flex: 2,
-                  child: _buildCalendarGrid(theme, colorScheme),
+                  child: _buildCalendarGrid(theme),
                 ),
 
-                const Divider(height: 1),
+                Divider(height: 1, color: theme.colorScheme.outlineVariant),
 
                 // 선택한 날짜의 일정 목록
                 Expanded(
                   flex: 3,
-                  child: _buildScheduleList(theme, colorScheme),
+                  child: _buildScheduleList(theme),
                 ),
               ],
             ),
     );
   }
 
-  Widget _buildMonthNavigation(ThemeData theme, ColorScheme colorScheme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  /// 헤더 위젯 (년/월 + 오늘 버튼) - 트레이너 스타일과 동일
+  Widget _buildHeader(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () {
-              setState(() {
-                _focusedMonth = DateTime(
-                  _focusedMonth.year,
-                  _focusedMonth.month - 1,
-                );
-              });
-            },
-          ),
           Text(
-            DateFormat('yyyy년 M월', 'ko').format(_focusedMonth),
-            style: theme.textTheme.titleLarge?.copyWith(
+            '${_focusedMonth.year}년 ${_focusedMonth.month}월',
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () {
-              setState(() {
-                _focusedMonth = DateTime(
-                  _focusedMonth.year,
-                  _focusedMonth.month + 1,
-                );
-              });
-            },
+          const Spacer(),
+          TextButton(
+            onPressed: _goToToday,
+            child: Text(
+              '오늘',
+              style: TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWeekdayHeader(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildWeekdayHeader(ThemeData theme) {
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: weekdays.asMap().entries.map((entry) {
           final index = entry.key;
           final day = entry.value;
-          Color textColor = colorScheme.onSurface;
-          if (index == 0) textColor = Colors.red;
-          if (index == 6) textColor = Colors.blue;
+          Color textColor;
+          if (index == 0) {
+            textColor = Colors.red;
+          } else if (index == 6) {
+            textColor = Colors.blue;
+          } else {
+            textColor = Colors.grey[600]!;
+          }
 
           return Expanded(
             child: Center(
               child: Text(
                 day,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: textColor,
+                style: TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
+                  color: textColor,
                 ),
               ),
             ),
@@ -190,43 +177,44 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     );
   }
 
-  Widget _buildCalendarGrid(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildCalendarGrid(ThemeData theme) {
     final firstDayOfMonth =
         DateTime(_focusedMonth.year, _focusedMonth.month, 1);
     final lastDayOfMonth =
         DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0);
     final firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
+    final totalRows = ((firstWeekday + daysInMonth) / 7).ceil();
+    final totalCells = totalRows * 7;
 
     final today = DateTime.now();
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 1,
+        childAspectRatio: 1.0,
+        mainAxisExtent: (340 - 50) / totalRows, // 동적 높이 조절
       ),
-      itemCount: 42,
+      itemCount: totalCells,
       itemBuilder: (context, index) {
         final dayOffset = index - firstWeekday;
-        if (dayOffset < 0 || dayOffset >= daysInMonth) {
-          return const SizedBox.shrink();
-        }
-
         final date = DateTime(
           _focusedMonth.year,
           _focusedMonth.month,
           dayOffset + 1,
         );
 
+        final isCurrentMonth = date.month == _focusedMonth.month;
         final isToday = date.year == today.year &&
             date.month == today.month &&
             date.day == today.day;
         final isSelected = date.year == _selectedDate.year &&
             date.month == _selectedDate.month &&
             date.day == _selectedDate.day;
-        final hasSchedule = _hasScheduleOnDate(date);
-        final weekday = date.weekday % 7;
+        final hasSchedule = isCurrentMonth && _hasScheduleOnDate(date);
+        final weekdayIndex = index % 7;
 
         return GestureDetector(
           onTap: () {
@@ -236,40 +224,40 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: isSelected
-                  ? colorScheme.primary
+                  ? AppTheme.primary
                   : isToday
-                      ? colorScheme.primaryContainer
+                      ? AppTheme.primary.withValues(alpha: 0.1)
                       : null,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Stack(
-              alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   '${date.day}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected
-                        ? colorScheme.onPrimary
-                        : weekday == 0
-                            ? Colors.red
-                            : weekday == 6
-                                ? Colors.blue
-                                : colorScheme.onSurface,
-                    fontWeight: isToday || isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight:
+                        isSelected || isToday ? FontWeight.bold : null,
+                    color: _getDayTextColor(
+                      isSelected: isSelected,
+                      isCurrentMonth: isCurrentMonth,
+                      weekdayIndex: weekdayIndex,
+                      theme: theme,
+                    ),
                   ),
                 ),
-                if (hasSchedule && !isSelected)
-                  Positioned(
-                    bottom: 4,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
+                const SizedBox(height: 2),
+                // 일정 도트 (PT: 파란색) - 현재 월에만 표시
+                if (hasSchedule)
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected
+                          ? theme.colorScheme.onPrimary
+                          : AppTheme.primary,
                     ),
                   ),
               ],
@@ -280,19 +268,57 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     );
   }
 
-  Widget _buildScheduleList(ThemeData theme, ColorScheme colorScheme) {
+  /// 날짜 텍스트 색상 결정
+  Color _getDayTextColor({
+    required bool isSelected,
+    required bool isCurrentMonth,
+    required int weekdayIndex,
+    required ThemeData theme,
+  }) {
+    if (isSelected) return theme.colorScheme.onPrimary;
+    if (!isCurrentMonth) return Colors.grey[300]!;
+    if (weekdayIndex == 0) return Colors.red;
+    if (weekdayIndex == 6) return Colors.blue;
+    return theme.textTheme.bodyMedium?.color ?? theme.colorScheme.onSurface;
+  }
+
+  Widget _buildScheduleList(ThemeData theme) {
     final daySchedules = _getSchedulesForDate(_selectedDate);
+    final weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekday = weekdayNames[_selectedDate.weekday - 1];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 날짜 헤더 - 트레이너 스타일과 동일
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            DateFormat('M월 d일 (E)', 'ko').format(_selectedDate),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          child: Row(
+            children: [
+              Text(
+                '${_selectedDate.month}월 ${_selectedDate.day}일 ($weekday)',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (daySchedules.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${daySchedules.length}건',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ),
+            ],
           ),
         ),
         Expanded(
@@ -309,138 +335,154 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: daySchedules.length,
                   itemBuilder: (context, index) {
-                    return _buildScheduleCard(
-                        daySchedules[index], theme, colorScheme);
+                    return _ScheduleCard(schedule: daySchedules[index]);
                   },
                 ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildScheduleCard(
-      ScheduleModel schedule, ThemeData theme, ColorScheme colorScheme) {
-    final timeFormat = DateFormat('HH:mm');
-    final startTime = timeFormat.format(schedule.scheduledAt);
-    final endTime = timeFormat.format(
-      schedule.scheduledAt.add(Duration(minutes: schedule.duration)),
-    );
+/// 일정 카드 위젯 - 트레이너 스타일과 동일 (읽기 전용)
+class _ScheduleCard extends StatelessWidget {
+  final ScheduleModel schedule;
 
-    final isPT = schedule.scheduleType == ScheduleType.pt;
-    final statusColor = _getStatusColor(schedule.status, colorScheme);
+  const _ScheduleCard({required this.schedule});
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // 시간 표시
-            Column(
+  @override
+  Widget build(BuildContext context) {
+    final startTime =
+        '${schedule.scheduledAt.hour.toString().padLeft(2, '0')}:${schedule.scheduledAt.minute.toString().padLeft(2, '0')}';
+    final endTime =
+        '${schedule.endTime.hour.toString().padLeft(2, '0')}:${schedule.endTime.minute.toString().padLeft(2, '0')}';
+    final isCompleted = schedule.status == ScheduleStatus.completed;
+    final isCancelled = schedule.status == ScheduleStatus.cancelled;
+    final isPt = schedule.scheduleType == ScheduleType.pt;
+    // 시간이 지난 일정인지 확인 (종료 시간 기준)
+    final isPast = schedule.endTime.isBefore(DateTime.now());
+
+    // 일정 유형에 따른 색상
+    final accentColor = isPt ? AppTheme.primary : AppTheme.tertiary;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCompleted
+              ? Colors.green.withValues(alpha: 0.3)
+              : isCancelled
+                  ? Colors.grey.withValues(alpha: 0.3)
+                  : Colors.grey[200]!,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // 시간
+          SizedBox(
+            width: 50,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   startTime,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isCancelled ? Colors.grey : null,
                   ),
                 ),
                 Text(
                   endTime,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
-
-            // 구분선
-            Container(
-              width: 4,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isPT ? colorScheme.primary : colorScheme.secondary,
-                borderRadius: BorderRadius.circular(2),
-              ),
+          ),
+          // 컬러바
+          Container(
+            width: 3,
+            height: 40,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: isCompleted
+                  ? Colors.green
+                  : isCancelled
+                      ? Colors.grey
+                      : accentColor,
+              borderRadius: BorderRadius.circular(2),
             ),
-            const SizedBox(width: 12),
-
-            // 일정 정보
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        schedule.title ?? 'PT 세션',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+          ),
+          // 내용
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 유형 태그
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _getStatusText(schedule.status),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: statusColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      decoration: BoxDecoration(
+                        color: (isCancelled ? Colors.grey : accentColor)
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ],
-                  ),
-                  if (schedule.note != null && schedule.note!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        schedule.note!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                        isPt ? 'PT' : '개인',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isCancelled ? Colors.grey : accentColor,
                         ),
-                        maxLines: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        schedule.displayTitle,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          decoration: isCompleted || isCancelled || isPast
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isCompleted || isCancelled || isPast
+                              ? Colors.grey
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  ],
+                ),
+                if (schedule.note != null && schedule.note!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    schedule.note!,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Color _getStatusColor(ScheduleStatus status, ColorScheme colorScheme) {
-    switch (status) {
-      case ScheduleStatus.scheduled:
-        return colorScheme.primary;
-      case ScheduleStatus.completed:
-        return Colors.green;
-      case ScheduleStatus.cancelled:
-        return Colors.red;
-      case ScheduleStatus.noShow:
-        return Colors.orange;
-    }
-  }
-
-  String _getStatusText(ScheduleStatus status) {
-    switch (status) {
-      case ScheduleStatus.scheduled:
-        return '예정';
-      case ScheduleStatus.completed:
-        return '완료';
-      case ScheduleStatus.cancelled:
-        return '취소';
-      case ScheduleStatus.noShow:
-        return '노쇼';
-    }
   }
 }

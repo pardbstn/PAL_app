@@ -1,7 +1,9 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/inbody_record_model.dart';
 import '../../data/repositories/inbody_repository.dart';
 import '../../data/services/inbody_service.dart';
+import '../../data/services/ai_service.dart';
 
 /// 회원의 최신 인바디 기록 Provider (실시간)
 final latestInbodyProvider =
@@ -142,6 +144,77 @@ class InbodyNotifier extends AsyncNotifier<void> {
       return false;
     }
   }
+
+  /// 룩인바디에서 전화번호로 인바디 기록 조회 및 저장
+  ///
+  /// Cloud Function을 호출하여 룩인바디 API에서 데이터를 가져옵니다.
+  /// Cloud Function이 직접 Firestore에 저장하므로 여기서는 결과만 반환합니다.
+  ///
+  /// 반환값: 성공 시 저장된 기록 수, 실패 시 에러 메시지
+  Future<({int count, String? error})> fetchFromLookinBody(
+    String memberId,
+    String phoneNumber,
+  ) async {
+    state = const AsyncLoading();
+    try {
+      // Cloud Function 호출
+      final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+      final callable = functions.httpsCallable('fetchInbodyByPhone');
+
+      final result = await callable.call<Map<String, dynamic>>({
+        'phone': phoneNumber, // Cloud Function은 'phone' 파라미터를 기대
+        'memberId': memberId,
+        'saveToFirestore': true,
+      });
+
+      final data = result.data;
+      final success = data['success'] as bool? ?? false;
+      final savedCount = data['savedCount'] as int? ?? 0;
+      final message = data['message'] as String?;
+
+      state = const AsyncData(null);
+
+      // 관련 provider들 갱신
+      ref.invalidate(latestInbodyProvider(memberId));
+      ref.invalidate(inbodyHistoryProvider(memberId));
+      ref.invalidate(inbodyAnalysisSummaryProvider(memberId));
+
+      if (!success) {
+        return (count: 0, error: message ?? '인바디 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+
+      return (count: savedCount, error: null);
+    } on FirebaseFunctionsException catch (e) {
+      state = AsyncError(e, StackTrace.current);
+
+      // Cloud Function 에러 메시지 처리
+      String errorMessage;
+      switch (e.code) {
+        case 'not-found':
+          errorMessage = '해당 전화번호로 등록된 인바디 기록이 없습니다.';
+          break;
+        case 'permission-denied':
+          errorMessage = '룩인바디 서비스 접근 권한이 없습니다.';
+          break;
+        case 'unavailable':
+          errorMessage = '룩인바디 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+          break;
+        case 'invalid-argument':
+          errorMessage = '올바른 전화번호 형식을 입력해주세요.';
+          break;
+        case 'failed-precondition':
+          errorMessage = '룩인바디 API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.';
+          break;
+        default:
+          errorMessage = e.message ?? '인바디 데이터를 가져오는 중 오류가 발생했습니다.';
+      }
+
+      return (count: 0, error: errorMessage);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return (count: 0, error: '인바디 데이터를 가져오는 중 오류가 발생했습니다: $e');
+    }
+  }
 }
 
 /// InbodyNotifier Provider
@@ -183,3 +256,90 @@ final inbodyChartDataProvider =
       .map((r) => InbodyChartData.fromRecord(r))
       .toList();
 });
+
+// ============================================
+// 인바디 AI 분석 관련 Provider
+// ============================================
+
+/// 인바디 AI 분석 상태
+class InbodyAnalysisState {
+  final bool isAnalyzing;
+  final InbodyAnalysisResult? result;
+  final String? error;
+
+  const InbodyAnalysisState({
+    this.isAnalyzing = false,
+    this.result,
+    this.error,
+  });
+
+  InbodyAnalysisState copyWith({
+    bool? isAnalyzing,
+    InbodyAnalysisResult? result,
+    String? error,
+  }) {
+    return InbodyAnalysisState(
+      isAnalyzing: isAnalyzing ?? this.isAnalyzing,
+      result: result ?? this.result,
+      error: error,
+    );
+  }
+
+  static const initial = InbodyAnalysisState();
+}
+
+/// 인바디 AI 분석 Notifier
+class InbodyAnalysisNotifier extends Notifier<InbodyAnalysisState> {
+  @override
+  InbodyAnalysisState build() => InbodyAnalysisState.initial;
+
+  /// 인바디 결과지 이미지 AI 분석
+  ///
+  /// [memberId] 회원 ID
+  /// [imageUrl] Supabase Storage에 업로드된 이미지 URL
+  Future<InbodyAnalysisResult> analyzeInbodyImage({
+    required String memberId,
+    required String imageUrl,
+  }) async {
+    state = state.copyWith(isAnalyzing: true, error: null);
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.analyzeInbody(
+        memberId: memberId,
+        imageUrl: imageUrl,
+      );
+
+      if (result.success) {
+        state = state.copyWith(isAnalyzing: false, result: result);
+
+        // 관련 provider들 갱신
+        ref.invalidate(latestInbodyProvider(memberId));
+        ref.invalidate(inbodyHistoryProvider(memberId));
+        ref.invalidate(inbodyAnalysisSummaryProvider(memberId));
+      } else {
+        state = state.copyWith(
+          isAnalyzing: false,
+          error: result.error ?? '분석에 실패했습니다.',
+        );
+      }
+
+      return result;
+    } catch (e) {
+      final errorMessage = e.toString();
+      state = state.copyWith(isAnalyzing: false, error: errorMessage);
+      return InbodyAnalysisResult(success: false, error: errorMessage);
+    }
+  }
+
+  /// 상태 초기화
+  void reset() {
+    state = InbodyAnalysisState.initial;
+  }
+}
+
+/// 인바디 AI 분석 Provider
+final inbodyAnalysisProvider =
+    NotifierProvider<InbodyAnalysisNotifier, InbodyAnalysisState>(
+  InbodyAnalysisNotifier.new,
+);

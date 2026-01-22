@@ -14,6 +14,7 @@ import 'package:flutter_pal_app/data/models/insight_model.dart';
 import 'package:flutter_pal_app/data/repositories/insight_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 
 /// 트레이너 인사이트 화면
 class TrainerInsightsScreen extends ConsumerStatefulWidget {
@@ -204,6 +205,12 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       (InsightType.performance, '성과', Icons.trending_up),
       (InsightType.weightProgress, '체중 변화', Icons.monitor_weight),
       (InsightType.recommendation, '추천', Icons.recommend),
+      (InsightType.churnRisk, '이탈 위험', Icons.person_off),
+      (InsightType.renewalLikelihood, '재등록', Icons.refresh),
+      (InsightType.plateauDetection, '정체기', Icons.trending_flat),
+      (InsightType.workoutRecommendation, '운동 추천', Icons.sports_gymnastics),
+      (InsightType.noshowPattern, '노쇼 패턴', Icons.event_busy),
+      (InsightType.performanceRanking, '성과 랭킹', Icons.leaderboard),
     ];
 
     return filters.map((filter) {
@@ -490,6 +497,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
   Color _getTypeColor(InsightType type) {
     switch (type) {
+      // 기존 트레이너 인사이트
       case InsightType.attendanceAlert:
         return AppTheme.error;
       case InsightType.ptExpiry:
@@ -502,6 +510,28 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
         return Colors.purple;
       case InsightType.workoutVolume:
         return Colors.teal;
+      // 신규 트레이너 인사이트
+      case InsightType.churnRisk:
+        return const Color(0xFFEF4444); // 빨간색 - 이탈 위험
+      case InsightType.renewalLikelihood:
+        return const Color(0xFF10B981); // 초록색 - 재등록 가능성
+      case InsightType.plateauDetection:
+        return const Color(0xFFF59E0B); // 주황색 - 정체기
+      case InsightType.workoutRecommendation:
+        return AppTheme.primary;
+      case InsightType.noshowPattern:
+        return const Color(0xFFEF4444); // 빨간색 - 노쇼
+      case InsightType.performanceRanking:
+        return const Color(0xFF8B5CF6); // 보라색 - 랭킹
+      // 회원 인사이트 (필터에는 나오지 않지만 처리)
+      case InsightType.bodyPrediction:
+      case InsightType.workoutAchievement:
+      case InsightType.attendanceHabit:
+      case InsightType.nutritionBalance:
+      case InsightType.bodyChangeReport:
+      case InsightType.conditionPattern:
+      case InsightType.goalProgress:
+        return AppTheme.primary;
     }
   }
 }
@@ -520,144 +550,221 @@ class _InsightCard extends StatelessWidget {
     this.onActionTaken,
   });
 
+  /// 우선순위 색상 반환
+  Color _getPriorityColor(InsightPriority priority) {
+    switch (priority) {
+      case InsightPriority.high:
+        return const Color(0xFFEF4444); // Red
+      case InsightPriority.medium:
+        return const Color(0xFFF59E0B); // Orange
+      case InsightPriority.low:
+        return const Color(0xFF3B82F6); // Blue
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final priorityColor = _getPriorityColor(insight.priority);
+    final hasGraph = insight.graphData != null &&
+                     insight.graphData!.isNotEmpty &&
+                     insight.graphType != null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          // 회원 ID가 있으면 회원 상세 페이지로 이동
+          if (insight.memberId != null) {
+            context.push('/trainer/members/${insight.memberId}');
+          } else {
+            // 회원 ID가 없으면 기존 상세 보기
+            onTap();
+          }
+        },
         child: GlassCard(
           child: Stack(
-          children: [
-            // 읽지 않은 표시
-            if (!insight.isRead)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: insight.priorityColor,
-                    shape: BoxShape.circle,
+            children: [
+              // 읽지 않은 표시
+              if (!insight.isRead)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: priorityColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 헤더
-                  Row(
-                    children: [
-                      // 우선순위 아이콘
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: insight.priorityColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 헤더
+                    Row(
+                      children: [
+                        // 타입 아이콘
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: priorityColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            insight.typeIcon,
+                            color: priorityColor,
+                            size: 20,
+                          ),
                         ),
-                        child: Icon(
-                          insight.typeIcon,
-                          color: insight.priorityColor,
-                          size: 20,
+                        const SizedBox(width: 12),
+                        // 타입 & 회원명
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      insight.title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: insight.isRead
+                                                ? colorScheme.outline
+                                                : colorScheme.onSurface,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  // 우선순위 배지
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: priorityColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _getPriorityLabel(insight.priority),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: priorityColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (insight.memberName != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    insight.memberName!,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: colorScheme.outline,
+                                        ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    // 미니 그래프
+                    if (hasGraph) ...[
+                      const SizedBox(height: 12),
+                      Center(
+                        child: InsightMiniChart(
+                          graphType: insight.graphType!,
+                          data: insight.graphData!,
+                          height: 60,
+                          width: MediaQuery.of(context).size.width - 96,
+                          primaryColor: priorityColor,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // 타입 & 회원명
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ],
+                    const SizedBox(height: 12),
+                    // 메시지
+                    Text(
+                      insight.message,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: insight.isRead
+                                ? colorScheme.outline
+                                : colorScheme.onSurface,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // 조치 제안
+                    if (insight.actionSuggestion != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              insight.title,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: insight.isRead
-                                        ? colorScheme.outline
-                                        : colorScheme.onSurface,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 16,
+                              color: AppTheme.primary,
                             ),
-                            if (insight.memberName != null)
-                              Text(
-                                insight.memberName!,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                insight.actionSuggestion!,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
                                     ?.copyWith(
-                                      color: colorScheme.outline,
+                                      color: AppTheme.primary,
                                     ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
+                            ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  // 메시지
-                  Text(
-                    insight.message,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: insight.isRead
-                              ? colorScheme.outline
-                              : colorScheme.onSurface,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // 조치 제안
-                  if (insight.actionSuggestion != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppTheme.primary.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 16,
-                            color: AppTheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              insight.actionSuggestion!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: AppTheme.primary,
-                                  ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _getPriorityLabel(InsightPriority priority) {
+    switch (priority) {
+      case InsightPriority.high:
+        return '즉시 확인';
+      case InsightPriority.medium:
+        return '확인 권장';
+      case InsightPriority.low:
+        return '참고';
+    }
   }
 }
 
@@ -910,6 +1017,7 @@ class _InsightDetailSheet extends StatelessWidget {
 
   String _getTypeLabel(InsightType type) {
     switch (type) {
+      // 기존 트레이너 인사이트
       case InsightType.attendanceAlert:
         return '출석 알림';
       case InsightType.ptExpiry:
@@ -922,6 +1030,34 @@ class _InsightDetailSheet extends StatelessWidget {
         return '체중 변화';
       case InsightType.workoutVolume:
         return '운동량';
+      // 신규 트레이너 인사이트
+      case InsightType.churnRisk:
+        return '이탈 위험';
+      case InsightType.renewalLikelihood:
+        return '재등록 가능성';
+      case InsightType.plateauDetection:
+        return '정체기';
+      case InsightType.workoutRecommendation:
+        return '운동 추천';
+      case InsightType.noshowPattern:
+        return '노쇼 패턴';
+      case InsightType.performanceRanking:
+        return '성과 랭킹';
+      // 회원 인사이트
+      case InsightType.bodyPrediction:
+        return '체성분 예측';
+      case InsightType.workoutAchievement:
+        return '운동 성과';
+      case InsightType.attendanceHabit:
+        return '출석 습관';
+      case InsightType.nutritionBalance:
+        return '영양 밸런스';
+      case InsightType.bodyChangeReport:
+        return '체성분 변화';
+      case InsightType.conditionPattern:
+        return '컨디션 패턴';
+      case InsightType.goalProgress:
+        return '목표 달성';
     }
   }
 

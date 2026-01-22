@@ -80,7 +80,7 @@ class DietAnalysisResult {
     this.usage,
   });
 
-  factory DietAnalysisResult.success(DietAnalysisModel record, DietAnalysisUsage usage) {
+  factory DietAnalysisResult.success(DietAnalysisModel record, [DietAnalysisUsage? usage]) {
     return DietAnalysisResult(
       success: true,
       record: record,
@@ -182,12 +182,15 @@ class DietAnalysisService {
         createdAt: DateTime.parse(data['createdAt'] as String),
       );
 
-      final usageData = data['usage'] as Map<String, dynamic>;
-      final usage = DietAnalysisUsage(
-        current: usageData['current'] as int,
-        limit: usageData['limit'] as int,
-        tier: usageData['tier'] as String,
-      );
+      // usage 데이터가 없을 수 있으므로 null 안전 처리
+      final usageData = data['usage'] as Map<String, dynamic>?;
+      final usage = usageData != null
+          ? DietAnalysisUsage(
+              current: (usageData['current'] as num?)?.toInt() ?? 0,
+              limit: (usageData['limit'] as num?)?.toInt() ?? 10,
+              tier: usageData['tier'] as String? ?? 'free',
+            )
+          : null;
 
       return DietAnalysisResult.success(record, usage);
     } on FirebaseFunctionsException catch (e) {

@@ -18,6 +18,7 @@ import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_dashboa
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_members_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_member_detail_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_schedule_web_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_revenue_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/ai_curriculum_generator_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/add_schedule_screen.dart';
@@ -206,6 +207,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => buildFadeTransitionPage(
               key: state.pageKey,
               child: const ChatListScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.trainerRevenue,
+            name: RouteNames.trainerRevenue,
+            pageBuilder: (context, state) => buildFadeTransitionPage(
+              key: state.pageKey,
+              child: const TrainerRevenueWebScreen(),
             ),
           ),
         ],

@@ -53,7 +53,7 @@ class ScheduleTimestampConverter implements JsonConverter<DateTime, dynamic> {
 sealed class ScheduleModel with _$ScheduleModel {
   const factory ScheduleModel({
     required String id,
-    required String trainerId,
+    String? trainerId, // 회원 개인 일정은 null
     required String memberId,
     String? memberName,
     @ScheduleTimestampConverter() required DateTime scheduledAt,

@@ -461,7 +461,14 @@ export {predictBodyComposition} from "./predictBodyComposition";
 // ============================================
 
 // 모듈화된 generateInsights 함수 re-export
-export {generateInsights, generateInsightsScheduled} from "./generateInsights";
+export {
+  generateInsights,
+  generateInsightsScheduled,
+  generateInsightsWeekly,
+  onSessionUpdated,
+  onBodyRecordCreated as onBodyRecordInsightTrigger,
+  onInbodyRecordCreated,
+} from "./generateInsights";
 
 // ============================================
 // AI 식단 분석 Functions
@@ -475,7 +482,10 @@ export {analyzeDiet} from "./analyzeDiet";
 // ============================================
 
 // 모듈화된 generateMemberInsights 함수 re-export
-export {generateMemberInsights} from "./generateMemberInsights";
+export {
+  generateMemberInsights,
+  generateMemberInsightsScheduled,
+} from "./generateMemberInsights";
 
 // ============================================
 // 푸시 알림 Functions
@@ -517,3 +527,13 @@ export {fetchInbodyByPhone} from "./fetchInbodyByPhone";
 
 // 인바디 결과지 사진 AI 분석
 export {analyzeInbody} from "./analyzeInbody";
+
+// ============================================
+// 스케줄러 Functions (별도 폴더)
+// ============================================
+
+// 매일/매주 인사이트 자동 생성 스케줄러
+export {
+  dailyInsightGenerator,
+  weeklyInsightGenerator,
+} from "./schedulers";

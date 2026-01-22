@@ -12,6 +12,8 @@ import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/benchmark_distribution_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/muscle_balance_donut.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
@@ -112,9 +114,9 @@ class MemberHomeScreen extends ConsumerWidget {
               // 5. AI 인사이트 카드 (index 4)
               memberInsightsAsync.when(
                 loading: () => _buildInsightSkeleton(context),
-                error: (e, s) => const SizedBox.shrink(),
+                error: (e, s) => _EmptyInsightSection(memberId: memberId).animateListItem(4),
                 data: (insights) => insights.isEmpty
-                    ? const SizedBox.shrink()
+                    ? _EmptyInsightSection(memberId: memberId).animateListItem(4)
                     : _InsightCardsSection(
                         insights: insights,
                         memberId: memberId,
@@ -1241,6 +1243,99 @@ class _QuickActionButton extends StatelessWidget {
   }
 }
 
+/// 빈 인사이트 섹션 (인사이트 생성 유도)
+class _EmptyInsightSection extends ConsumerWidget {
+  final String memberId;
+
+  const _EmptyInsightSection({required this.memberId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final generationState = ref.watch(memberInsightsGenerationProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'AI 인사이트',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Icon(
+            Icons.insights,
+            size: 48,
+            color: AppTheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'AI가 분석한 맞춤 인사이트를 확인해보세요',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: generationState.isGenerating
+                  ? null
+                  : () => ref.read(memberInsightsGenerationProvider.notifier).generate(memberId),
+              icon: generationState.isGenerating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 18),
+              label: Text(generationState.isGenerating ? '분석 중...' : '인사이트 생성하기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          // 에러 메시지 표시
+          if (generationState.errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              generationState.errorMessage!,
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// AI 인사이트 카드 섹션
 class _InsightCardsSection extends ConsumerWidget {
   final List<MemberInsight> insights;
@@ -1326,86 +1421,172 @@ class _MemberInsightCard extends StatelessWidget {
 
   const _MemberInsightCard({required this.insight});
 
+  /// 인사이트 타입에 따른 네비게이션 경로 반환
+  String? _getNavigationRoute() {
+    switch (insight.type) {
+      // 체성분 관련 - 기록 화면으로
+      case 'bodyPrediction':
+      case 'bodyChangeReport':
+      case 'weightProgress':
+        return '/member/records';
+      // 영양/식단 관련 - 식단 화면으로
+      case 'nutritionBalance':
+        return '/member/diet';
+      // 출석/일정 관련 - 캘린더 화면으로
+      case 'attendanceHabit':
+      case 'attendanceAlert':
+        return '/member/calendar';
+      // 벤치마크 - 기록 화면으로
+      case 'benchmark':
+        return '/member/records';
+      // 운동 관련 - 기록 화면으로
+      case 'workoutAchievement':
+      case 'workoutVolume':
+        return '/member/records';
+      // 목표 진행률 - 기록 화면으로
+      case 'goalProgress':
+        return '/member/records';
+      // 컨디션 패턴 - 기록 화면으로
+      case 'conditionPattern':
+        return '/member/records';
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final navigationRoute = _getNavigationRoute();
 
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.only(right: 0),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: insight.priorityColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: navigationRoute != null
+          ? () => context.push(navigationRoute)
+          : null,
+      child: Container(
+        width: 200,
+        margin: const EdgeInsets.only(right: 0),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: insight.priorityColor.withValues(alpha: 0.3),
+            width: 1,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 헤더: 아이콘 + 우선순위 배지
-          Row(
-            children: [
-              Icon(
-                insight.typeIcon,
-                size: 20,
-                color: insight.priorityColor,
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: insight.priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  insight.title,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: insight.priorityColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // 미니 그래프 영역 (데이터가 있는 경우)
-          if (insight.graphData != null && insight.graphType != null)
-            Expanded(
-              child: InsightMiniChart(
-                graphType: insight.graphType!,
-                data: insight.graphData!,
-                primaryColor: insight.priorityColor,
-              ),
-            )
-          else
-            const Spacer(),
-          const SizedBox(height: 8),
-          // 메시지
-          Text(
-            insight.message,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white70 : Colors.black54,
-              height: 1.3,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더: 아이콘 + 우선순위 배지
+            Row(
+              children: [
+                Icon(
+                  insight.typeIcon,
+                  size: 20,
+                  color: insight.priorityColor,
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: insight.priorityColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    insight.title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: insight.priorityColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 미니 그래프 영역 (데이터가 있는 경우)
+            if (insight.graphData != null && insight.graphType != null)
+              Expanded(
+                child: _buildChart(),
+              )
+            else
+              const Spacer(),
+            const SizedBox(height: 8),
+            // 메시지
+            Text(
+              insight.message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark ? Colors.white70 : Colors.black54,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// 그래프 타입과 인사이트 타입에 따른 차트 위젯 빌드
+  Widget _buildChart() {
+    // 벤치마크 타입이고 distribution 그래프인 경우 BenchmarkDistributionChart 사용
+    if (insight.type == 'benchmark' && insight.graphType == 'distribution') {
+      final data = insight.graphData!;
+      // graphData에서 필요한 정보 추출
+      final overallPercentile = data.isNotEmpty && data[0].containsKey('overallPercentile')
+          ? (data[0]['overallPercentile'] as num).toInt()
+          : 50;
+      final goal = data.isNotEmpty && data[0].containsKey('goal')
+          ? data[0]['goal'] as String
+          : 'fitness';
+      final categories = data.isNotEmpty && data[0].containsKey('categories')
+          ? (data[0]['categories'] as List<dynamic>)
+              .map((c) => c as Map<String, dynamic>)
+              .toList()
+          : <Map<String, dynamic>>[];
+
+      return BenchmarkDistributionChart.fromMaps(
+        overallPercentile: overallPercentile,
+        categories: categories,
+        goal: goal,
+      );
+    }
+
+    // workout_volume 타입이고 donut 그래프인 경우 MuscleBalanceDonut 사용
+    if (insight.type == 'workoutVolume' && insight.graphType == 'donut') {
+      final data = insight.graphData!;
+      if (data.isNotEmpty && data[0].containsKey('muscleGroupBalance')) {
+        final muscleBalance = data[0]['muscleGroupBalance'] as Map<String, dynamic>;
+        final isImbalanced = data[0]['isImbalanced'] as bool? ?? false;
+        final imbalanceType = data[0]['imbalanceType'] as String?;
+
+        return MuscleBalanceDonut(
+          muscleGroupBalance: muscleBalance.map(
+            (key, value) => MapEntry(key, (value as num).toInt()),
+          ),
+          isImbalanced: isImbalanced,
+          imbalanceType: imbalanceType,
+        );
+      }
+    }
+
+    // 기본 InsightMiniChart 사용
+    return InsightMiniChart(
+      graphType: insight.graphType!,
+      data: insight.graphData!,
+      primaryColor: insight.priorityColor,
     );
   }
 }

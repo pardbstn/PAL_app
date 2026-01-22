@@ -114,6 +114,27 @@ class InsightRepository extends BaseRepository<InsightModel> {
     });
   }
 
+  /// 회원의 인사이트 목록 실시간 감시
+  ///
+  /// [memberId] 회원 ID
+  ///
+  /// 만료되지 않은 인사이트만 반환하며, 생성일 기준 내림차순 정렬
+  Stream<List<InsightModel>> watchMemberInsights(String memberId) {
+    final now = DateTime.now();
+
+    return collection
+        .where('memberId', isEqualTo: memberId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => InsightModel.fromFirestore(doc))
+          .where((insight) =>
+              insight.expiresAt == null || insight.expiresAt!.isAfter(now))
+          .toList();
+    });
+  }
+
   /// 트레이너의 인사이트 목록 조회 (일회성)
   ///
   /// [trainerId] 트레이너 ID

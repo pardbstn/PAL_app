@@ -69,6 +69,7 @@ const _$InsightTypeEnumMap = {
   InsightType.bodyChangeReport: 'bodyChangeReport',
   InsightType.conditionPattern: 'conditionPattern',
   InsightType.goalProgress: 'goalProgress',
+  InsightType.benchmark: 'benchmark',
 };
 
 const _$InsightPriorityEnumMap = {

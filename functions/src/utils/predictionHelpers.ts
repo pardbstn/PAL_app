@@ -8,7 +8,7 @@
 // ==================== 상수 정의 ====================
 
 /** 최소 필요 데이터 포인트 수 */
-export const MIN_DATA_POINTS = 4;
+export const MIN_DATA_POINTS = 2;
 
 /** 최대 예측 기간 (주) - 1주 예측만 지원 */
 export const MAX_WEEKS_AHEAD = 1;

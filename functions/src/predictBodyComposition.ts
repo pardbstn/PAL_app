@@ -79,23 +79,40 @@ function calculateMetricPrediction(
   // 주간 데이터로 집계
   const weeklyData = aggregateToWeekly(cleanedData);
 
-  if (weeklyData.length < 2) {
-    return null;
+  // 주간 데이터가 2개 미만이면 원본 데이터로 직접 예측
+  let dataForRegression: WeightDataPoint[];
+  let linearWeeklyTrend: number;
+  let weightedTrend: number;
+
+  if (weeklyData.length >= 2) {
+    // 주간 데이터가 충분하면 주간 집계 사용
+    dataForRegression = weeklyData.map((w) => ({
+      date: w.weekStart,
+      weight: w.avgWeight,
+    }));
+    const regression = calculateLinearRegression(dataForRegression);
+    linearWeeklyTrend = Math.round(regression.slope * 7 * 100) / 100;
+    weightedTrend = calculateWeightedTrend(weeklyData);
+  } else {
+    // 주간 데이터가 부족하면 원본 데이터로 직접 예측
+    dataForRegression = cleanedData;
+    const regression = calculateLinearRegression(cleanedData);
+    linearWeeklyTrend = Math.round(regression.slope * 7 * 100) / 100;
+    // 원본 데이터의 첫날과 마지막날 차이로 추세 계산
+    if (cleanedData.length >= 2) {
+      const firstWeight = cleanedData[0].weight;
+      const lastWeight = cleanedData[cleanedData.length - 1].weight;
+      const daysDiff = (cleanedData[cleanedData.length - 1].date.getTime() -
+        cleanedData[0].date.getTime()) / (1000 * 60 * 60 * 24);
+      weightedTrend = daysDiff > 0
+        ? Math.round(((lastWeight - firstWeight) / daysDiff) * 7 * 100) / 100
+        : 0;
+    } else {
+      weightedTrend = 0;
+    }
   }
 
-  // 선형 회귀 분석
-  const dataForRegression: WeightDataPoint[] = weeklyData.map((w) => ({
-    date: w.weekStart,
-    weight: w.avgWeight,
-  }));
-
   const regression = calculateLinearRegression(dataForRegression);
-
-  // 주간 변화량 (kg/week) - 선형 회귀 기반
-  const linearWeeklyTrend = Math.round(regression.slope * 7 * 100) / 100;
-
-  // 가중 추세 계산 (최근 데이터에 더 많은 가중치)
-  const weightedTrend = calculateWeightedTrend(weeklyData);
 
   // 최종 주간 추세: 선형 회귀와 가중 추세의 평균
   const weeklyTrend = Math.round(
@@ -297,35 +314,96 @@ export const predictBodyComposition = functions
       const sixMonthsAgoTimestamp = admin.firestore.Timestamp.fromDate(sixMonthsAgo);
 
       // 7. 체중 기록 조회 (body_records)
-      const weightRecordsSnapshot = await db
-        .collection("body_records")
-        .where("memberId", "==", memberId)
-        .where("recordDate", ">=", sixMonthsAgoTimestamp)
-        .orderBy("recordDate", "asc")
-        .get();
+      let weightRecordsSnapshot;
+      try {
+        weightRecordsSnapshot = await db
+          .collection("body_records")
+          .where("memberId", "==", memberId)
+          .where("recordDate", ">=", sixMonthsAgoTimestamp)
+          .orderBy("recordDate", "asc")
+          .get();
+      } catch (queryError) {
+        functions.logger.warn("[predictBodyComposition] body_records 조회 실패 (인덱스 필요할 수 있음)", {
+          error: queryError instanceof Error ? queryError.message : queryError,
+          memberId,
+        });
+        weightRecordsSnapshot = {docs: []};
+      }
 
-      const weightData: WeightDataPoint[] = weightRecordsSnapshot.docs.map((doc) => {
-        const docData = doc.data();
-        return {
-          date: docData.recordDate.toDate(),
-          weight: docData.weight,
-        };
-      });
+      /**
+       * 안전한 날짜 변환 헬퍼 함수
+       * Firestore Timestamp, Date, 또는 ISO 문자열을 Date로 변환
+       */
+      const safeToDate = (recordDate: unknown): Date | null => {
+        try {
+          if (!recordDate) return null;
+          // Firestore Timestamp
+          if (typeof recordDate === "object" && recordDate !== null && "toDate" in recordDate) {
+            return (recordDate as admin.firestore.Timestamp).toDate();
+          }
+          // 이미 Date 객체인 경우
+          if (recordDate instanceof Date) {
+            return recordDate;
+          }
+          // ISO 문자열 또는 숫자
+          if (typeof recordDate === "string" || typeof recordDate === "number") {
+            const parsed = new Date(recordDate);
+            return isNaN(parsed.getTime()) ? null : parsed;
+          }
+          return null;
+        } catch (e) {
+          functions.logger.debug("[predictBodyComposition] 날짜 변환 실패", {
+            recordDate,
+            error: e instanceof Error ? e.message : e,
+          });
+          return null;
+        }
+      };
+
+      const weightData: WeightDataPoint[] = weightRecordsSnapshot.docs
+        .map((doc) => {
+          const docData = doc.data();
+          const date = safeToDate(docData.recordDate);
+          if (!date || typeof docData.weight !== "number") {
+            return null;
+          }
+          return {
+            date,
+            weight: docData.weight,
+          };
+        })
+        .filter((item): item is WeightDataPoint => item !== null);
 
       // 8. InBody 기록 조회 (inbody_records)
-      const inbodyRecordsSnapshot = await db
-        .collection("inbody_records")
-        .where("memberId", "==", memberId)
-        .where("recordDate", ">=", sixMonthsAgoTimestamp)
-        .orderBy("recordDate", "asc")
-        .get();
+      let inbodyRecordsSnapshot;
+      try {
+        inbodyRecordsSnapshot = await db
+          .collection("inbody_records")
+          .where("memberId", "==", memberId)
+          .where("recordDate", ">=", sixMonthsAgoTimestamp)
+          .orderBy("recordDate", "asc")
+          .get();
+      } catch (queryError) {
+        functions.logger.warn("[predictBodyComposition] inbody_records 조회 실패 (인덱스 필요할 수 있음)", {
+          error: queryError instanceof Error ? queryError.message : queryError,
+          memberId,
+        });
+        inbodyRecordsSnapshot = {docs: []};
+      }
 
       const muscleData: WeightDataPoint[] = [];
       const bodyFatData: WeightDataPoint[] = [];
 
       inbodyRecordsSnapshot.docs.forEach((doc) => {
         const docData = doc.data();
-        const recordDate = docData.recordDate.toDate();
+        // recordDate를 안전하게 변환
+        const recordDate = safeToDate(docData.recordDate);
+        if (!recordDate) {
+          functions.logger.debug("[predictBodyComposition] InBody 레코드 날짜 변환 실패, 스킵", {
+            docId: doc.id,
+          });
+          return;
+        }
 
         // 골격근량 데이터
         if (typeof docData.skeletalMuscleMass === "number") {
@@ -450,7 +528,25 @@ export const predictBodyComposition = functions
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
+
+      // 에러 타입에 따른 상세 로깅
+      let errorType = "unknown";
+      let errorDetail = "";
+      if (error instanceof Error) {
+        errorDetail = error.message;
+        if (error.message.includes("index")) {
+          errorType = "missing_index";
+        } else if (error.message.includes("permission")) {
+          errorType = "permission_denied";
+        } else if (error.message.includes("toDate")) {
+          errorType = "date_conversion";
+        } else if (error.message.includes("network") || error.message.includes("UNAVAILABLE")) {
+          errorType = "network";
+        }
+      }
+
       functions.logger.error("[predictBodyComposition] 오류 발생", {
+        errorType,
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
         memberId,
@@ -461,11 +557,18 @@ export const predictBodyComposition = functions
         throw error;
       }
 
-      const errorMessage =
-        error instanceof Error ? error.message : "알 수 없는 오류";
-      throw new functions.https.HttpsError(
-        "internal",
-        `체성분 예측 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${errorMessage})`
-      );
+      // 사용자 친화적 에러 메시지 생성
+      let userMessage = "체성분 예측 처리 중 오류가 발생했습니다.";
+      if (errorType === "missing_index") {
+        userMessage = "데이터베이스 설정 문제가 발생했습니다. 관리자에게 문의해주세요.";
+      } else if (errorType === "network") {
+        userMessage = "네트워크 연결에 문제가 있습니다. 잠시 후 다시 시도해주세요.";
+      } else if (errorType === "date_conversion") {
+        userMessage = "데이터 형식에 문제가 있습니다. 관리자에게 문의해주세요.";
+      } else {
+        userMessage = `체성분 예측 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${errorDetail || "알 수 없는 오류"})`;
+      }
+
+      throw new functions.https.HttpsError("internal", userMessage);
     }
   });

@@ -312,7 +312,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddScheduleBottomSheet(),
-        backgroundColor: AppTheme.tertiary,
+        backgroundColor: AppTheme.primary, // 트레이너앱과 동일한 파란색
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -2024,9 +2024,10 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
         final scheduleDate = scheduledAt.add(Duration(days: 7 * i));
         final schedule = ScheduleModel(
           id: uuid.v4(),
-          trainerId: member.trainerId,
+          // 개인 일정은 trainerId를 null로 설정 (회원만 볼 수 있음)
+          trainerId: null,
           memberId: member.id,
-          memberName: null, // 트레이너가 확인 시 조회됨
+          memberName: null,
           scheduledAt: scheduleDate,
           duration: duration > 0 ? duration : 60,
           status: ScheduleStatus.scheduled,

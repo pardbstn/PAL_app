@@ -15,6 +15,8 @@ import 'package:flutter_pal_app/data/repositories/insight_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
 
 /// 트레이너 인사이트 화면
 class TrainerInsightsScreen extends ConsumerStatefulWidget {
@@ -248,6 +250,31 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       filteredInsights =
           filteredInsights.where((i) => i.type == _selectedFilter).toList();
     }
+
+    // CRITICAL/HIGH 이탈 위험 회원 상단 정렬
+    filteredInsights.sort((a, b) {
+      // 1. churnRisk 타입 우선
+      final aIsChurn = a.type == InsightType.churnRisk;
+      final bIsChurn = b.type == InsightType.churnRisk;
+
+      if (aIsChurn && !bIsChurn) return -1;
+      if (!aIsChurn && bIsChurn) return 1;
+
+      // 2. churnRisk 내에서 priority 높은 순 (high > medium > low)
+      if (aIsChurn && bIsChurn) {
+        final priorityOrder = {
+          InsightPriority.high: 0,
+          InsightPriority.medium: 1,
+          InsightPriority.low: 2,
+        };
+        final aPriority = priorityOrder[a.priority] ?? 2;
+        final bPriority = priorityOrder[b.priority] ?? 2;
+        if (aPriority != bPriority) return aPriority.compareTo(bPriority);
+      }
+
+      // 3. 나머지는 생성일 역순
+      return b.createdAt.compareTo(a.createdAt);
+    });
 
     if (filteredInsights.isEmpty) {
       return SliverFillRemaining(
@@ -531,6 +558,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       case InsightType.bodyChangeReport:
       case InsightType.conditionPattern:
       case InsightType.goalProgress:
+      case InsightType.benchmark:
         return AppTheme.primary;
     }
   }
@@ -684,8 +712,36 @@ class _InsightCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // 미니 그래프
-                    if (hasGraph) ...[
+                    // 미니 그래프 - 타입별 전용 위젯 사용
+                    if (insight.type == InsightType.churnRisk &&
+                        insight.data != null) ...[
+                      const SizedBox(height: 12),
+                      ChurnGaugeChart(
+                        churnScore:
+                            (insight.data!['churnScore'] as num?)?.toInt() ?? 0,
+                        riskLevel:
+                            insight.data!['riskLevel'] as String? ?? 'LOW',
+                        breakdown: _parseBreakdown(insight.data!['breakdown']),
+                        riskFactors: _parseRiskFactors(insight.data!),
+                        size: 120,
+                        animate: true,
+                      ),
+                    ] else if (insight.type == InsightType.workoutVolume &&
+                        insight.data != null) ...[
+                      const SizedBox(height: 12),
+                      VolumeBarChart(
+                        weeklyVolumes: _parseWeeklyVolumes(
+                            insight.data!['weeklyVolumes']),
+                        fourWeekAverage:
+                            (insight.data!['fourWeekAverage'] as num?)
+                                    ?.toDouble() ??
+                                0.0,
+                        volumeTrend:
+                            insight.data!['volumeTrend'] as String? ?? 'normal',
+                        weeklyChanges: _parseWeeklyChanges(
+                            insight.data!['weeklyChanges']),
+                      ),
+                    ] else if (hasGraph) ...[
                       const SizedBox(height: 12),
                       Center(
                         child: InsightMiniChart(
@@ -765,6 +821,68 @@ class _InsightCard extends StatelessWidget {
       case InsightPriority.low:
         return '참고';
     }
+  }
+
+  /// ChurnGaugeChart용 breakdown 파싱
+  Map<String, Map<String, dynamic>> _parseBreakdown(dynamic data) {
+    if (data == null) return {};
+    if (data is Map<String, Map<String, dynamic>>) return data;
+    if (data is Map) {
+      return data.map((key, value) {
+        if (value is Map) {
+          return MapEntry(
+            key.toString(),
+            value.map((k, v) => MapEntry(k.toString(), v)),
+          );
+        }
+        return MapEntry(key.toString(), <String, dynamic>{'score': value});
+      });
+    }
+    return {};
+  }
+
+  /// ChurnGaugeChart용 riskFactors 파싱
+  List<String> _parseRiskFactors(Map<String, dynamic> data) {
+    final factors = <String>[];
+    final breakdown = data['breakdown'];
+    if (breakdown is Map) {
+      breakdown.forEach((key, value) {
+        final score = value is Map ? value['score'] : value;
+        if (score != null && (score as num) > 50) {
+          switch (key) {
+            case 'attendanceDrop':
+              factors.add('출석률 하락');
+            case 'weightPlateau':
+              factors.add('체중 정체');
+            case 'messageNoResponse':
+              factors.add('메시지 무응답');
+            case 'remainingSessions':
+              factors.add('세션 부족');
+            case 'goalProgress':
+              factors.add('목표 미달');
+          }
+        }
+      });
+    }
+    return factors;
+  }
+
+  /// VolumeBarChart용 weeklyVolumes 파싱
+  List<int> _parseWeeklyVolumes(dynamic data) {
+    if (data == null) return [0, 0, 0, 0, 0];
+    if (data is List) {
+      return data.map((e) => (e as num?)?.toInt() ?? 0).toList();
+    }
+    return [0, 0, 0, 0, 0];
+  }
+
+  /// VolumeBarChart용 weeklyChanges 파싱
+  List<double> _parseWeeklyChanges(dynamic data) {
+    if (data == null) return [];
+    if (data is List) {
+      return data.map((e) => (e as num?)?.toDouble() ?? 0.0).toList();
+    }
+    return [];
   }
 }
 
@@ -1058,6 +1176,8 @@ class _InsightDetailSheet extends StatelessWidget {
         return '컨디션 패턴';
       case InsightType.goalProgress:
         return '목표 달성';
+      case InsightType.benchmark:
+        return '벤치마킹';
     }
   }
 

@@ -9,7 +9,7 @@ part of 'schedule_model.dart';
 _ScheduleModel _$ScheduleModelFromJson(Map<String, dynamic> json) =>
     _ScheduleModel(
       id: json['id'] as String,
-      trainerId: json['trainerId'] as String,
+      trainerId: json['trainerId'] as String?,
       memberId: json['memberId'] as String,
       memberName: json['memberName'] as String?,
       scheduledAt: const ScheduleTimestampConverter().fromJson(

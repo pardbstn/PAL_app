@@ -51,20 +51,22 @@ class ScheduleRepository {
     return snapshot.docs.map((doc) => _docToSchedule(doc)).toList();
   }
 
-  /// 회원의 일정 조회
+  /// 회원의 개인 일정 조회 (trainerId가 null인 일정만)
   Future<List<ScheduleModel>> getMemberSchedules(String memberId) async {
     final snapshot =
         await _collection.where('memberId', isEqualTo: memberId).get();
 
     final schedules = snapshot.docs
         .map((doc) => _docToSchedule(doc))
+        // 회원 개인 일정만 필터링 (trainerId가 null 또는 빈 문자열)
+        .where((s) => s.trainerId == null || s.trainerId!.isEmpty)
         .toList()
       ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
     return schedules;
   }
 
-  /// 회원 월별 일정 조회
+  /// 회원 월별 개인 일정 조회 (trainerId가 null인 일정만)
   Future<List<ScheduleModel>> getMemberSchedulesForMonth(
       String memberId, DateTime month) async {
     final startOfMonth = DateTime(month.year, month.month, 1);
@@ -78,10 +80,14 @@ class ScheduleRepository {
         .orderBy('scheduledAt')
         .get();
 
-    return snapshot.docs.map((doc) => _docToSchedule(doc)).toList();
+    return snapshot.docs
+        .map((doc) => _docToSchedule(doc))
+        // 회원 개인 일정만 필터링 (trainerId가 null 또는 빈 문자열)
+        .where((s) => s.trainerId == null || s.trainerId!.isEmpty)
+        .toList();
   }
 
-  /// 회원 일정 실시간 스트림
+  /// 회원 개인 일정 실시간 스트림 (trainerId가 null인 일정만)
   Stream<List<ScheduleModel>> memberSchedulesStream(String memberId) {
     return _collection
         .where('memberId', isEqualTo: memberId)
@@ -89,6 +95,8 @@ class ScheduleRepository {
         .map((snapshot) {
       final schedules = snapshot.docs
           .map((doc) => _docToSchedule(doc))
+          // 회원 개인 일정만 필터링 (trainerId가 null 또는 빈 문자열)
+          .where((s) => s.trainerId == null || s.trainerId!.isEmpty)
           .toList()
         ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
       return schedules;
@@ -230,7 +238,7 @@ class ScheduleRepository {
 
     return ScheduleModel(
       id: doc.id,
-      trainerId: data['trainerId'] ?? '',
+      trainerId: data['trainerId'] as String?, // 회원 개인 일정은 null
       memberId: data['memberId'] ?? '',
       memberName: data['memberName'],
       scheduledAt: scheduledAt,

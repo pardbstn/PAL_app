@@ -92,6 +92,10 @@ enum InsightType {
   /// 목표 달성률
   @JsonValue('goalProgress')
   goalProgress,
+
+  /// 벤치마킹 비교 (상위 X%)
+  @JsonValue('benchmark')
+  benchmark,
 }
 
 /// 인사이트 우선순위
@@ -256,6 +260,8 @@ extension InsightModelX on InsightModel {
         return Icons.psychology;
       case InsightType.goalProgress:
         return Icons.flag;
+      case InsightType.benchmark:
+        return Icons.leaderboard;
     }
   }
 

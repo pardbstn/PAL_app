@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ScheduleModel {
 
- String get id; String get trainerId; String get memberId; String? get memberName;@ScheduleTimestampConverter() DateTime get scheduledAt; int get duration; ScheduleStatus get status; ScheduleType get scheduleType;// PT/개인 일정 구분
+ String get id; String? get trainerId;// 회원 개인 일정은 null
+ String get memberId; String? get memberName;@ScheduleTimestampConverter() DateTime get scheduledAt; int get duration; ScheduleStatus get status; ScheduleType get scheduleType;// PT/개인 일정 구분
  String? get title;// 개인 일정용 제목 (nullable)
  String? get note; String? get groupId;// 반복 일정 그룹 ID
 @ScheduleTimestampConverter() DateTime get createdAt;
@@ -51,7 +52,7 @@ abstract mixin class $ScheduleModelCopyWith<$Res>  {
   factory $ScheduleModelCopyWith(ScheduleModel value, $Res Function(ScheduleModel) _then) = _$ScheduleModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String trainerId, String memberId, String? memberName,@ScheduleTimestampConverter() DateTime scheduledAt, int duration, ScheduleStatus status, ScheduleType scheduleType, String? title, String? note, String? groupId,@ScheduleTimestampConverter() DateTime createdAt
+ String id, String? trainerId, String memberId, String? memberName,@ScheduleTimestampConverter() DateTime scheduledAt, int duration, ScheduleStatus status, ScheduleType scheduleType, String? title, String? note, String? groupId,@ScheduleTimestampConverter() DateTime createdAt
 });
 
 
@@ -68,11 +69,11 @@ class _$ScheduleModelCopyWithImpl<$Res>
 
 /// Create a copy of ScheduleModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? trainerId = null,Object? memberId = null,Object? memberName = freezed,Object? scheduledAt = null,Object? duration = null,Object? status = null,Object? scheduleType = null,Object? title = freezed,Object? note = freezed,Object? groupId = freezed,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? trainerId = freezed,Object? memberId = null,Object? memberName = freezed,Object? scheduledAt = null,Object? duration = null,Object? status = null,Object? scheduleType = null,Object? title = freezed,Object? note = freezed,Object? groupId = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
-as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
+as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
+as String?,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
 as String,memberName: freezed == memberName ? _self.memberName : memberName // ignore: cast_nullable_to_non_nullable
 as String?,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
 as DateTime,duration: null == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
@@ -164,7 +165,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScheduleModel() when $default != null:
 return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.scheduledAt,_that.duration,_that.status,_that.scheduleType,_that.title,_that.note,_that.groupId,_that.createdAt);case _:
@@ -185,7 +186,7 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _ScheduleModel():
 return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.scheduledAt,_that.duration,_that.status,_that.scheduleType,_that.title,_that.note,_that.groupId,_that.createdAt);}
@@ -202,7 +203,7 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? trainerId,  String memberId,  String? memberName, @ScheduleTimestampConverter()  DateTime scheduledAt,  int duration,  ScheduleStatus status,  ScheduleType scheduleType,  String? title,  String? note,  String? groupId, @ScheduleTimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ScheduleModel() when $default != null:
 return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.scheduledAt,_that.duration,_that.status,_that.scheduleType,_that.title,_that.note,_that.groupId,_that.createdAt);case _:
@@ -217,11 +218,12 @@ return $default(_that.id,_that.trainerId,_that.memberId,_that.memberName,_that.s
 @JsonSerializable()
 
 class _ScheduleModel implements ScheduleModel {
-  const _ScheduleModel({required this.id, required this.trainerId, required this.memberId, this.memberName, @ScheduleTimestampConverter() required this.scheduledAt, this.duration = 60, this.status = ScheduleStatus.scheduled, this.scheduleType = ScheduleType.pt, this.title, this.note, this.groupId, @ScheduleTimestampConverter() required this.createdAt});
+  const _ScheduleModel({required this.id, this.trainerId, required this.memberId, this.memberName, @ScheduleTimestampConverter() required this.scheduledAt, this.duration = 60, this.status = ScheduleStatus.scheduled, this.scheduleType = ScheduleType.pt, this.title, this.note, this.groupId, @ScheduleTimestampConverter() required this.createdAt});
   factory _ScheduleModel.fromJson(Map<String, dynamic> json) => _$ScheduleModelFromJson(json);
 
 @override final  String id;
-@override final  String trainerId;
+@override final  String? trainerId;
+// 회원 개인 일정은 null
 @override final  String memberId;
 @override final  String? memberName;
 @override@ScheduleTimestampConverter() final  DateTime scheduledAt;
@@ -269,7 +271,7 @@ abstract mixin class _$ScheduleModelCopyWith<$Res> implements $ScheduleModelCopy
   factory _$ScheduleModelCopyWith(_ScheduleModel value, $Res Function(_ScheduleModel) _then) = __$ScheduleModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String trainerId, String memberId, String? memberName,@ScheduleTimestampConverter() DateTime scheduledAt, int duration, ScheduleStatus status, ScheduleType scheduleType, String? title, String? note, String? groupId,@ScheduleTimestampConverter() DateTime createdAt
+ String id, String? trainerId, String memberId, String? memberName,@ScheduleTimestampConverter() DateTime scheduledAt, int duration, ScheduleStatus status, ScheduleType scheduleType, String? title, String? note, String? groupId,@ScheduleTimestampConverter() DateTime createdAt
 });
 
 
@@ -286,11 +288,11 @@ class __$ScheduleModelCopyWithImpl<$Res>
 
 /// Create a copy of ScheduleModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? trainerId = null,Object? memberId = null,Object? memberName = freezed,Object? scheduledAt = null,Object? duration = null,Object? status = null,Object? scheduleType = null,Object? title = freezed,Object? note = freezed,Object? groupId = freezed,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? trainerId = freezed,Object? memberId = null,Object? memberName = freezed,Object? scheduledAt = null,Object? duration = null,Object? status = null,Object? scheduleType = null,Object? title = freezed,Object? note = freezed,Object? groupId = freezed,Object? createdAt = null,}) {
   return _then(_ScheduleModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
-as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
+as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
+as String?,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
 as String,memberName: freezed == memberName ? _self.memberName : memberName // ignore: cast_nullable_to_non_nullable
 as String?,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
 as DateTime,duration: null == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable

@@ -15,6 +15,8 @@ import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
 
 /// 트레이너 홈 (대시보드) 화면
 /// Glassmorphism 효과로 프리미엄 UI 제공
@@ -919,6 +921,9 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
             duration: const Duration(seconds: 4),
           ),
         );
+
+        // 알림 표시 후 상태 초기화 (재진입 시 중복 알림 방지)
+        ref.read(insightsGenerationProvider.notifier).reset();
       });
     }
     _previousSuccessState = state.isSuccess;
@@ -1156,49 +1161,66 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          insight.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              insight.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'AI',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (!insight.isRead)
+                            Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
                       ),
-                      Container(
-                        margin: const EdgeInsets.only(left: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'AI',
+                      // 회원 이름 표시
+                      if (insight.memberName != null && insight.memberName!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          insight.memberName!,
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                      if (!insight.isRead)
-                        Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1213,6 +1235,12 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
                 height: 1.4,
               ),
             ),
+            // 이탈 위험도 게이지 차트 (churnRisk 타입일 때)
+            if (insight.type == InsightType.churnRisk && insight.data != null)
+              _buildChurnGaugeSection(insight.data!),
+            // 운동 볼륨 바 차트 (workoutVolume 타입일 때)
+            if (insight.type == InsightType.workoutVolume && insight.data != null)
+              _buildVolumeBarSection(insight.data!),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
@@ -1240,6 +1268,74 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
       delay: Duration(milliseconds: 600 + (100 * index)),
       duration: 500.ms,
     ).slideY(begin: 0.1);
+  }
+
+  /// 이탈 위험도 게이지 차트 섹션 빌드
+  Widget _buildChurnGaugeSection(Map<String, dynamic> data) {
+    // 데이터에서 필요한 필드 추출
+    final churnScore = (data['churnScore'] as num?)?.toInt() ?? 0;
+    final riskLevel = (data['riskLevel'] as String?) ?? 'LOW';
+    final breakdown = (data['breakdown'] as Map<String, dynamic>?) ?? {};
+
+    // 데이터가 유효하지 않으면 빈 위젯 반환
+    if (churnScore == 0 && breakdown.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ChurnGaugeChartCompact(
+            churnScore: churnScore,
+            riskLevel: riskLevel,
+            size: 100,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 운동 볼륨 바 차트 섹션 빌드
+  Widget _buildVolumeBarSection(Map<String, dynamic> data) {
+    // 데이터에서 필요한 필드 추출
+    final weeklyVolumes = (data['weeklyVolumes'] as List<dynamic>?)
+        ?.map((e) => (e as num).toInt())
+        .toList() ?? [];
+    final fourWeekAverage = (data['fourWeekAverage'] as num?)?.toDouble() ?? 0;
+    final volumeTrend = (data['volumeTrend'] as String?) ?? 'normal';
+    final weeklyChanges = (data['weeklyChanges'] as List<dynamic>?)
+        ?.map((e) => (e as num).toDouble())
+        .toList() ?? [];
+
+    // 데이터가 유효하지 않으면 빈 위젯 반환
+    if (weeklyVolumes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: VolumeBarChart(
+            weeklyVolumes: weeklyVolumes,
+            fourWeekAverage: fourWeekAverage,
+            volumeTrend: volumeTrend,
+            weeklyChanges: weeklyChanges,
+          ),
+        ),
+      ],
+    );
   }
 
   /// 로컬 인사이트 빌드 (Free tier 폴백)

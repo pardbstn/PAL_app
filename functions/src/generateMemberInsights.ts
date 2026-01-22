@@ -18,7 +18,8 @@ type MemberInsightType =
   | "nutrition_balance"
   | "body_change_report"
   | "condition_pattern"
-  | "goal_progress";
+  | "goal_progress"
+  | "benchmarking";
 
 type InsightPriority = "high" | "medium" | "low";
 
@@ -85,6 +86,34 @@ interface MemberData {
   targetWeight?: number;
   targetBodyFat?: number;
   targetMuscleMass?: number;
+  gender?: "male" | "female";
+  birthDate?: admin.firestore.Timestamp;
+  height?: number;
+  startWeight?: number;
+  startBodyFat?: number;
+}
+
+// 연령대 계산 헬퍼
+function getAgeGroup(birthDate?: admin.firestore.Timestamp): string {
+  if (!birthDate) return "unknown";
+  const birth = birthDate.toDate();
+  const today = new Date();
+  const age = today.getFullYear() - birth.getFullYear();
+  if (age < 30) return "20s";
+  if (age < 40) return "30s";
+  if (age < 50) return "40s";
+  return "50s+";
+}
+
+// BMI 범위 계산 헬퍼
+function getBmiRange(weight?: number, height?: number): string {
+  if (!weight || !height) return "unknown";
+  const heightM = height / 100;
+  const bmi = weight / (heightM * heightM);
+  if (bmi < 18.5) return "underweight";
+  if (bmi < 23) return "normal";
+  if (bmi < 25) return "overweight";
+  return "obese";
 }
 
 /**
@@ -121,8 +150,30 @@ function generateBodyPrediction(
     }
   });
 
-  if (weightData.length < 2) {
+  if (weightData.length === 0) {
     return null;
+  }
+
+  // 데이터가 1개인 경우 fallback 인사이트 반환
+  if (weightData.length === 1) {
+    const currentWeight = weightData[0].weight;
+    return {
+      type: "body_prediction",
+      priority: "low",
+      title: "체성분 예측",
+      message: `현재 체중 ${currentWeight.toFixed(1)}kg - 1회 더 기록하면 예측 가능!`,
+      graphData: [{
+        x: 0,
+        y: currentWeight,
+        date: weightData[0].date.toISOString().split("T")[0],
+        isPrediction: false,
+      }],
+      graphType: "line",
+      data: {
+        currentWeight,
+        needsMoreData: true,
+      },
+    };
   }
 
   // 날짜순 정렬
@@ -212,8 +263,26 @@ function generateBodyPrediction(
 function generateWorkoutAchievement(
   workoutRecords: WorkoutRecord[]
 ): MemberInsight | null {
-  if (workoutRecords.length < 2) {
+  if (workoutRecords.length === 0) {
     return null;
+  }
+
+  // 데이터가 1개인 경우 fallback 인사이트 반환
+  if (workoutRecords.length === 1) {
+    const record = workoutRecords[0];
+    const exerciseName = record.exerciseName || "운동";
+    return {
+      type: "workout_achievement",
+      priority: "low",
+      title: "운동 성과",
+      message: `첫 운동 기록! ${exerciseName} - 계속 기록하면 성장 추이를 볼 수 있어요`,
+      graphData: [],
+      graphType: "text",
+      data: {
+        exercise: exerciseName,
+        needsMoreData: true,
+      },
+    };
   }
 
   // 운동별로 그룹화
@@ -433,8 +502,41 @@ function generateNutritionBalance(
     return date && date >= oneWeekAgo;
   });
 
-  if (recentDiets.length < 3) {
+  if (recentDiets.length === 0) {
     return null;
+  }
+
+  // 데이터가 1-2개인 경우 fallback 인사이트 반환 (일부 데이터로 분석)
+  if (recentDiets.length < 3) {
+    const totalProtein = recentDiets.reduce((sum, d) => sum + (d.protein || 0), 0);
+    const totalCarbs = recentDiets.reduce((sum, d) => sum + (d.carbs || 0), 0);
+    const totalFat = recentDiets.reduce((sum, d) => sum + (d.fat || 0), 0);
+    const avgProtein = totalProtein / recentDiets.length;
+    const avgCarbs = totalCarbs / recentDiets.length;
+    const avgFat = totalFat / recentDiets.length;
+
+    // 간단한 그래프 데이터
+    const graphData = [
+      {name: "단백질", value: Math.round(avgProtein), target: 120},
+      {name: "탄수화물", value: Math.round(avgCarbs), target: 250},
+      {name: "지방", value: Math.round(avgFat), target: 60},
+    ];
+
+    return {
+      type: "nutrition_balance",
+      priority: "low",
+      title: "영양 밸런스",
+      message: `${recentDiets.length}개 기록 분석 완료 - 더 기록하면 정확한 분석 가능`,
+      graphData,
+      graphType: "donut",
+      data: {
+        avgProtein: parseFloat(avgProtein.toFixed(1)),
+        avgCarbs: parseFloat(avgCarbs.toFixed(1)),
+        avgFat: parseFloat(avgFat.toFixed(1)),
+        needsMoreData: true,
+        recordCount: recentDiets.length,
+      },
+    };
   }
 
   // 일평균 섭취량 계산
@@ -516,8 +618,49 @@ function generateNutritionBalance(
 function generateBodyChangeReport(
   inbodyRecords: InbodyRecord[]
 ): MemberInsight | null {
-  if (inbodyRecords.length < 2) {
+  if (inbodyRecords.length === 0) {
     return null;
+  }
+
+  // 데이터가 1개인 경우 fallback 인사이트 반환
+  if (inbodyRecords.length === 1) {
+    const record = inbodyRecords[0];
+    const currentFat = record.bodyFatMass || 0;
+    const currentMuscle = record.skeletalMuscleMass || 0;
+    const currentFatPercent = record.bodyFatPercent || 0;
+
+    // 유효한 데이터가 있는 경우에만 반환
+    if (currentFat === 0 && currentMuscle === 0) {
+      return null;
+    }
+
+    const graphData = [
+      {
+        label: "체지방",
+        before: null,
+        after: parseFloat(currentFat.toFixed(1)),
+      },
+      {
+        label: "골격근",
+        before: null,
+        after: parseFloat(currentMuscle.toFixed(1)),
+      },
+    ];
+
+    return {
+      type: "body_change_report",
+      priority: "low",
+      title: "체성분 변화 리포트",
+      message: `현재 체지방 ${currentFat.toFixed(1)}kg, 골격근 ${currentMuscle.toFixed(1)}kg - 인바디 1회 더 측정하면 변화 분석 가능!`,
+      graphData,
+      graphType: "bar",
+      data: {
+        afterFat: currentFat,
+        afterMuscle: currentMuscle,
+        afterFatPercent: currentFatPercent,
+        needsMoreData: true,
+      },
+    };
   }
 
   // 날짜순 정렬
@@ -627,7 +770,27 @@ function generateBodyChangeReport(
 function generateConditionPattern(
   workoutRecords: WorkoutRecord[]
 ): MemberInsight | null {
-  if (workoutRecords.length < 5) {
+  if (workoutRecords.length < 2) {
+    // 데이터가 1개인 경우 fallback 인사이트 반환
+    if (workoutRecords.length === 1) {
+      const record = workoutRecords[0];
+      const date = record.createdAt?.toDate();
+      const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+      const dayName = date ? dayNames[date.getDay()] : "알 수 없음";
+
+      return {
+        type: "condition_pattern",
+        priority: "low",
+        title: "컨디션 패턴",
+        message: `${dayName}요일에 운동 기록이 있어요 - 더 기록하면 최적의 운동 요일을 분석해드려요`,
+        graphData: [],
+        graphType: "text",
+        data: {
+          needsMoreData: true,
+          recordCount: 1,
+        },
+      };
+    }
     return null;
   }
 
@@ -661,8 +824,29 @@ function generateConditionPattern(
 
   // 활동이 있는 요일만 필터링
   const activeDays = dayScores.filter((d) => d.count > 0);
-  if (activeDays.length < 2) {
+  if (activeDays.length === 0) {
     return null;
+  }
+
+  // 활동이 1개 요일에만 있는 경우 fallback 인사이트 반환
+  if (activeDays.length === 1) {
+    const onlyDay = activeDays[0];
+    return {
+      type: "condition_pattern",
+      priority: "low",
+      title: "컨디션 패턴",
+      message: `${onlyDay.day}요일에 ${onlyDay.count}회 운동 기록! 다른 요일에도 운동하면 패턴 분석 가능해요`,
+      graphData: dayScores.map((d) => ({
+        day: d.day,
+        score: d.count > 0 ? 100 : 0,
+      })),
+      graphType: "bar",
+      data: {
+        activeDays: 1,
+        recordCount: onlyDay.count,
+        needsMoreData: true,
+      },
+    };
   }
 
   // 최고 성과 요일 찾기
@@ -844,6 +1028,274 @@ function generateGoalProgress(
 }
 
 /**
+ * 8. 벤치마킹 비교 (benchmarking)
+ *
+ * 동일 목표/체형 그룹 대비 나의 위치 분석
+ * - 같은 목표 회원 대비 체지방률 감량 속도 비교
+ * - 전체 회원 중 출석률 순위
+ * - 유사 체형 회원 대비 근육량 비교
+ *
+ * 퍼센타일 계산 방식:
+ * - 상위 10% → "상위 10%에 속해요!"
+ * - 상위 25% → "평균 이상이에요"
+ * - 중간 50% → "평균 수준이에요"
+ * - 하위 25% → "조금 더 분발해봐요"
+ */
+async function generateBenchmarking(
+  member: MemberData,
+  bodyRecords: BodyRecord[],
+  inbodyRecords: InbodyRecord[],
+  schedules: ScheduleRecord[]
+): Promise<MemberInsight | null> {
+  // 현재 회원의 데이터
+  let currentWeight: number | undefined;
+  let currentBodyFat: number | undefined;
+  let currentMuscle: number | undefined;
+
+  // 최신 체성분 데이터
+  if (inbodyRecords.length > 0) {
+    const sortedInbody = [...inbodyRecords].sort((a, b) => {
+      const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
+      const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+      return dateB - dateA;
+    });
+    const latest = sortedInbody[0];
+    currentWeight = latest.weight;
+    currentBodyFat = latest.bodyFatPercent;
+    currentMuscle = latest.skeletalMuscleMass;
+  }
+
+  if (bodyRecords.length > 0 && !currentWeight) {
+    const sortedBody = [...bodyRecords].sort((a, b) => {
+      const dateA = (a.measuredAt || a.recordDate || a.createdAt)?.toDate()?.getTime() || 0;
+      const dateB = (b.measuredAt || b.recordDate || b.createdAt)?.toDate()?.getTime() || 0;
+      return dateB - dateA;
+    });
+    const latest = sortedBody[0];
+    currentWeight = currentWeight || latest.weight;
+    currentBodyFat = currentBodyFat || latest.bodyFat;
+    currentMuscle = currentMuscle || latest.muscleMass;
+  }
+
+  // 출석률 계산
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const recentSchedules = schedules.filter((s) => {
+    const date = (s.date || s.scheduledAt)?.toDate();
+    return date && date >= fourWeeksAgo;
+  });
+
+  const completed = recentSchedules.filter(
+    (s) => s.status === "completed" || s.status === "attended"
+  ).length;
+  const total = recentSchedules.length;
+  const attendanceRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // 체지방률 4주 변화 계산
+  let bodyFatChange = 0;
+  if (inbodyRecords.length >= 2) {
+    const sortedInbody = [...inbodyRecords].sort((a, b) => {
+      const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
+      const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+      return dateA - dateB;
+    });
+
+    const fourWeeksRecords = sortedInbody.filter((r) => {
+      const date = (r.measuredAt || r.createdAt)?.toDate();
+      return date && date >= fourWeeksAgo && r.bodyFatPercent !== undefined;
+    });
+
+    if (fourWeeksRecords.length >= 2) {
+      const firstFat = fourWeeksRecords[0].bodyFatPercent || 0;
+      const lastFat = fourWeeksRecords[fourWeeksRecords.length - 1].bodyFatPercent || 0;
+      bodyFatChange = lastFat - firstFat;
+    }
+  }
+
+  // ===== 동일 그룹 회원 대비 벤치마킹 (성별, 연령대, 목표, BMI 기반) =====
+  const ageGroup = getAgeGroup(member.birthDate);
+  const bmiRange = getBmiRange(member.startWeight, member.height);
+  const memberGender = member.gender || "unknown";
+  const memberGoal = member.goal || "fitness";
+
+  // Firestore에서 동일 그룹 회원 조회
+  let similarMembersQuery = db.collection("members").where("goal", "==", memberGoal);
+
+  // 성별 필터 (알 수 있는 경우)
+  if (memberGender !== "unknown") {
+    similarMembersQuery = similarMembersQuery.where("gender", "==", memberGender);
+  }
+
+  const similarMembersSnapshot = await similarMembersQuery.limit(500).get();
+
+  // 동일 그룹 회원들의 데이터 수집
+  const groupMetrics: {
+    memberId: string;
+    attendanceRate: number;
+    bodyFatChange: number;
+    muscleChange: number;
+  }[] = [];
+
+  for (const doc of similarMembersSnapshot.docs) {
+    if (doc.id === member.id) continue; // 본인 제외
+
+    const memberData = doc.data();
+
+    // 연령대 필터 (birthDate가 있는 경우)
+    if (memberData.birthDate && ageGroup !== "unknown") {
+      const otherAgeGroup = getAgeGroup(memberData.birthDate);
+      if (otherAgeGroup !== ageGroup) continue;
+    }
+
+    // BMI 범위 필터 (height, startWeight가 있는 경우)
+    if (memberData.height && memberData.startWeight && bmiRange !== "unknown") {
+      const otherBmiRange = getBmiRange(memberData.startWeight, memberData.height);
+      if (otherBmiRange !== bmiRange) continue;
+    }
+
+    // 해당 회원의 출석률 계산
+    const memberSchedules = await db
+      .collection("schedules")
+      .where("memberId", "==", doc.id)
+      .where("scheduledAt", ">=", fourWeeksAgo)
+      .get();
+
+    const memberCompleted = memberSchedules.docs.filter(
+      (s) => s.data().status === "completed" || s.data().status === "attended"
+    ).length;
+    const memberTotal = memberSchedules.docs.length;
+    const memberAttendanceRate = memberTotal > 0 ? (memberCompleted / memberTotal) * 100 : 0;
+
+    // 해당 회원의 체지방 변화 계산
+    const memberInbody = await db
+      .collection("inbody_records")
+      .where("memberId", "==", doc.id)
+      .orderBy("measuredAt", "desc")
+      .limit(5)
+      .get();
+
+    let memberBodyFatChange = 0;
+    let memberMuscleChange = 0;
+
+    if (memberInbody.docs.length >= 2) {
+      const first = memberInbody.docs[memberInbody.docs.length - 1].data();
+      const last = memberInbody.docs[0].data();
+      memberBodyFatChange = (last.bodyFatPercent || 0) - (first.bodyFatPercent || 0);
+      memberMuscleChange = (last.skeletalMuscleMass || 0) - (first.skeletalMuscleMass || 0);
+    }
+
+    groupMetrics.push({
+      memberId: doc.id,
+      attendanceRate: memberAttendanceRate,
+      bodyFatChange: memberBodyFatChange,
+      muscleChange: memberMuscleChange,
+    });
+  }
+
+  // 백분위 계산: percentile = (내 순위 / 전체) × 100, 상위% = 100 - percentile
+  const sampleSize = groupMetrics.length + 1; // 본인 포함
+
+  // 출석률 순위 (높을수록 좋음)
+  const attendanceRank = groupMetrics.filter((m) => m.attendanceRate > attendanceRate).length + 1;
+  const attendancePercentile = Math.round((attendanceRank / sampleSize) * 100);
+
+  // 체지방 감량 순위 (더 많이 감량할수록 좋음, 음수가 더 좋음)
+  let performancePercentile = 50;
+  if (memberGoal === "diet") {
+    const fatLossRank = groupMetrics.filter((m) => m.bodyFatChange < bodyFatChange).length + 1;
+    performancePercentile = Math.round((fatLossRank / sampleSize) * 100);
+  } else if (memberGoal === "bulk") {
+    // 근육 증가량 순위 계산
+    const muscleChange = currentMuscle ? (currentMuscle - (member.startWeight || currentMuscle)) : 0;
+    const muscleRank = groupMetrics.filter((m) => m.muscleChange > muscleChange).length + 1;
+    performancePercentile = Math.round((muscleRank / sampleSize) * 100);
+  }
+
+  // 종합 퍼센타일 (가중 평균)
+  const overallPercentile = Math.round(
+    attendancePercentile * 0.4 + performancePercentile * 0.6
+  );
+
+  // 비교 그룹 정보
+  const comparisonGroup = {
+    gender: memberGender === "male" ? "남성" : memberGender === "female" ? "여성" : "전체",
+    ageGroup: ageGroup === "unknown" ? "전체" : ageGroup,
+    goal: memberGoal === "diet" ? "다이어트" : memberGoal === "bulk" ? "벌크업" : "체력향상",
+    bmiRange: bmiRange === "unknown" ? "전체" : bmiRange,
+    sampleSize,
+  };
+
+  // 그래프 데이터 (분포 차트용)
+  const topPercent = 100 - overallPercentile;
+  const graphData = [
+    {
+      category: "출석률",
+      value: attendanceRate,
+      percentile: attendancePercentile,
+      topPercent: 100 - attendancePercentile,
+      benchmark: 75, // 평균 기준
+    },
+    {
+      category: memberGoal === "diet" ? "체지방 감량" : "근육 증가",
+      value: memberGoal === "diet" ? Math.abs(bodyFatChange) : (currentMuscle || 0),
+      percentile: performancePercentile,
+      topPercent: 100 - performancePercentile,
+      benchmark: memberGoal === "diet" ? 1 : 30,
+    },
+    {
+      category: "종합 순위",
+      value: topPercent,
+      percentile: overallPercentile,
+      topPercent,
+      benchmark: 50,
+    },
+  ];
+
+  // 메시지 생성
+  let message: string;
+  let priority: InsightPriority;
+  const groupDesc = `${comparisonGroup.gender} ${comparisonGroup.ageGroup} ${comparisonGroup.goal} 회원`;
+
+  if (topPercent >= 80) {
+    message = `${groupDesc} ${sampleSize}명 중 상위 ${100 - overallPercentile}%! ` +
+      `출석률 ${attendanceRate}%로 ${memberGoal === "diet" ? "체지방 감량" : "근육 증가"}도 우수해요`;
+    priority = "high";
+  } else if (topPercent >= 60) {
+    message = `${groupDesc} 중 상위 ${100 - overallPercentile}%에 속해요! 평균보다 좋은 성과를 내고 있어요`;
+    priority = "medium";
+  } else if (topPercent >= 40) {
+    message = `${groupDesc} 중 평균 수준이에요. 출석률을 조금 높이면 상위권 진입 가능!`;
+    priority = "medium";
+  } else {
+    message = `다른 ${groupDesc}보다 조금 뒤처져 있어요. 규칙적인 운동으로 따라잡아봐요!`;
+    priority = "low";
+  }
+
+  return {
+    type: "benchmarking",
+    priority,
+    title: topPercent >= 80 ? `상위 ${100 - topPercent}%! 🏆` : "나의 순위",
+    message,
+    graphData,
+    graphType: "distribution",
+    data: {
+      overallPercentile,
+      topPercent,
+      attendanceRate,
+      attendancePercentile,
+      bodyFatChange: parseFloat(bodyFatChange.toFixed(1)),
+      performancePercentile,
+      currentWeight,
+      currentBodyFat,
+      currentMuscle,
+      goal: memberGoal,
+      comparisonGroup,
+    },
+  };
+}
+
+/**
  * 회원용 인사이트 생성 Cloud Function
  */
 export const generateMemberInsights = functions
@@ -993,6 +1445,15 @@ export const generateMemberInsights = functions
       const goalProgress = generateGoalProgress(bodyRecords, inbodyRecords, member);
       if (goalProgress) insights.push(goalProgress);
 
+      // 5-8. 벤치마킹 비교
+      const benchmarking = await generateBenchmarking(
+        member,
+        bodyRecords,
+        inbodyRecords,
+        schedules
+      );
+      if (benchmarking) insights.push(benchmarking);
+
       functions.logger.info("[generateMemberInsights] 인사이트 생성 완료", {
         totalInsights: insights.length,
         types: insights.map((i) => i.type),
@@ -1071,5 +1532,217 @@ export const generateMemberInsights = functions
         "internal",
         `인사이트 생성 중 오류가 발생했습니다: ${errorMessage}`
       );
+    }
+  });
+
+/**
+ * 회원 인사이트 자동 생성 스케줄 함수
+ *
+ * @description
+ * 매일 오전 9시에 모든 활성 회원에 대해 자동으로 인사이트를 생성합니다.
+ * 트레이너 인사이트보다 1시간 늦게 실행되어 서버 부하 분산
+ *
+ * @fires pubsub.schedule
+ * @region asia-northeast3
+ * @schedule 매일 오전 9시 (Asia/Seoul)
+ */
+export const generateMemberInsightsScheduled = functions
+  .region("asia-northeast3")
+  .pubsub.schedule("0 8 * * *") // 매일 오전 8시 (트레이너 인사이트 1시간 후)
+  .timeZone("Asia/Seoul")
+  .onRun(async () => {
+    const startTime = Date.now();
+    functions.logger.info("[generateMemberInsightsScheduled] 스케줄 실행 시작");
+
+    try {
+      // 모든 활성 회원 조회
+      const membersSnapshot = await db
+        .collection("members")
+        .where("status", "==", "active")
+        .get();
+
+      functions.logger.info("[generateMemberInsightsScheduled] 회원 조회 완료", {
+        memberCount: membersSnapshot.size,
+      });
+
+      let totalInsights = 0;
+      let successCount = 0;
+      let errorCount = 0;
+
+      // 각 회원에 대해 인사이트 생성
+      for (const memberDoc of membersSnapshot.docs) {
+        const memberId = memberDoc.id;
+        const memberData = memberDoc.data();
+
+        try {
+          const member: MemberData = {
+            id: memberId,
+            name: memberData.name || "회원",
+            goal: memberData.goal,
+            targetWeight: memberData.targetWeight,
+            targetBodyFat: memberData.targetBodyFat,
+            targetMuscleMass: memberData.targetMuscleMass,
+          };
+
+          // 데이터 수집 기간 설정
+          const threeMonthsAgo = new Date();
+          threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+          const threeMonthsAgoTimestamp = admin.firestore.Timestamp.fromDate(threeMonthsAgo);
+
+          // 데이터 병렬 조회
+          const [
+            bodyRecordsSnapshot,
+            inbodyRecordsSnapshot,
+            workoutRecordsSnapshot,
+            schedulesSnapshot,
+            dietRecordsSnapshot,
+          ] = await Promise.all([
+            db.collection("body_records")
+              .where("memberId", "==", memberId)
+              .orderBy("createdAt", "desc")
+              .limit(100)
+              .get(),
+            db.collection("inbody_records")
+              .where("memberId", "==", memberId)
+              .orderBy("measuredAt", "desc")
+              .limit(50)
+              .get(),
+            db.collection("workout_records")
+              .where("memberId", "==", memberId)
+              .where("createdAt", ">=", threeMonthsAgoTimestamp)
+              .orderBy("createdAt", "desc")
+              .limit(500)
+              .get(),
+            db.collection("schedules")
+              .where("memberId", "==", memberId)
+              .orderBy("date", "desc")
+              .limit(50)
+              .get(),
+            db.collection("diet_records")
+              .where("memberId", "==", memberId)
+              .orderBy("createdAt", "desc")
+              .limit(50)
+              .get(),
+          ]);
+
+          const bodyRecords: BodyRecord[] = bodyRecordsSnapshot.docs.map(
+            (doc) => doc.data() as BodyRecord
+          );
+          const inbodyRecords: InbodyRecord[] = inbodyRecordsSnapshot.docs.map(
+            (doc) => doc.data() as InbodyRecord
+          );
+          const workoutRecords: WorkoutRecord[] = workoutRecordsSnapshot.docs.map(
+            (doc) => doc.data() as WorkoutRecord
+          );
+          const schedules: ScheduleRecord[] = schedulesSnapshot.docs.map(
+            (doc) => doc.data() as ScheduleRecord
+          );
+          const dietRecords: DietRecord[] = dietRecordsSnapshot.docs.map(
+            (doc) => doc.data() as DietRecord
+          );
+
+          // 인사이트 생성
+          const insights: MemberInsight[] = [];
+
+          const bodyPrediction = generateBodyPrediction(bodyRecords, inbodyRecords, member);
+          if (bodyPrediction) insights.push(bodyPrediction);
+
+          const workoutAchievement = generateWorkoutAchievement(workoutRecords);
+          if (workoutAchievement) insights.push(workoutAchievement);
+
+          const attendanceHabit = await generateAttendanceHabit(schedules, memberId);
+          if (attendanceHabit) insights.push(attendanceHabit);
+
+          const nutritionBalance = generateNutritionBalance(dietRecords, member);
+          if (nutritionBalance) insights.push(nutritionBalance);
+
+          const bodyChangeReport = generateBodyChangeReport(inbodyRecords);
+          if (bodyChangeReport) insights.push(bodyChangeReport);
+
+          const conditionPattern = generateConditionPattern(workoutRecords);
+          if (conditionPattern) insights.push(conditionPattern);
+
+          const goalProgress = generateGoalProgress(bodyRecords, inbodyRecords, member);
+          if (goalProgress) insights.push(goalProgress);
+
+          const benchmarking = await generateBenchmarking(
+            member,
+            bodyRecords,
+            inbodyRecords,
+            schedules
+          );
+          if (benchmarking) insights.push(benchmarking);
+
+          // 저장
+          const now = admin.firestore.Timestamp.now();
+          const expiresAt = admin.firestore.Timestamp.fromDate(
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          );
+
+          // 기존 인사이트 삭제
+          const existingSnapshot = await db
+            .collection("member_insights")
+            .where("memberId", "==", memberId)
+            .get();
+
+          const batch = db.batch();
+          existingSnapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+
+          // 새 인사이트 저장
+          for (const insight of insights) {
+            const docRef = db.collection("member_insights").doc();
+            batch.set(docRef, {
+              memberId,
+              type: insight.type,
+              priority: insight.priority,
+              title: insight.title,
+              message: insight.message,
+              graphData: insight.graphData || null,
+              graphType: insight.graphType || null,
+              data: insight.data || null,
+              createdAt: now,
+              expiresAt,
+            });
+          }
+
+          await batch.commit();
+
+          totalInsights += insights.length;
+          successCount++;
+
+          functions.logger.info("[generateMemberInsightsScheduled] 회원 처리 완료", {
+            memberId,
+            newInsights: insights.length,
+          });
+
+          // API 레이트 리밋 방지를 위한 지연
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        } catch (memberError) {
+          errorCount++;
+          functions.logger.error("[generateMemberInsightsScheduled] 회원 처리 실패", {
+            memberId,
+            error: memberError instanceof Error ? memberError.message : memberError,
+          });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      functions.logger.info("[generateMemberInsightsScheduled] 스케줄 실행 완료", {
+        totalMembers: membersSnapshot.size,
+        successCount,
+        errorCount,
+        totalInsights,
+        durationMs: duration,
+      });
+
+      return null;
+    } catch (error) {
+      functions.logger.error("[generateMemberInsightsScheduled] 스케줄 실행 실패", {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return null;
     }
   });

@@ -1235,76 +1235,50 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              // 액션 버튼: 개인 일정만 수정/삭제 가능
-              if (isPersonal)
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _showEditScheduleBottomSheet(schedule);
-                        },
-                        icon: const Icon(
-                          Icons.edit,
-                          color: AppTheme.tertiary,
+              // 액션 버튼: PT/개인 일정 모두 수정/삭제 가능
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showEditScheduleBottomSheet(schedule);
+                      },
+                      icon: Icon(
+                        Icons.edit,
+                        color: isPersonal ? AppTheme.tertiary : AppTheme.primary,
+                      ),
+                      label: Text(
+                        '수정',
+                        style: TextStyle(
+                          color: isPersonal ? AppTheme.tertiary : AppTheme.primary,
                         ),
-                        label: const Text(
-                          '수정',
-                          style: TextStyle(
-                            color: AppTheme.tertiary,
-                          ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: isPersonal ? AppTheme.tertiary : AppTheme.primary,
                         ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: AppTheme.tertiary,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _confirmDeleteSchedule(ctx, schedule),
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        label: const Text(
-                          '삭제',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _confirmDeleteSchedule(ctx, schedule),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      label: const Text(
+                        '삭제',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
-                  ],
-                )
-              else
-                // PT 일정은 읽기 전용 안내
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'PT 일정은 트레이너만 수정할 수 있습니다',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
+              ),
             ],
           ),
         ),
@@ -2100,6 +2074,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
   void _showEditScheduleBottomSheet(ScheduleModel schedule) {
     // 기존 일정 데이터로 초기화
+    final bool isPtSchedule = schedule.scheduleType == ScheduleType.pt;
     String personalTitle = schedule.title ?? '';
     DateTime selectedDate = schedule.scheduledAt;
     TimeOfDay startTime = TimeOfDay(
@@ -2118,8 +2093,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          // 제목 입력 필수
-          final bool canSave = personalTitle.trim().isNotEmpty;
+          // PT 일정은 제목 불필요, 개인 일정은 제목 필수
+          final bool canSave = isPtSchedule || personalTitle.trim().isNotEmpty;
 
           return Container(
             height: MediaQuery.of(builderContext).size.height * 0.65,
@@ -2144,9 +2119,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '일정 수정',
-                        style: TextStyle(
+                      Text(
+                        isPtSchedule ? 'PT 일정 수정' : '개인 일정 수정',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -2170,51 +2145,93 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 제목 입력
-                        Row(
-                          children: [
-                            const Text(
-                              '제목',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              '*',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ],
+                        // 일정 유형 표시
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isPtSchedule
+                                ? AppTheme.primary.withValues(alpha: 0.1)
+                                : AppTheme.tertiary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isPtSchedule
+                                    ? Icons.fitness_center
+                                    : Icons.event_note,
+                                size: 16,
+                                color: isPtSchedule
+                                    ? AppTheme.primary
+                                    : AppTheme.tertiary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isPtSchedule ? 'PT 일정' : '개인 일정',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isPtSchedule
+                                      ? AppTheme.primary
+                                      : AppTheme.tertiary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          initialValue: personalTitle,
-                          onChanged: (v) {
-                            setDialogState(() => personalTitle = v);
-                          },
-                          decoration: InputDecoration(
-                            hintText: '일정 제목을 입력하세요',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey[200]!,
+                        const SizedBox(height: 20),
+
+                        // 제목 입력 (개인 일정만)
+                        if (!isPtSchedule) ...[
+                          Row(
+                            children: [
+                              const Text(
+                                '제목',
+                                style: TextStyle(color: Colors.grey),
                               ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey[200]!,
+                              const SizedBox(width: 4),
+                              const Text(
+                                '*',
+                                style: TextStyle(color: Colors.red),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppTheme.tertiary,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            initialValue: personalTitle,
+                            onChanged: (v) {
+                              setDialogState(() => personalTitle = v);
+                            },
+                            decoration: InputDecoration(
+                              hintText: '일정 제목을 입력하세요',
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppTheme.tertiary,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
+                        ],
 
                         // 날짜
                         const Text('날짜', style: TextStyle(color: Colors.grey)),
@@ -2390,7 +2407,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                     )
                                 : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.tertiary,
+                              backgroundColor: isPtSchedule
+                                  ? AppTheme.primary
+                                  : AppTheme.tertiary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(

@@ -1378,11 +1378,12 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   }
 
   // ============================================================
-  // 일정 추가 바텀시트 (개인 일정 전용)
+  // 일정 추가 바텀시트 (PT/개인 일정 선택 가능)
   // ============================================================
 
   void _showAddScheduleBottomSheet() {
     // 상태 변수
+    ScheduleType scheduleType = ScheduleType.pt; // 기본값: PT 일정
     String personalTitle = '';
     DateTime selectedDate = _selectedDate;
     TimeOfDay startTime = const TimeOfDay(hour: 17, minute: 0);
@@ -1396,8 +1397,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          // 제목 입력 필수
-          final bool canSave = personalTitle.trim().isNotEmpty;
+          // PT 일정은 제목 필요 없음, 개인 일정은 제목 필수
+          final bool canSave = scheduleType == ScheduleType.pt ||
+              personalTitle.trim().isNotEmpty;
 
           return Container(
             height: MediaQuery.of(builderContext).size.height * 0.75,
@@ -1422,9 +1424,11 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '개인 일정 추가',
-                        style: TextStyle(
+                      Text(
+                        scheduleType == ScheduleType.pt
+                            ? 'PT 일정 추가'
+                            : '개인 일정 추가',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1448,50 +1452,173 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 제목 입력
+                        // 일정 유형 선택
+                        const Text(
+                          '일정 유형',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Text(
-                              '제목',
-                              style: TextStyle(color: Colors.grey),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(
+                                      () => scheduleType = ScheduleType.pt);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: scheduleType == ScheduleType.pt
+                                        ? AppTheme.primary.withValues(alpha: 0.1)
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: scheduleType == ScheduleType.pt
+                                          ? AppTheme.primary
+                                          : Colors.grey[300]!,
+                                      width:
+                                          scheduleType == ScheduleType.pt ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.fitness_center,
+                                        size: 18,
+                                        color: scheduleType == ScheduleType.pt
+                                            ? AppTheme.primary
+                                            : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'PT 일정',
+                                        style: TextStyle(
+                                          color: scheduleType == ScheduleType.pt
+                                              ? AppTheme.primary
+                                              : Colors.grey[600],
+                                          fontWeight:
+                                              scheduleType == ScheduleType.pt
+                                                  ? FontWeight.w600
+                                                  : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              '*',
-                              style: TextStyle(color: Colors.red),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() =>
+                                      scheduleType = ScheduleType.personal);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: scheduleType == ScheduleType.personal
+                                        ? AppTheme.tertiary
+                                            .withValues(alpha: 0.1)
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: scheduleType == ScheduleType.personal
+                                          ? AppTheme.tertiary
+                                          : Colors.grey[300]!,
+                                      width: scheduleType == ScheduleType.personal
+                                          ? 2
+                                          : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.event_note,
+                                        size: 18,
+                                        color:
+                                            scheduleType == ScheduleType.personal
+                                                ? AppTheme.tertiary
+                                                : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '개인 일정',
+                                        style: TextStyle(
+                                          color: scheduleType ==
+                                                  ScheduleType.personal
+                                              ? AppTheme.tertiary
+                                              : Colors.grey[600],
+                                          fontWeight: scheduleType ==
+                                                  ScheduleType.personal
+                                              ? FontWeight.w600
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          onChanged: (v) {
-                            setDialogState(() => personalTitle = v);
-                          },
-                          decoration: InputDecoration(
-                            hintText: '일정 제목을 입력하세요',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey[200]!,
+                        const SizedBox(height: 24),
+
+                        // 제목 입력 (개인 일정일 때만 표시)
+                        if (scheduleType == ScheduleType.personal) ...[
+                          Row(
+                            children: [
+                              const Text(
+                                '제목',
+                                style: TextStyle(color: Colors.grey),
                               ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey[200]!,
+                              const SizedBox(width: 4),
+                              const Text(
+                                '*',
+                                style: TextStyle(color: Colors.red),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppTheme.tertiary,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            onChanged: (v) {
+                              setDialogState(() => personalTitle = v);
+                            },
+                            decoration: InputDecoration(
+                              hintText: '일정 제목을 입력하세요',
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppTheme.tertiary,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
+                        ],
 
                         // 날짜
                         const Text('날짜', style: TextStyle(color: Colors.grey)),
@@ -1759,6 +1886,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                             onPressed: canSave
                                 ? () => _saveSchedule(
                                       builderContext,
+                                      scheduleType,
                                       personalTitle,
                                       selectedDate,
                                       startTime,
@@ -1768,7 +1896,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                     )
                                 : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.tertiary,
+                              backgroundColor: scheduleType == ScheduleType.pt
+                                  ? AppTheme.primary
+                                  : AppTheme.tertiary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -1878,9 +2008,10 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     );
   }
 
-  /// 일정 저장 (개인 일정 전용)
+  /// 일정 저장 (PT/개인 일정)
   Future<void> _saveSchedule(
     BuildContext dialogContext,
+    ScheduleType scheduleType,
     String personalTitle,
     DateTime date,
     TimeOfDay startTime,
@@ -1921,12 +2052,12 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
           id: uuid.v4(),
           trainerId: member.trainerId,
           memberId: member.id,
-          memberName: null,
+          memberName: null, // 트레이너가 확인 시 조회됨
           scheduledAt: scheduleDate,
           duration: duration > 0 ? duration : 60,
           status: ScheduleStatus.scheduled,
-          scheduleType: ScheduleType.personal,
-          title: personalTitle,
+          scheduleType: scheduleType,
+          title: scheduleType == ScheduleType.personal ? personalTitle : null,
           note: memo.isNotEmpty ? memo : null,
           groupId: groupId,
           createdAt: DateTime.now(),
@@ -1935,14 +2066,16 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       }
 
       if (mounted) {
+        final typeLabel = scheduleType == ScheduleType.pt ? 'PT' : '개인';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               totalSchedules > 1
-                  ? '$totalSchedules개 일정이 추가되었습니다'
-                  : '일정이 추가되었습니다',
+                  ? '$typeLabel 일정 ${totalSchedules}개가 추가되었습니다'
+                  : '$typeLabel 일정이 추가되었습니다',
             ),
-            backgroundColor: AppTheme.tertiary,
+            backgroundColor:
+                scheduleType == ScheduleType.pt ? AppTheme.primary : AppTheme.tertiary,
             behavior: SnackBarBehavior.floating,
           ),
         );

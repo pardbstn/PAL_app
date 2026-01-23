@@ -7,6 +7,7 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/body_record_model.dart';
 import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/streak_provider.dart';
 
 /// 체성분 기록 추가 바텀시트
 class AddBodyRecordSheet extends ConsumerStatefulWidget {
@@ -454,6 +455,9 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
       );
 
       await repository.create(record);
+
+      // 스트릭 업데이트
+      await ref.read(streakNotifierProvider.notifier).recordWeight(widget.memberId);
 
       // Provider 무효화
       ref.invalidate(bodyRecordsProvider(widget.memberId));

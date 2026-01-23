@@ -107,5 +107,5 @@ extension ScheduleModelX on ScheduleModel {
   bool get isPersonalSchedule => scheduleType == ScheduleType.personal;
 
   /// 표시용 제목 (PT 일정은 회원명, 개인 일정은 title)
-  String get displayTitle => isPtSchedule ? (memberName ?? '회원') : (title ?? '개인 일정');
+  String get displayTitle => isPtSchedule ? (memberName ?? '수업') : (title ?? '개인 일정');
 }

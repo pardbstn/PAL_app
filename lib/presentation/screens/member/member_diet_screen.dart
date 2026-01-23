@@ -13,6 +13,7 @@ import '../../../data/models/diet_record_model.dart' as diet_record;
 import '../../../data/models/food_item_model.dart';
 import '../../../data/repositories/diet_analysis_repository.dart';
 import '../../../data/services/food_database_service.dart';
+import '../../../presentation/providers/streak_provider.dart';
 import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/diet_analysis_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
@@ -111,6 +112,9 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
       // Repository를 통해 저장
       final repository = ref.read(dietAnalysisRepositoryProvider);
       await repository.create(record);
+
+      // 스트릭 업데이트
+      await ref.read(streakNotifierProvider.notifier).recordDiet(memberId);
 
       // 데이터 새로고침
       final isToday = _isToday(_selectedDate);
@@ -324,6 +328,10 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
     if (!mounted) return;
     final state = ref.read(dietAnalysisNotifierProvider);
     if (state.status == AnalysisStatus.success) {
+      // 스트릭 업데이트
+      await ref.read(streakNotifierProvider.notifier).recordDiet(memberId);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${state.result?.foodName ?? "음식"} 분석 완료! (${state.result?.calories ?? 0} kcal)'),

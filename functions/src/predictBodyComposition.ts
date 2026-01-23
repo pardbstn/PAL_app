@@ -125,8 +125,8 @@ function calculateMetricPrediction(
   const standardDeviation = calculateStandardDeviation(values);
   const variance = standardDeviation ** 2;
 
-  // 1주 후 예측 값
-  const predictedValue = Math.round((currentValue + weeklyTrend) * 10) / 10;
+  // 4주 후 예측 값
+  const predictedValue = Math.round((currentValue + weeklyTrend * 4) * 10) / 10;
 
   // 목표 도달 예상 주 계산
   const estimatedWeeksToTarget = calculateWeeksToTarget(
@@ -167,33 +167,33 @@ function generateCompositionAnalysisMessage(predictions: {
 
   // 체중 메시지
   if (predictions.weight) {
-    const trend = predictions.weight.weeklyTrend;
-    const arrow = trend > 0 ? "▲" : trend < 0 ? "▼" : "→";
-    const trendStr = trend !== 0 ? `${arrow}${Math.abs(trend).toFixed(1)}kg` : "유지";
-    parts.push(`체중 ${predictions.weight.predicted}kg (${trendStr})`);
+    const change = predictions.weight.predicted - predictions.weight.current;
+    const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "→";
+    const changeStr = change !== 0 ? `${arrow}${Math.abs(change).toFixed(1)}kg` : "유지";
+    parts.push(`체중 ${predictions.weight.predicted}kg (${changeStr})`);
   }
 
   // 골격근량 메시지
   if (predictions.skeletalMuscleMass) {
-    const trend = predictions.skeletalMuscleMass.weeklyTrend;
-    const arrow = trend > 0 ? "▲" : trend < 0 ? "▼" : "→";
-    const trendStr = trend !== 0 ? `${arrow}${Math.abs(trend).toFixed(1)}kg` : "유지";
-    parts.push(`골격근량 ${predictions.skeletalMuscleMass.predicted}kg (${trendStr})`);
+    const change = predictions.skeletalMuscleMass.predicted - predictions.skeletalMuscleMass.current;
+    const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "→";
+    const changeStr = change !== 0 ? `${arrow}${Math.abs(change).toFixed(1)}kg` : "유지";
+    parts.push(`골격근량 ${predictions.skeletalMuscleMass.predicted}kg (${changeStr})`);
   }
 
   // 체지방률 메시지
   if (predictions.bodyFatPercent) {
-    const trend = predictions.bodyFatPercent.weeklyTrend;
-    const arrow = trend > 0 ? "▲" : trend < 0 ? "▼" : "→";
-    const trendStr = trend !== 0 ? `${arrow}${Math.abs(trend).toFixed(1)}%` : "유지";
-    parts.push(`체지방률 ${predictions.bodyFatPercent.predicted}% (${trendStr})`);
+    const change = predictions.bodyFatPercent.predicted - predictions.bodyFatPercent.current;
+    const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "→";
+    const changeStr = change !== 0 ? `${arrow}${Math.abs(change).toFixed(1)}%` : "유지";
+    parts.push(`체지방률 ${predictions.bodyFatPercent.predicted}% (${changeStr})`);
   }
 
   if (parts.length === 0) {
     return "예측을 위한 충분한 데이터가 없습니다.";
   }
 
-  return `1주 뒤 예측: ${parts.join(", ")}`;
+  return `4주 뒤 예측: ${parts.join(", ")}`;
 }
 
 // ==================== 메인 함수 ====================
@@ -247,23 +247,59 @@ export const predictBodyComposition = functions
     }
 
     try {
-      // 3. 트레이너 정보 확인
+      // 3. 트레이너 정보 확인 (트레이너 또는 회원 모두 호출 가능)
+      let trainerId: string;
+      let trainerData: FirebaseFirestore.DocumentData;
+      let trainerDoc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot;
+
       const trainerSnapshot = await db
         .collection("trainers")
         .where("userId", "==", userId)
         .limit(1)
         .get();
 
-      if (trainerSnapshot.empty) {
-        throw new functions.https.HttpsError(
-          "permission-denied",
-          "트레이너 정보를 찾을 수 없습니다."
-        );
-      }
+      if (!trainerSnapshot.empty) {
+        // 트레이너가 호출한 경우
+        trainerDoc = trainerSnapshot.docs[0];
+        trainerId = trainerDoc.id;
+        trainerData = trainerDoc.data()!;
+      } else {
+        // 회원이 호출한 경우 - 회원의 trainerId로 트레이너 찾기
+        const memberSnapshot = await db
+          .collection("members")
+          .where("userId", "==", userId)
+          .limit(1)
+          .get();
 
-      const trainerDoc = trainerSnapshot.docs[0];
-      const trainerId = trainerDoc.id;
-      const trainerData = trainerDoc.data();
+        if (memberSnapshot.empty) {
+          throw new functions.https.HttpsError(
+            "permission-denied",
+            "사용자 정보를 찾을 수 없습니다."
+          );
+        }
+
+        const memberDocData = memberSnapshot.docs[0].data();
+        const memberTrainerId = memberDocData.trainerId;
+
+        if (!memberTrainerId) {
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "트레이너가 배정되지 않았습니다."
+          );
+        }
+
+        const trainerDocRef = await db.collection("trainers").doc(memberTrainerId).get();
+        if (!trainerDocRef.exists) {
+          throw new functions.https.HttpsError(
+            "not-found",
+            "트레이너 정보를 찾을 수 없습니다."
+          );
+        }
+
+        trainerDoc = trainerDocRef;
+        trainerId = memberTrainerId;
+        trainerData = trainerDocRef.data()!;
+      }
 
       // 4. 사용량 한도 체크 (현재 비활성화 - 테스트용)
       // const tier = trainerData.subscriptionTier || "free";
@@ -374,6 +410,29 @@ export const predictBodyComposition = functions
         })
         .filter((item): item is WeightDataPoint => item !== null);
 
+      // body_records에서 골격근량/체지방률도 추출 (inbody_records가 없는 경우 fallback)
+      const bodyRecordMuscleData: WeightDataPoint[] = weightRecordsSnapshot.docs
+        .map((doc) => {
+          const docData = doc.data();
+          const date = safeToDate(docData.recordDate);
+          if (!date || typeof docData.muscleMass !== "number") {
+            return null;
+          }
+          return {date, weight: docData.muscleMass};
+        })
+        .filter((item): item is WeightDataPoint => item !== null);
+
+      const bodyRecordFatData: WeightDataPoint[] = weightRecordsSnapshot.docs
+        .map((doc) => {
+          const docData = doc.data();
+          const date = safeToDate(docData.recordDate);
+          if (!date || typeof docData.bodyFatPercent !== "number") {
+            return null;
+          }
+          return {date, weight: docData.bodyFatPercent};
+        })
+        .filter((item): item is WeightDataPoint => item !== null);
+
       // 8. InBody 기록 조회 (inbody_records)
       let inbodyRecordsSnapshot;
       try {
@@ -414,13 +473,21 @@ export const predictBodyComposition = functions
         }
 
         // 체지방률 데이터
-        if (typeof docData.bodyFatPercentage === "number") {
+        if (typeof docData.bodyFatPercent === "number") {
           bodyFatData.push({
             date: recordDate,
-            weight: docData.bodyFatPercentage,
+            weight: docData.bodyFatPercent,
           });
         }
       });
+
+      // body_records 데이터를 fallback으로 병합 (inbody_records에 데이터가 없는 경우)
+      if (muscleData.length < MIN_DATA_POINTS && bodyRecordMuscleData.length > 0) {
+        muscleData.push(...bodyRecordMuscleData);
+      }
+      if (bodyFatData.length < MIN_DATA_POINTS && bodyRecordFatData.length > 0) {
+        bodyFatData.push(...bodyRecordFatData);
+      }
 
       functions.logger.info("[predictBodyComposition] 데이터 조회 완료", {
         memberId,

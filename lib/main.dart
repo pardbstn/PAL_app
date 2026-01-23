@@ -54,12 +54,16 @@ void main() async {
       await initializeDateFormatting('ko_KR', null);
 
       // Firebase 초기화
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
       // FCM 초기화 (웹에서는 지원하지 않음)
       if (!kIsWeb) {
         // FCM 백그라운드 핸들러 등록
-        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
 
         // FCM 서비스 초기화
         final fcmService = FCMService();

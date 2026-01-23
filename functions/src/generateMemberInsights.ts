@@ -1564,10 +1564,9 @@ export const generateMemberInsightsScheduled = functions
     functions.logger.info("[generateMemberInsightsScheduled] 스케줄 실행 시작");
 
     try {
-      // 모든 활성 회원 조회
+      // 모든 회원 조회
       const membersSnapshot = await db
         .collection("members")
-        .where("status", "==", "active")
         .get();
 
       functions.logger.info("[generateMemberInsightsScheduled] 회원 조회 완료", {

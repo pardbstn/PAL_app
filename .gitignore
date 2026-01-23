@@ -53,3 +53,4 @@ scripts/serviceAccountKey.json
 scripts/node_modules/
 scripts/.dart_tool/
 scripts/pubspec.lock
+node_modules

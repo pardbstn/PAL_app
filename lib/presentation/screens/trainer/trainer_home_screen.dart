@@ -74,7 +74,7 @@ class TrainerHomeScreen extends ConsumerWidget {
                     const SizedBox(height: 28),
 
                     // 내 평점 + 배지 (순차 등장 - 250ms)
-                    _TrainerRatingBadgeSection(trainerId: authState.userId ?? '')
+                    _TrainerRatingBadgeSection(trainerId: authState.trainerModel?.id ?? '')
                         .animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                     const SizedBox(height: 28),
 

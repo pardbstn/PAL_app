@@ -48,9 +48,10 @@ class BodyCompositionPredictionNotifier
           FirebaseFunctions.instanceFor(region: 'asia-northeast3');
       final callable = functions.httpsCallable('predictBodyComposition');
       final result = await callable.call({'memberId': memberId});
+      final data = Map<String, dynamic>.from(result.data as Map);
 
-      if (result.data['success'] == true) {
-        final predictions = result.data['predictions'] as Map<String, dynamic>;
+      if (data['success'] == true) {
+        final predictions = Map<String, dynamic>.from(data['predictions'] as Map);
 
         // Parse each metric prediction
         MetricPrediction? weightPred;
@@ -74,22 +75,22 @@ class BodyCompositionPredictionNotifier
         }
 
         final model = BodyCompositionPredictionModel(
-          id: result.data['predictionId'] ?? '',
+          id: data['predictionId']?.toString() ?? '',
           memberId: memberId,
           trainerId: '',
           weightPrediction: weightPred,
           musclePrediction: musclePred,
           bodyFatPrediction: bodyFatPred,
-          analysisMessage: result.data['analysisMessage'] ?? '',
+          analysisMessage: data['analysisMessage']?.toString() ?? '',
           dataPointsUsed:
-              Map<String, int>.from(result.data['dataPointsUsed'] ?? {}),
+              Map<String, int>.from(data['dataPointsUsed'] as Map? ?? {}),
           createdAt: DateTime.now(),
         );
 
         state = state.copyWith(isLoading: false, prediction: model);
       } else {
         // Cloud Function 실패 시 로컬 폴백 시도
-        await _tryLocalFallback(memberId, result.data['error']?.toString());
+        await _tryLocalFallback(memberId, data['error']?.toString());
       }
     } on FirebaseFunctionsException catch (e) {
       // Firebase Functions 에러 시 로컬 폴백 시도

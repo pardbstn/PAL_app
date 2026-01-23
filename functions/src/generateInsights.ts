@@ -7,7 +7,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import {GoogleGenerativeAI} from "@google/generative-ai";
+import OpenAI from "openai";
 
 /**
  * Firestore에서 읽은 날짜 값을 Date 객체로 안전하게 변환
@@ -108,13 +108,13 @@ interface MessageData {
   createdAt: admin.firestore.Timestamp;
 }
 
-// Google AI 클라이언트 (지연 초기화)
-const getGoogleAIClient = (): GoogleGenerativeAI => {
-  const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+// OpenAI 클라이언트 (지연 초기화)
+const getOpenAIClient = (): OpenAI => {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("GOOGLE_AI_API_KEY is not configured");
+    throw new Error("OPENAI_API_KEY is not configured");
   }
-  return new GoogleGenerativeAI(apiKey);
+  return new OpenAI({apiKey});
 };
 
 /**
@@ -1546,14 +1546,7 @@ async function generateAIRecommendations(
   const insights: InsightData[] = [];
 
   try {
-    const genAI = getGoogleAIClient();
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7,
-      },
-    });
+    const openai = getOpenAIClient();
 
     // 데이터 요약 생성
     const memberSummaries = members.map((member) => {
@@ -1607,8 +1600,14 @@ ${JSON.stringify(memberSummaries, null, 2)}
   ]
 }`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{role: "user", content: prompt}],
+      temperature: 0.7,
+      response_format: {type: "json_object"},
+    });
+
+    const text = result.choices[0]?.message?.content || "{}";
     const parsed = JSON.parse(text) as {
       recommendations: Array<{
         title: string;
@@ -1680,7 +1679,6 @@ async function generateInsightsForTrainer(
   const membersSnapshot = await db
     .collection("members")
     .where("trainerId", "==", trainerId)
-    .where("status", "==", "active")
     .get();
 
   const members: MemberData[] = membersSnapshot.docs.map((doc) => ({
@@ -1966,12 +1964,13 @@ async function generateInsightsForTrainer(
     return !existingKeys.has(key);
   });
 
-  // 5. Firestore에 인사이트 저장
+  // 5. Firestore에 인사이트 저장 (undefined 값 제거)
   if (newInsights.length > 0) {
     const batch = db.batch();
     newInsights.forEach((insight) => {
       const docRef = db.collection("insights").doc();
-      batch.set(docRef, insight);
+      const cleanInsight = JSON.parse(JSON.stringify(insight));
+      batch.set(docRef, cleanInsight);
     });
     await batch.commit();
 
@@ -2111,10 +2110,9 @@ export const generateInsightsScheduled = functions
     functions.logger.info("[generateInsightsScheduled] 스케줄 실행 시작");
 
     try {
-      // 모든 활성 트레이너 조회
+      // 모든 트레이너 조회
       const trainersSnapshot = await db
         .collection("trainers")
-        .where("status", "==", "active")
         .get();
 
       functions.logger.info("[generateInsightsScheduled] 트레이너 조회 완료", {
@@ -2125,13 +2123,12 @@ export const generateInsightsScheduled = functions
       let successCount = 0;
       let errorCount = 0;
 
-      // 각 트레이너에 대해 인사이트 생성
+      // 각 트레이너에 대해 인사이트 생성 (AI 포함)
       for (const trainerDoc of trainersSnapshot.docs) {
         const trainerId = trainerDoc.id;
 
         try {
-          // AI 추천은 비용 절감을 위해 비활성화 (false)
-          const result = await generateInsightsForTrainer(trainerId, false);
+          const result = await generateInsightsForTrainer(trainerId, true);
           totalInsights += result.stats.newSaved;
           successCount++;
 
@@ -2190,10 +2187,9 @@ export const generateInsightsWeekly = functions
     functions.logger.info("[generateInsightsWeekly] 주간 스케줄 실행 시작");
 
     try {
-      // 모든 활성 트레이너 조회
+      // 모든 트레이너 조회
       const trainersSnapshot = await db
         .collection("trainers")
-        .where("status", "==", "active")
         .get();
 
       functions.logger.info("[generateInsightsWeekly] 트레이너 조회 완료", {

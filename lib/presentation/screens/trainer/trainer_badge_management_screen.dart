@@ -15,7 +15,7 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authProvider);
-    final trainerId = authState.userId ?? '';
+    final trainerId = authState.trainerModel?.id ?? '';
 
     if (trainerId.isEmpty) {
       return const Scaffold(

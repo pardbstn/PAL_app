@@ -425,7 +425,7 @@ class _AIPredictionCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'AI 예측 (4주 후)',
+                  '체성분 예측 (4주 후)',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -570,18 +570,26 @@ class _AIPredictionCard extends ConsumerWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 14,
                       color: colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       '${pred.predicted.toStringAsFixed(1)}$unit',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: color,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(4주 후)',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -596,8 +604,8 @@ class _AIPredictionCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '${pred.changeIcon}${pred.formattedChange}$unit',
-              style: theme.textTheme.labelMedium?.copyWith(
+              '${pred.change >= 0 ? "▲" : "▼"}${pred.change.abs().toStringAsFixed(1)}$unit/월',
+              style: theme.textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: changeColor,
               ),
@@ -1146,6 +1154,29 @@ class _BodyCompositionChart extends ConsumerWidget {
       );
     }
 
+    // 예측 스팟 생성
+    final weightPred = predictionState.prediction?.weightPrediction;
+    final musclePred = predictionState.prediction?.musclePrediction;
+    final bodyFatPred = predictionState.prediction?.bodyFatPrediction;
+
+    final weightPredSpots = <FlSpot>[];
+    if (weightPred != null && weightSpots.isNotEmpty) {
+      weightPredSpots.add(weightSpots.last);
+      weightPredSpots.add(FlSpot(weightSpots.last.x + 1, weightPred.current + weightPred.weeklyTrend));
+    }
+    final musclePredSpots = <FlSpot>[];
+    if (musclePred != null && muscleSpots.isNotEmpty) {
+      musclePredSpots.add(muscleSpots.last);
+      musclePredSpots.add(FlSpot(muscleSpots.last.x + 1, musclePred.current + musclePred.weeklyTrend));
+    }
+    final bodyFatPredSpots = <FlSpot>[];
+    if (bodyFatPred != null && bodyFatSpots.isNotEmpty) {
+      bodyFatPredSpots.add(bodyFatSpots.last);
+      bodyFatPredSpots.add(FlSpot(bodyFatSpots.last.x + 1, bodyFatPred.current + bodyFatPred.weeklyTrend));
+    }
+
+    final hasPrediction = weightPredSpots.isNotEmpty || musclePredSpots.isNotEmpty || bodyFatPredSpots.isNotEmpty;
+
     final minValue = allValues.reduce((a, b) => a < b ? a : b);
     final maxValue = allValues.reduce((a, b) => a > b ? a : b);
     final valuePadding = (maxValue - minValue) * 0.2;
@@ -1164,7 +1195,7 @@ class _BodyCompositionChart extends ConsumerWidget {
         titlesData: _buildTitlesData(chartData, theme, colorScheme),
         borderData: FlBorderData(show: false),
         minX: 0,
-        maxX: (chartData.length - 1).toDouble(),
+        maxX: (chartData.length - 1 + (hasPrediction ? 1 : 0)).toDouble(),
         minY: minValue - valuePadding,
         maxY: maxValue + valuePadding,
         lineBarsData: [
@@ -1177,6 +1208,13 @@ class _BodyCompositionChart extends ConsumerWidget {
           // 체지방률 라인
           if (bodyFatSpots.isNotEmpty)
             _buildLineBarData(bodyFatSpots, Colors.orange, colorScheme),
+          // 예측 라인 (점선)
+          if (weightPredSpots.isNotEmpty)
+            _buildPredictionLineBarData(weightPredSpots, AppTheme.primary),
+          if (musclePredSpots.isNotEmpty)
+            _buildPredictionLineBarData(musclePredSpots, Colors.green),
+          if (bodyFatPredSpots.isNotEmpty)
+            _buildPredictionLineBarData(bodyFatPredSpots, Colors.orange),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
@@ -1236,6 +1274,41 @@ class _BodyCompositionChart extends ConsumerWidget {
             color: colorScheme.surface,
             strokeWidth: 2,
             strokeColor: color,
+          );
+        },
+      ),
+      belowBarData: BarAreaData(show: false),
+    );
+  }
+
+  /// 예측 점선 라인
+  LineChartBarData _buildPredictionLineBarData(
+    List<FlSpot> spots,
+    Color color,
+  ) {
+    return LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      color: color.withValues(alpha: 0.6),
+      barWidth: 2,
+      isStrokeCapRound: true,
+      dashArray: [5, 5],
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, barData, index) {
+          if (index == 0) {
+            return FlDotCirclePainter(
+              radius: 0,
+              color: Colors.transparent,
+              strokeWidth: 0,
+              strokeColor: Colors.transparent,
+            );
+          }
+          return FlDotCirclePainter(
+            radius: 4,
+            color: Colors.white,
+            strokeWidth: 2,
+            strokeColor: color.withValues(alpha: 0.6),
           );
         },
       ),

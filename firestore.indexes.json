@@ -178,6 +178,14 @@
       ]
     },
     {
+      "collectionGroup": "insights",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trainerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "member_insights",
       "queryScope": "COLLECTION",
       "fields": [

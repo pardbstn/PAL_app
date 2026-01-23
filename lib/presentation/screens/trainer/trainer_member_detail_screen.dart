@@ -1344,7 +1344,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   ) {
     return _buildSectionCard(
       context,
-      'AI 체성분 예측',
+      '체성분 예측',
       predictionState.isLoading
           ? const Center(
               child: Padding(
@@ -1460,7 +1460,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           const SizedBox(height: 12),
           Text(
             canPredict
-                ? 'AI 체성분 예측을 실행해보세요\n체중, 골격근량, 체지방률 변화를 예측합니다'
+                ? '체성분 예측을 실행해보세요\n체중, 골격근량, 체지방률 변화를 예측합니다'
                 : '예측을 위해 최소 4개의 기록이 필요합니다',
             style: TextStyle(
               color: Colors.grey.shade600,
@@ -1695,10 +1695,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              // 좌측 색상 인디케이터 원
               Container(
                 width: 8,
                 height: 8,
@@ -1725,45 +1725,53 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                prediction.current.toStringAsFixed(1),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+              Flexible(
+                child: Text(
+                  prediction.current.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward,
-                size: 14,
-                color: colorScheme.onSurfaceVariant,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Icon(
+                  Icons.arrow_forward,
+                  size: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(width: 4),
-              Text(
-                prediction.predicted.toStringAsFixed(1),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Flexible(
+                child: Text(
+                  prediction.predicted.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 unit,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            '${prediction.changeIcon} ${prediction.weeklyTrend > 0 ? '+' : ''}${prediction.weeklyTrend.toStringAsFixed(2)}$unit/주',
+            '${prediction.change >= 0 ? "▲" : "▼"}${prediction.change.abs().toStringAsFixed(1)}$unit/월',
             style: TextStyle(
               fontSize: 11,
               color: color,
@@ -1990,7 +1998,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     ),
                   ),
                   Text(
-                    '${prediction.weeklyTrend > 0 ? '+' : ''}${prediction.weeklyTrend.toStringAsFixed(2)} kg/주',
+                    '${prediction.change >= 0 ? "▲" : "▼"}${prediction.change.abs().toStringAsFixed(1)} kg/월',
                     style: TextStyle(
                       color: trendColor,
                       fontSize: 18,

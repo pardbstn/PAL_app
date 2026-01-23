@@ -177,8 +177,10 @@ class MemberHomeScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 6. 빠른 액션 버튼들 (index 5)
-              _QuickActionsSection()
-                  .animateListItem(5),
+              _QuickActionsSection(
+                trainerId: member.trainerId,
+                memberId: memberId,
+              ).animateListItem(5),
               const SizedBox(height: 32),
             ],
           ),
@@ -1257,6 +1259,14 @@ class _WeightChangeCard extends StatelessWidget {
 
 /// 빠른 액션 버튼 섹션
 class _QuickActionsSection extends StatelessWidget {
+  final String trainerId;
+  final String memberId;
+
+  const _QuickActionsSection({
+    required this.trainerId,
+    required this.memberId,
+  });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1295,6 +1305,17 @@ class _QuickActionsSection extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        _QuickActionButton(
+          icon: Icons.star_outline_rounded,
+          label: '트레이너 평가',
+          color: const Color(0xFFF59E0B),
+          onTap: () {
+            context.push(
+              '/member/review-trainer/$trainerId?memberId=$memberId',
+            );
+          },
         ),
       ],
     );

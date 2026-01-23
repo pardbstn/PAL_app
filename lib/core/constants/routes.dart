@@ -14,6 +14,8 @@ abstract class AppRoutes {
   static const String trainerCalendar = '/trainer/calendar';
   static const String trainerScheduleAdd = '/trainer/schedule/add';
   static const String trainerCurriculumCreate = '/trainer/curriculum/create';
+  static const String trainerCurriculumResult = '/trainer/curriculum/result';
+  static const String trainerGymPreset = '/trainer/gym-preset';
   static const String trainerMessages = '/trainer/messages';
   static const String trainerChatRoom = '/trainer/messages/:chatRoomId';
   static const String trainerRevenue = '/trainer/revenue';
@@ -56,6 +58,8 @@ abstract class RouteNames {
   static const String trainerCalendar = 'trainer-calendar';
   static const String trainerScheduleAdd = 'trainer-schedule-add';
   static const String trainerCurriculumCreate = 'trainer-curriculum-create';
+  static const String trainerCurriculumResult = 'trainer-curriculum-result';
+  static const String trainerGymPreset = 'trainer-gym-preset';
   static const String trainerMessages = 'trainer-messages';
   static const String trainerChatRoom = 'trainer-chat-room';
   static const String trainerRevenue = 'trainer-revenue';

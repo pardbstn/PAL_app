@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/data/models/curriculum_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 // Screens
@@ -19,7 +20,9 @@ import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_members
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_member_detail_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_schedule_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_revenue_web_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/ai_curriculum_generator_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/curriculum_settings_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/curriculum_result_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/gym_preset_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/add_schedule_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_settings_screen.dart';
@@ -262,10 +265,37 @@ final routerProvider = Provider<GoRouter>((ref) {
           final memberName = state.uri.queryParameters['memberName'];
           return buildSlideTransitionPage(
             key: state.pageKey,
-            child: AiCurriculumGeneratorScreen(
+            child: CurriculumSettingsScreen(
               memberId: memberId,
               memberName: memberName,
             ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerCurriculumResult,
+        name: RouteNames.trainerCurriculumResult,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: CurriculumResultScreen(
+              memberId: extra['memberId'] as String?,
+              memberName: extra['memberName'] as String?,
+              settings: extra['settings'] as CurriculumSettings?,
+              excludedExerciseIds: (extra['excludedExerciseIds'] as List<String>?) ?? [],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerGymPreset,
+        name: RouteNames.trainerGymPreset,
+        pageBuilder: (context, state) {
+          final trainerId = state.uri.queryParameters['trainerId'];
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: GymPresetScreen(trainerId: trainerId),
           );
         },
       ),

@@ -539,6 +539,14 @@ export {
 } from "./schedulers";
 
 // ============================================
+// AI 커리큘럼 V2 Functions
+// ============================================
+
+export {generateCurriculumV2} from "./curriculum/generateCurriculumV2";
+export {getAlternativeExercises} from "./curriculum/getAlternativeExercises";
+export {searchExercises} from "./curriculum/searchExercises";
+
+// ============================================
 // 트레이너 배지 시스템 Functions
 // ============================================
 

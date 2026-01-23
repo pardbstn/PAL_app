@@ -26,10 +26,46 @@ sealed class Exercise with _$Exercise {
 
     /// 메모
     String? note,
+
+    /// exercises 컬렉션 참조 ID
+    String? exerciseId,
+
+    /// 트레이너가 수정했는지 여부
+    @Default(false) bool isModifiedByTrainer,
   }) = _Exercise;
 
   factory Exercise.fromJson(Map<String, dynamic> json) =>
       _$ExerciseFromJson(json);
+}
+
+/// 커리큘럼 생성 설정
+@freezed
+sealed class CurriculumSettings with _$CurriculumSettings {
+  const factory CurriculumSettings({
+    /// 종목 수
+    @Default(5) int exerciseCount,
+
+    /// 세트 수
+    @Default(3) int setCount,
+
+    /// PT 횟수 (생성할 회차 수)
+    @Default(1) int sessionCount,
+
+    /// 집중 부위
+    @Default([]) List<String> focusParts,
+
+    /// 운동 스타일
+    @Default([]) List<String> styles,
+
+    /// 제외 부위 (부상)
+    @Default([]) List<String> excludedParts,
+
+    /// 기타 요청사항
+    String? additionalNotes,
+  }) = _CurriculumSettings;
+
+  factory CurriculumSettings.fromJson(Map<String, dynamic> json) =>
+      _$CurriculumSettingsFromJson(json);
 }
 
 /// 커리큘럼 모델
@@ -67,6 +103,12 @@ sealed class CurriculumModel with _$CurriculumModel {
     /// AI 생성 여부
     @Default(false) bool isAiGenerated,
 
+    /// AI 생성 시 사용된 설정
+    CurriculumSettings? settings,
+
+    /// AI 생성 시 참고사항
+    String? aiNotes,
+
     /// 생성일
     @TimestampConverter() required DateTime createdAt,
 
@@ -92,6 +134,9 @@ extension CurriculumModelX on CurriculumModel {
     json.remove('id'); // ID는 문서 ID로 사용
     // exercises를 명시적으로 직렬화
     json['exercises'] = exercises.map((e) => e.toJson()).toList();
+    if (settings != null) {
+      json['settings'] = settings!.toJson();
+    }
     return json;
   }
 

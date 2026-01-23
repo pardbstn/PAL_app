@@ -1493,7 +1493,7 @@ export const generateMemberInsights = functions
           message: insight.message,
           graphData: insight.graphData || null,
           graphType: insight.graphType || null,
-          data: insight.data || null,
+          data: insight.data ? JSON.parse(JSON.stringify(insight.data)) : null,
           createdAt: now,
           expiresAt,
         };
@@ -1697,7 +1697,7 @@ export const generateMemberInsightsScheduled = functions
               message: insight.message,
               graphData: insight.graphData || null,
               graphType: insight.graphType || null,
-              data: insight.data || null,
+              data: insight.data ? JSON.parse(JSON.stringify(insight.data)) : null,
               createdAt: now,
               expiresAt,
             });

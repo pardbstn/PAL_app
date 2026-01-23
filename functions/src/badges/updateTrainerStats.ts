@@ -53,6 +53,7 @@ export const onMessageCreatedForStats = functions
       const statsDoc = await statsRef.get();
       const currentStats = statsDoc.exists ? statsDoc.data()! : {};
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updates: any = {
         lastCalculated: admin.firestore.FieldValue.serverTimestamp(),
       };

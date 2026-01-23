@@ -8,6 +8,7 @@ interface BadgeCondition {
   type: string;
   name: string;
   icon: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   check: (stats: any) => boolean;
 }
 
@@ -99,7 +100,7 @@ export const calculateTrainerBadges = functions
     try {
       const trainersSnapshot = await db.collection("trainers").get();
       let updatedCount = 0;
-      let badgeChanges: { trainerId: string; earned: string[]; revoked: string[]; atRisk: string[] }[] = [];
+      const badgeChanges: { trainerId: string; earned: string[]; revoked: string[]; atRisk: string[] }[] = [];
 
       for (const trainerDoc of trainersSnapshot.docs) {
         const trainerId = trainerDoc.id;
@@ -123,13 +124,16 @@ export const calculateTrainerBadges = functions
           .doc("current")
           .get();
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const existingBadges: any[] = badgesDoc.exists
           ? (badgesDoc.data()!.activeBadges || [])
           : [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const badgeHistory: any[] = badgesDoc.exists
           ? (badgesDoc.data()!.badgeHistory || [])
           : [];
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newActiveBadges: any[] = [];
         const earned: string[] = [];
         const revoked: string[] = [];
@@ -139,6 +143,7 @@ export const calculateTrainerBadges = functions
         // 각 배지 조건 체크
         for (const condition of BADGE_CONDITIONS) {
           const isEarned = condition.check(stats);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const existing = existingBadges.find((b: any) => b.type === condition.type);
 
           if (isEarned) {
@@ -206,30 +211,31 @@ export const calculateTrainerBadges = functions
 /**
  * 배지 해제 임박 체크 (조건 충족하지만 위험 수준)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function checkBadgeAtRisk(type: string, stats: any): boolean {
   switch (type) {
-    case "lightningResponse":
-      // 30분 이내인데 25~30분이면 위험
-      return stats.avgResponseTimeMinutes >= 25 && stats.avgResponseTimeMinutes <= 30;
-    case "fastResponse":
-      // 60분 이내인데 50~60분이면 위험
-      return stats.avgResponseTimeMinutes >= 50 && stats.avgResponseTimeMinutes <= 60;
-    case "consistentCommunication":
-      return (stats.proactiveMessageCount || 0) === 3;
-    case "goalAchiever":
-      return (stats.memberGoalAchievementRate || 0) >= 80 && (stats.memberGoalAchievementRate || 0) < 85;
-    case "consistencyPower":
-      return (stats.avgMemberAttendanceRate || 0) >= 90 && (stats.avgMemberAttendanceRate || 0) < 92;
-    case "reRegistrationMaster":
-      return (stats.reRegistrationRate || 0) >= 70 && (stats.reRegistrationRate || 0) < 75;
-    case "longTermMemberHolder":
-      return (stats.longTermMemberCount || 0) === 3;
-    case "aiInsightPro":
-      return (stats.aiInsightViewRate || 0) >= 90 && (stats.aiInsightViewRate || 0) < 92;
-    case "dataBasedCoaching":
-      return (stats.weeklyMemberDataViewCount || 0) === 3;
-    default:
-      return false;
+  case "lightningResponse":
+    // 30분 이내인데 25~30분이면 위험
+    return stats.avgResponseTimeMinutes >= 25 && stats.avgResponseTimeMinutes <= 30;
+  case "fastResponse":
+    // 60분 이내인데 50~60분이면 위험
+    return stats.avgResponseTimeMinutes >= 50 && stats.avgResponseTimeMinutes <= 60;
+  case "consistentCommunication":
+    return (stats.proactiveMessageCount || 0) === 3;
+  case "goalAchiever":
+    return (stats.memberGoalAchievementRate || 0) >= 80 && (stats.memberGoalAchievementRate || 0) < 85;
+  case "consistencyPower":
+    return (stats.avgMemberAttendanceRate || 0) >= 90 && (stats.avgMemberAttendanceRate || 0) < 92;
+  case "reRegistrationMaster":
+    return (stats.reRegistrationRate || 0) >= 70 && (stats.reRegistrationRate || 0) < 75;
+  case "longTermMemberHolder":
+    return (stats.longTermMemberCount || 0) === 3;
+  case "aiInsightPro":
+    return (stats.aiInsightViewRate || 0) >= 90 && (stats.aiInsightViewRate || 0) < 92;
+  case "dataBasedCoaching":
+    return (stats.weeklyMemberDataViewCount || 0) === 3;
+  default:
+    return false;
   }
 }
 

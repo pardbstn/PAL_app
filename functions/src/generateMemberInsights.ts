@@ -10,6 +10,25 @@ import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
+/**
+ * Firestore에서 읽은 날짜 값을 Date 객체로 안전하게 변환
+ * Timestamp, 문자열(ISO), Date 모두 처리
+ */
+function safeToDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as {toDate: () => Date}).toDate === "function") {
+    return (value as {toDate: () => Date}).toDate();
+  }
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  return null;
+}
+
 // 인사이트 타입 정의
 type MemberInsightType =
   | "body_prediction"
@@ -94,9 +113,10 @@ interface MemberData {
 }
 
 // 연령대 계산 헬퍼
-function getAgeGroup(birthDate?: admin.firestore.Timestamp): string {
+function getAgeGroup(birthDate?: unknown): string {
   if (!birthDate) return "unknown";
-  const birth = birthDate.toDate();
+  const birth = safeToDate(birthDate);
+  if (!birth) return "unknown";
   const today = new Date();
   const age = today.getFullYear() - birth.getFullYear();
   if (age < 30) return "20s";
@@ -134,7 +154,7 @@ function generateBodyPrediction(
 
   bodyRecords.forEach((record) => {
     if (record.weight) {
-      const date = (record.measuredAt || record.recordDate || record.createdAt)?.toDate();
+      const date = safeToDate(record.measuredAt || record.recordDate || record.createdAt);
       if (date && date >= fourWeeksAgo) {
         weightData.push({weight: record.weight, date});
       }
@@ -143,7 +163,7 @@ function generateBodyPrediction(
 
   inbodyRecords.forEach((record) => {
     if (record.weight) {
-      const date = (record.measuredAt || record.createdAt)?.toDate();
+      const date = safeToDate(record.measuredAt || record.createdAt);
       if (date && date >= fourWeeksAgo) {
         weightData.push({weight: record.weight, date});
       }
@@ -298,7 +318,7 @@ function generateWorkoutAchievement(
     }
     if (!oneRM) return;
 
-    const date = record.createdAt?.toDate();
+    const date = safeToDate(record.createdAt);
     if (!date) return;
 
     const existing = exerciseGroups.get(record.exerciseName) || [];
@@ -409,7 +429,7 @@ async function generateAttendanceHabit(
 
   // 최근 4주 출석 데이터
   const recentSchedules = schedules.filter((s) => {
-    const date = (s.date || s.scheduledAt)?.toDate();
+    const date = safeToDate(s.date || s.scheduledAt);
     return date && date >= fourWeeksAgo;
   });
 
@@ -427,7 +447,7 @@ async function generateAttendanceHabit(
   // 주간 출석 데이터 계산
   const weeklyData: number[] = [0, 0, 0, 0];
   recentSchedules.forEach((s) => {
-    const date = (s.date || s.scheduledAt)?.toDate();
+    const date = safeToDate(s.date || s.scheduledAt);
     if (!date) return;
 
     const weeksAgo = Math.floor(
@@ -498,7 +518,7 @@ function generateNutritionBalance(
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const recentDiets = dietRecords.filter((d) => {
-    const date = d.analyzedAt?.toDate();
+    const date = safeToDate(d.analyzedAt);
     return date && date >= oneWeekAgo;
   });
 
@@ -665,8 +685,8 @@ function generateBodyChangeReport(
 
   // 날짜순 정렬
   const sortedRecords = [...inbodyRecords].sort((a, b) => {
-    const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
-    const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+    const dateA = safeToDate(a.measuredAt || a.createdAt)?.getTime() || 0;
+    const dateB = safeToDate(b.measuredAt || b.createdAt)?.getTime() || 0;
     return dateA - dateB;
   });
 
@@ -675,7 +695,7 @@ function generateBodyChangeReport(
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
   const oldRecords = sortedRecords.filter((r) => {
-    const date = (r.measuredAt || r.createdAt)?.toDate();
+    const date = safeToDate(r.measuredAt || r.createdAt);
     return date && date <= threeMonthsAgo;
   });
 
@@ -774,7 +794,7 @@ function generateConditionPattern(
     // 데이터가 1개인 경우 fallback 인사이트 반환
     if (workoutRecords.length === 1) {
       const record = workoutRecords[0];
-      const date = record.createdAt?.toDate();
+      const date = safeToDate(record.createdAt);
       const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
       const dayName = date ? dayNames[date.getDay()] : "알 수 없음";
 
@@ -801,7 +821,7 @@ function generateConditionPattern(
     .map(() => ({total: 0, count: 0}));
 
   workoutRecords.forEach((record) => {
-    const date = record.createdAt?.toDate();
+    const date = safeToDate(record.createdAt);
     if (!date) return;
 
     const dayIndex = date.getDay();
@@ -906,8 +926,8 @@ function generateGoalProgress(
   // inbody_records에서 최신 데이터
   if (inbodyRecords.length > 0) {
     const sortedInbody = [...inbodyRecords].sort((a, b) => {
-      const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
-      const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+      const dateA = safeToDate(a.measuredAt || a.createdAt)?.getTime() || 0;
+      const dateB = safeToDate(b.measuredAt || b.createdAt)?.getTime() || 0;
       return dateB - dateA;
     });
     const latest = sortedInbody[0];
@@ -919,8 +939,8 @@ function generateGoalProgress(
   // body_records에서 보완
   if (bodyRecords.length > 0 && !currentWeight) {
     const sortedBody = [...bodyRecords].sort((a, b) => {
-      const dateA = (a.measuredAt || a.recordDate || a.createdAt)?.toDate()?.getTime() || 0;
-      const dateB = (b.measuredAt || b.recordDate || b.createdAt)?.toDate()?.getTime() || 0;
+      const dateA = safeToDate(a.measuredAt || a.recordDate || a.createdAt)?.getTime() || 0;
+      const dateB = safeToDate(b.measuredAt || b.recordDate || b.createdAt)?.getTime() || 0;
       return dateB - dateA;
     });
     const latest = sortedBody[0];
@@ -1055,8 +1075,8 @@ async function generateBenchmarking(
   // 최신 체성분 데이터
   if (inbodyRecords.length > 0) {
     const sortedInbody = [...inbodyRecords].sort((a, b) => {
-      const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
-      const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+      const dateA = safeToDate(a.measuredAt || a.createdAt)?.getTime() || 0;
+      const dateB = safeToDate(b.measuredAt || b.createdAt)?.getTime() || 0;
       return dateB - dateA;
     });
     const latest = sortedInbody[0];
@@ -1067,8 +1087,8 @@ async function generateBenchmarking(
 
   if (bodyRecords.length > 0 && !currentWeight) {
     const sortedBody = [...bodyRecords].sort((a, b) => {
-      const dateA = (a.measuredAt || a.recordDate || a.createdAt)?.toDate()?.getTime() || 0;
-      const dateB = (b.measuredAt || b.recordDate || b.createdAt)?.toDate()?.getTime() || 0;
+      const dateA = safeToDate(a.measuredAt || a.recordDate || a.createdAt)?.getTime() || 0;
+      const dateB = safeToDate(b.measuredAt || b.recordDate || b.createdAt)?.getTime() || 0;
       return dateB - dateA;
     });
     const latest = sortedBody[0];
@@ -1082,7 +1102,7 @@ async function generateBenchmarking(
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
   const recentSchedules = schedules.filter((s) => {
-    const date = (s.date || s.scheduledAt)?.toDate();
+    const date = safeToDate(s.date || s.scheduledAt);
     return date && date >= fourWeeksAgo;
   });
 
@@ -1096,13 +1116,13 @@ async function generateBenchmarking(
   let bodyFatChange = 0;
   if (inbodyRecords.length >= 2) {
     const sortedInbody = [...inbodyRecords].sort((a, b) => {
-      const dateA = (a.measuredAt || a.createdAt)?.toDate()?.getTime() || 0;
-      const dateB = (b.measuredAt || b.createdAt)?.toDate()?.getTime() || 0;
+      const dateA = safeToDate(a.measuredAt || a.createdAt)?.getTime() || 0;
+      const dateB = safeToDate(b.measuredAt || b.createdAt)?.getTime() || 0;
       return dateA - dateB;
     });
 
     const fourWeeksRecords = sortedInbody.filter((r) => {
-      const date = (r.measuredAt || r.createdAt)?.toDate();
+      const date = safeToDate(r.measuredAt || r.createdAt);
       return date && date >= fourWeeksAgo && r.bodyFatPercent !== undefined;
     });
 

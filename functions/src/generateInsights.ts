@@ -9,6 +9,24 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {GoogleGenerativeAI} from "@google/generative-ai";
 
+/**
+ * Firestore에서 읽은 날짜 값을 Date 객체로 안전하게 변환
+ */
+function safeToDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as {toDate: () => Date}).toDate === "function") {
+    return (value as {toDate: () => Date}).toDate();
+  }
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  return null;
+}
+
 // Firestore 인스턴스
 const db = admin.firestore();
 
@@ -112,14 +130,15 @@ function analyzeAttendancePattern(
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
   const recentRecords = bodyRecords.filter((record) => {
-    const recordDate = record.recordDate.toDate();
-    return record.memberId === memberId && recordDate >= fourWeeksAgo;
+    const recordDate = safeToDate(record.recordDate);
+    return record.memberId === memberId && recordDate && recordDate >= fourWeeksAgo;
   });
 
   // 주간 기록 횟수 계산
   const weeklyRecords: number[] = [0, 0, 0, 0];
   recentRecords.forEach((record) => {
-    const recordDate = record.recordDate.toDate();
+    const recordDate = safeToDate(record.recordDate);
+    if (!recordDate) return;
     const weeksAgo = Math.floor(
       (Date.now() - recordDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
     );
@@ -170,7 +189,8 @@ function analyzePTExpiry(
 ): InsightData | null {
   if (!member.endDate) return null;
 
-  const endDate = member.endDate.toDate();
+  const endDate = safeToDate(member.endDate);
+  if (!endDate) return null;
   const now = new Date();
   const daysUntilExpiry = Math.ceil(
     (endDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
@@ -231,7 +251,7 @@ function analyzeWeightProgress(
 ): InsightData | null {
   const memberRecords = bodyRecords
     .filter((r) => r.memberId === memberId && r.weight !== undefined)
-    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+    .sort((a, b) => (safeToDate(a.recordDate)?.getTime() || 0) - (safeToDate(b.recordDate)?.getTime() || 0));
 
   if (memberRecords.length < 1) return null;
 
@@ -376,13 +396,16 @@ function analyzeChurnRisk(
   // 최근 2주 vs 이전 2주 비교
   const memberSessions = sessions.filter((s) => s.memberId === member.id);
   const recentCompleted = memberSessions.filter(
-    (s) => s.scheduledAt.toDate() >= twoWeeksAgo && s.status === "completed"
+    (s) => {
+      const date = safeToDate(s.scheduledAt);
+      return date && date >= twoWeeksAgo && s.status === "completed";
+    }
   ).length;
   const previousCompleted = memberSessions.filter(
-    (s) =>
-      s.scheduledAt.toDate() >= fourWeeksAgo &&
-      s.scheduledAt.toDate() < twoWeeksAgo &&
-      s.status === "completed"
+    (s) => {
+      const date = safeToDate(s.scheduledAt);
+      return date && date >= fourWeeksAgo && date < twoWeeksAgo && s.status === "completed";
+    }
   ).length;
 
   let attendanceDropScore = 0;
@@ -400,7 +423,7 @@ function analyzeChurnRisk(
   // 4주간 변화, 목표 역행=100점, 2주 정체=60점
   const memberRecords = bodyRecords
     .filter((r) => r.memberId === member.id && r.weight !== undefined)
-    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+    .sort((a, b) => (safeToDate(a.recordDate)?.getTime() || 0) - (safeToDate(b.recordDate)?.getTime() || 0));
 
   let weightPlateauScore = 0;
   let weightPlateauWeeks = 0;
@@ -408,7 +431,10 @@ function analyzeChurnRisk(
 
   if (memberRecords.length >= 2) {
     const fourWeeksRecords = memberRecords.filter(
-      (r) => r.recordDate.toDate() >= fourWeeksAgo
+      (r) => {
+        const date = safeToDate(r.recordDate);
+        return date && date >= fourWeeksAgo;
+      }
     );
     if (fourWeeksRecords.length >= 2) {
       const firstWeight = fourWeeksRecords[0].weight!;
@@ -426,7 +452,10 @@ function analyzeChurnRisk(
       } else if (Math.abs(weightChange) < 0.5) {
         // 2주 이상 정체 확인
         const twoWeeksRecords = memberRecords.filter(
-          (r) => r.recordDate.toDate() >= twoWeeksAgo
+          (r) => {
+            const date = safeToDate(r.recordDate);
+            return date && date >= twoWeeksAgo;
+          }
         );
         if (twoWeeksRecords.length >= 2) {
           const twoWeeksFirst = twoWeeksRecords[0].weight!;
@@ -602,7 +631,8 @@ function analyzeRenewalLikelihood(
 ): InsightData | null {
   // 종료 7일 이내 회원만 분석
   if (!member.endDate) return null;
-  const endDate = member.endDate.toDate();
+  const endDate = safeToDate(member.endDate);
+  if (!endDate) return null;
   const now = new Date();
   const daysUntilExpiry = Math.ceil(
     (endDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
@@ -615,7 +645,7 @@ function analyzeRenewalLikelihood(
   if (member.targetWeight) {
     const memberRecords = bodyRecords
       .filter((r) => r.memberId === member.id && r.weight !== undefined)
-      .sort((a, b) => b.recordDate.toDate().getTime() - a.recordDate.toDate().getTime());
+      .sort((a, b) => (safeToDate(b.recordDate)?.getTime() || 0) - (safeToDate(a.recordDate)?.getTime() || 0));
 
     if (memberRecords.length >= 2) {
       const startWeight = memberRecords[memberRecords.length - 1].weight!;
@@ -696,12 +726,14 @@ function analyzeWorkoutVolume(
 
   // 최근 5주간 세션 필터링 (볼륨 데이터가 있는 것만)
   const memberSessions = sessions.filter(
-    (s) =>
-      s.memberId === member.id &&
-      s.status === "completed" &&
-      s.scheduledAt.toDate() >= fiveWeeksAgo &&
-      s.workoutSets &&
-      s.workoutSets.length > 0
+    (s) => {
+      const date = safeToDate(s.scheduledAt);
+      return s.memberId === member.id &&
+        s.status === "completed" &&
+        date && date >= fiveWeeksAgo &&
+        s.workoutSets &&
+        s.workoutSets.length > 0;
+    }
   );
 
   if (memberSessions.length < 2) return null;
@@ -758,7 +790,8 @@ function analyzeWorkoutVolume(
     .map(() => ({ upper: 0, lower: 0, core: 0, cardio: 0 }));
 
   memberSessions.forEach((session) => {
-    const sessionDate = session.scheduledAt.toDate();
+    const sessionDate = safeToDate(session.scheduledAt);
+    if (!sessionDate) return;
     const weeksAgo = Math.floor(
       (now.getTime() - sessionDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
     );
@@ -967,12 +1000,14 @@ function analyzePlateauDetection(
 
   const memberRecords = bodyRecords
     .filter(
-      (r) =>
-        r.memberId === member.id &&
-        r.weight !== undefined &&
-        r.recordDate.toDate() >= fourWeeksAgo
+      (r) => {
+        const date = safeToDate(r.recordDate);
+        return r.memberId === member.id &&
+          r.weight !== undefined &&
+          date && date >= fourWeeksAgo;
+      }
     )
-    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+    .sort((a, b) => (safeToDate(a.recordDate)?.getTime() || 0) - (safeToDate(b.recordDate)?.getTime() || 0));
 
   if (memberRecords.length < 1) return null;
 
@@ -1010,8 +1045,8 @@ function analyzePlateauDetection(
 
   // 정체 주차 계산
   const weeksDiff = Math.ceil(
-    (memberRecords[memberRecords.length - 1].recordDate.toDate().getTime() -
-      memberRecords[0].recordDate.toDate().getTime()) /
+    ((safeToDate(memberRecords[memberRecords.length - 1].recordDate)?.getTime() || 0) -
+      (safeToDate(memberRecords[0].recordDate)?.getTime() || 0)) /
       (7 * 24 * 60 * 60 * 1000)
   );
   const plateauWeeks = Math.max(weeksDiff, 4);
@@ -1094,7 +1129,7 @@ function analyzeWorkoutRecommendation(
 
   const memberRecords = bodyRecords
     .filter((r) => r.memberId === member.id && r.bodyFat !== undefined)
-    .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+    .sort((a, b) => (safeToDate(a.recordDate)?.getTime() || 0) - (safeToDate(b.recordDate)?.getTime() || 0));
 
   if (memberRecords.length < 1) return null;
 
@@ -1144,14 +1179,21 @@ function analyzeWorkoutRecommendation(
     let effectCount = 0;
 
     typeSessions.forEach((session) => {
-      const sessionDate = session.scheduledAt.toDate();
+      const sessionDate = safeToDate(session.scheduledAt);
+      if (!sessionDate) return;
       const beforeRecord = memberRecords.find(
-        (r) => r.recordDate.toDate() <= sessionDate
+        (r) => {
+          const rDate = safeToDate(r.recordDate);
+          return rDate && rDate <= sessionDate;
+        }
       );
       const afterRecord = memberRecords.find(
-        (r) =>
-          r.recordDate.toDate() > sessionDate &&
-          r.recordDate.toDate().getTime() - sessionDate.getTime() < 7 * 24 * 60 * 60 * 1000
+        (r) => {
+          const rDate = safeToDate(r.recordDate);
+          return rDate &&
+            rDate > sessionDate &&
+            rDate.getTime() - sessionDate.getTime() < 7 * 24 * 60 * 60 * 1000;
+        }
       );
 
       if (beforeRecord?.bodyFat && afterRecord?.bodyFat) {
@@ -1266,7 +1308,9 @@ function analyzeNoshowPattern(
   }
 
   totalSessions.forEach((session) => {
-    const day = session.scheduledAt.toDate().getDay();
+    const date = safeToDate(session.scheduledAt);
+    if (!date) return;
+    const day = date.getDay();
     dayStats[day].total++;
     if (session.status === "noshow") {
       dayStats[day].noshow++;
@@ -1281,7 +1325,9 @@ function analyzeNoshowPattern(
   };
 
   totalSessions.forEach((session) => {
-    const hour = session.scheduledAt.toDate().getHours();
+    const date = safeToDate(session.scheduledAt);
+    if (!date) return;
+    const hour = date.getHours();
     let timeSlot: string;
     if (hour >= 6 && hour < 12) timeSlot = "morning";
     else if (hour >= 12 && hour < 18) timeSlot = "afternoon";
@@ -1389,12 +1435,14 @@ function analyzePerformanceRanking(
   for (const member of members) {
     const memberRecords = bodyRecords
       .filter(
-        (r) =>
-          r.memberId === member.id &&
-          r.bodyFat !== undefined &&
-          r.recordDate.toDate() >= monthStart
+        (r) => {
+          const date = safeToDate(r.recordDate);
+          return r.memberId === member.id &&
+            r.bodyFat !== undefined &&
+            date && date >= monthStart;
+        }
       )
-      .sort((a, b) => a.recordDate.toDate().getTime() - b.recordDate.toDate().getTime());
+      .sort((a, b) => (safeToDate(a.recordDate)?.getTime() || 0) - (safeToDate(b.recordDate)?.getTime() || 0));
 
     if (memberRecords.length < 2) continue;
 
@@ -1512,13 +1560,14 @@ async function generateAIRecommendations(
       const memberRecords = bodyRecords
         .filter((r) => r.memberId === member.id)
         .sort((a, b) =>
-          b.recordDate.toDate().getTime() - a.recordDate.toDate().getTime()
+          (safeToDate(b.recordDate)?.getTime() || 0) - (safeToDate(a.recordDate)?.getTime() || 0)
         );
 
       const latestRecord = memberRecords[0];
-      const daysUntilExpiry = member.endDate
+      const endDateParsed = member.endDate ? safeToDate(member.endDate) : null;
+      const daysUntilExpiry = endDateParsed
         ? Math.ceil(
-          (member.endDate.toDate().getTime() - Date.now()) /
+          (endDateParsed.getTime() - Date.now()) /
               (24 * 60 * 60 * 1000)
         )
         : null;

@@ -617,23 +617,36 @@ class MemberInsightsService {
   Future<List<MemberInsight>> generateInsights(String memberId) async {
     try {
       final callable = _functions.httpsCallable('generateMemberInsights');
-      final response = await callable.call<Map<String, dynamic>>({
-        'memberId': memberId,
-      });
+      final response = await callable.call({'memberId': memberId});
 
-      final data = response.data;
+      final data = _deepCast(response.data as Map);
       if (data['success'] != true) {
         throw Exception(data['error'] ?? '인사이트 생성에 실패했습니다.');
       }
 
       final insightsList = (data['insights'] as List<dynamic>)
-          .map((json) => MemberInsight.fromJson(json as Map<String, dynamic>))
+          .map((json) => MemberInsight.fromJson(_deepCast(json as Map)))
           .toList();
 
       return insightsList;
     } on FirebaseFunctionsException catch (e) {
       throw Exception(e.message ?? '인사이트 생성 중 오류가 발생했습니다.');
     }
+  }
+
+  /// Cloud Functions 응답의 Map<Object?, Object?>를 Map<String, dynamic>으로 변환
+  static Map<String, dynamic> _deepCast(Map map) {
+    return map.map((key, value) {
+      if (value is Map) {
+        return MapEntry(key.toString(), _deepCast(value));
+      } else if (value is List) {
+        return MapEntry(key.toString(), value.map((e) {
+          if (e is Map) return _deepCast(e);
+          return e;
+        }).toList());
+      }
+      return MapEntry(key.toString(), value);
+    });
   }
 
   /// 인사이트 읽음 처리

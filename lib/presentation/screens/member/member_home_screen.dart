@@ -1405,6 +1405,14 @@ class _EmptyInsightSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final generationState = ref.watch(memberInsightsGenerationProvider);
 
+    // 생성 완료 시 즉시 인사이트 카드 표시
+    if (generationState.insights != null && generationState.insights!.isNotEmpty) {
+      return _InsightCardsSection(
+        insights: generationState.insights!,
+        memberId: memberId,
+      );
+    }
+
     return AppCard(
       padding: const EdgeInsets.all(20),
       child: Column(

@@ -454,6 +454,9 @@ class _CurriculumResultScreenState
                   exercise: exercise,
                   index: index,
                   onReplace: () => _showAlternatives(index),
+                  onDelete: () {
+                    ref.read(curriculumGeneratorV2Provider.notifier).removeExercise(index);
+                  },
                   onEdit: (sets, reps, restSeconds) {
                     ref.read(curriculumGeneratorV2Provider.notifier)
                         .updateExercise(

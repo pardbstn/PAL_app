@@ -6,6 +6,7 @@ class ExerciseCardWidget extends StatefulWidget {
   final Exercise exercise;
   final int index;
   final VoidCallback? onReplace;
+  final VoidCallback? onDelete;
   final Function(int? sets, int? reps, int? restSeconds)? onEdit;
 
   const ExerciseCardWidget({
@@ -13,6 +14,7 @@ class ExerciseCardWidget extends StatefulWidget {
     required this.exercise,
     required this.index,
     this.onReplace,
+    this.onDelete,
     this.onEdit,
   });
 
@@ -138,6 +140,14 @@ class _ExerciseCardWidgetState extends State<ExerciseCardWidget> {
                   onPressed: () => setState(() => _isEditing = true),
                   visualDensity: VisualDensity.compact,
                 ),
+                if (widget.onDelete != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: Colors.red.withOpacity(0.6),
+                    tooltip: '삭제',
+                    onPressed: widget.onDelete,
+                    visualDensity: VisualDensity.compact,
+                  ),
               ],
             ],
           ),

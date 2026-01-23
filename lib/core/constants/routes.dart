@@ -19,9 +19,8 @@ abstract class AppRoutes {
   static const String trainerRevenue = '/trainer/revenue';
   static const String trainerSettings = '/trainer/settings';
   static const String trainerInsights = '/trainer/insights';
-  static const String trainerReviews = '/trainer/my-reviews';
+  static const String trainerBadges = '/trainer/badges';
   static const String trainerRequests = '/trainer/trainer-requests';
-  static const String trainerRanking = '/trainer/ranking';
 
   // 회원 경로
   static const String memberHome = '/member/home';
@@ -62,9 +61,8 @@ abstract class RouteNames {
   static const String trainerRevenue = 'trainer-revenue';
   static const String trainerSettings = 'trainer-settings';
   static const String trainerInsights = 'trainer-insights';
-  static const String trainerReviews = 'trainer-reviews';
+  static const String trainerBadges = 'trainer-badges';
   static const String trainerRequests = 'trainer-requests';
-  static const String trainerRanking = 'trainerRanking';
 
   // 회원
   static const String memberHome = 'member-home';

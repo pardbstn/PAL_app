@@ -36,18 +36,11 @@ class TrainerSettingsScreen extends ConsumerWidget {
             onTap: () => _showEditProfileDialog(context, ref, authState),
           ),
           ListTile(
-            leading: const Icon(Icons.star_outline),
-            title: const Text('내 평가 보기'),
-            subtitle: const Text('회원들의 평가 확인'),
+            leading: const Icon(Icons.workspace_premium_outlined),
+            title: const Text('배지 관리'),
+            subtitle: const Text('획득 배지 및 진행률 확인'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/trainer/my-reviews?trainerId=${authState.userId}'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.leaderboard_outlined),
-            title: const Text('트레이너 랭킹'),
-            subtitle: const Text('평점 및 재등록률 순위'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/trainer/ranking'),
+            onTap: () => context.push('/trainer/badges'),
           ),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),

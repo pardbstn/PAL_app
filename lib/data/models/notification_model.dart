@@ -15,6 +15,12 @@ enum NotificationType {
   reviewRequest('평가 요청'),
   @JsonValue('trainerRequest')
   trainerRequest('트레이너 요청'),
+  @JsonValue('badgeEarned')
+  badgeEarned('배지 획득'),
+  @JsonValue('badgeAtRisk')
+  badgeAtRisk('배지 위험'),
+  @JsonValue('badgeRevoked')
+  badgeRevoked('배지 해제'),
   @JsonValue('general')
   general('일반');
 

@@ -537,3 +537,15 @@ export {
   dailyInsightGenerator,
   weeklyInsightGenerator,
 } from "./schedulers";
+
+// ============================================
+// 트레이너 배지 시스템 Functions
+// ============================================
+
+// 매일 자정 배지 조건 체크 + 이벤트 기반 stats 업데이트
+export {
+  calculateTrainerBadges,
+  onMessageCreatedForStats,
+  onScheduleCompletedForStats,
+  onMemberUpdatedForStats,
+} from "./badges";

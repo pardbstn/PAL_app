@@ -189,6 +189,21 @@ class _NotificationIcon extends StatelessWidget {
           icon: Icons.person_add_alt_1,
           color: NotificationCard._primaryColor,
         );
+      case NotificationType.badgeEarned:
+        return _IconConfig(
+          icon: Icons.workspace_premium,
+          color: NotificationCard._successColor,
+        );
+      case NotificationType.badgeAtRisk:
+        return _IconConfig(
+          icon: Icons.warning_amber_rounded,
+          color: NotificationCard._warningColor,
+        );
+      case NotificationType.badgeRevoked:
+        return _IconConfig(
+          icon: Icons.remove_circle_outline,
+          color: NotificationCard._errorColor,
+        );
       case NotificationType.general:
         return _IconConfig(
           icon: Icons.notifications_outlined,

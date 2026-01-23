@@ -40,5 +40,8 @@ const _$NotificationTypeEnumMap = {
   NotificationType.streakReminder: 'streakReminder',
   NotificationType.reviewRequest: 'reviewRequest',
   NotificationType.trainerRequest: 'trainerRequest',
+  NotificationType.badgeEarned: 'badgeEarned',
+  NotificationType.badgeAtRisk: 'badgeAtRisk',
+  NotificationType.badgeRevoked: 'badgeRevoked',
   NotificationType.general: 'general',
 };

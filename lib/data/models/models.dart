@@ -23,9 +23,11 @@ export 'reregistration_alert_model.dart';
 export 'streak_model.dart';
 export 'badge_model.dart';
 
-// 평가 시스템
-export 'trainer_review_model.dart';
-export 'trainer_performance_model.dart';
+// 평점 + 배지 시스템
+export 'trainer_rating_model.dart';
+export 'member_review_model.dart';
+export 'trainer_badge_model.dart';
+export 'trainer_stats_model.dart';
 
 // 셀프 트레이닝
 export 'subscription_model.dart';

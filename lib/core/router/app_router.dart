@@ -36,14 +36,13 @@ import 'package:flutter_pal_app/presentation/screens/chat/chat_list_screen.dart'
 import 'package:flutter_pal_app/presentation/screens/chat/chat_room_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/common/notifications_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/badges_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/member/trainer_review_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/trainer_reviews_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/member_review_trainer_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_badge_management_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/subscription_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/self_training_home_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/monthly_report_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/trainer_question_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_requests_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/trainer_ranking_screen.dart';
 
 // ============================================================================
 // 페이지 전환 애니메이션
@@ -301,17 +300,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const TrainerInsightsScreen(),
         ),
       ),
-      // 내 평가 보기 (트레이너)
+      // 트레이너 배지 관리
       GoRoute(
-        path: AppRoutes.trainerReviews,
-        name: RouteNames.trainerReviews,
-        pageBuilder: (context, state) {
-          final trainerId = state.uri.queryParameters['trainerId'] ?? '';
-          return buildSlideTransitionPage(
-            key: state.pageKey,
-            child: TrainerReviewsScreen(trainerId: trainerId),
-          );
-        },
+        path: AppRoutes.trainerBadges,
+        name: RouteNames.trainerBadges,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerBadgeManagementScreen(),
+        ),
       ),
       // 트레이너 요청 관리 (트레이너용)
       GoRoute(
@@ -320,15 +316,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => buildSlideTransitionPage(
           key: state.pageKey,
           child: const TrainerRequestsScreen(),
-        ),
-      ),
-      // 트레이너 랭킹
-      GoRoute(
-        path: AppRoutes.trainerRanking,
-        name: RouteNames.trainerRanking,
-        pageBuilder: (context, state) => buildSlideTransitionPage(
-          key: state.pageKey,
-          child: const TrainerRankingScreen(),
         ),
       ),
 
@@ -413,7 +400,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      // 트레이너 평가 작성 (회원)
+      // 트레이너 리뷰 작성 (회원)
       GoRoute(
         path: AppRoutes.memberReviewTrainer,
         name: RouteNames.memberReviewTrainer,
@@ -422,7 +409,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final memberId = state.uri.queryParameters['memberId'] ?? '';
           return buildSlideTransitionPage(
             key: state.pageKey,
-            child: TrainerReviewScreen(
+            child: MemberReviewTrainerScreen(
               trainerId: trainerId,
               memberId: memberId,
             ),

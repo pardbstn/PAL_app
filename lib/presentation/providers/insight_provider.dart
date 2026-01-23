@@ -498,20 +498,22 @@ class MemberInsight {
 
   factory MemberInsight.fromJson(Map<String, dynamic> json) {
     return MemberInsight(
-      id: json['id'] as String,
-      memberId: json['memberId'] as String,
-      type: json['type'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
-      priority: json['priority'] as String,
+      id: json['id'] as String? ?? '',
+      memberId: json['memberId'] as String? ?? '',
+      type: json['type'] as String? ?? 'general',
+      title: json['title'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      priority: json['priority'] as String? ?? 'low',
       isRead: json['isRead'] as bool? ?? false,
-      createdAt: json['createdAt'] is Timestamp
-          ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(json['createdAt'] as String),
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate()
+              : DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
+          : DateTime.now(),
       expiresAt: json['expiresAt'] != null
           ? (json['expiresAt'] is Timestamp
               ? (json['expiresAt'] as Timestamp).toDate()
-              : DateTime.parse(json['expiresAt'] as String))
+              : DateTime.tryParse(json['expiresAt'].toString()))
           : null,
       graphData: json['graphData'] != null
           ? (json['graphData'] as List<dynamic>)

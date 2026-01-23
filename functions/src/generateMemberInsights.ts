@@ -76,7 +76,7 @@ interface DietRecord {
   protein?: number;
   carbs?: number;
   fat?: number;
-  createdAt?: admin.firestore.Timestamp;
+  analyzedAt?: admin.firestore.Timestamp;
 }
 
 interface MemberData {
@@ -498,7 +498,7 @@ function generateNutritionBalance(
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const recentDiets = dietRecords.filter((d) => {
-    const date = d.createdAt?.toDate();
+    const date = d.analyzedAt?.toDate();
     return date && date >= oneWeekAgo;
   });
 
@@ -1340,23 +1340,17 @@ export const generateMemberInsights = functions
         targetMuscleMass: memberData.targetMuscleMass,
       };
 
-      // 3. 데이터 수집 기간 설정
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const threeMonthsAgoTimestamp = admin.firestore.Timestamp.fromDate(threeMonthsAgo);
-
-      // 4. 데이터 병렬 조회
+      // 3. 데이터 병렬 조회
       const [
         bodyRecordsSnapshot,
         inbodyRecordsSnapshot,
-        workoutRecordsSnapshot,
         schedulesSnapshot,
         dietRecordsSnapshot,
       ] = await Promise.all([
         // body_records (최근 3개월)
         db.collection("body_records")
           .where("memberId", "==", memberId)
-          .orderBy("createdAt", "desc")
+          .orderBy("recordDate", "desc")
           .limit(100)
           .get(),
 
@@ -1367,25 +1361,17 @@ export const generateMemberInsights = functions
           .limit(50)
           .get(),
 
-        // workout_records (최근 3개월)
-        db.collection("workout_records")
-          .where("memberId", "==", memberId)
-          .where("createdAt", ">=", threeMonthsAgoTimestamp)
-          .orderBy("createdAt", "desc")
-          .limit(500)
-          .get(),
-
         // schedules (최근 4주)
         db.collection("schedules")
           .where("memberId", "==", memberId)
-          .orderBy("date", "desc")
+          .orderBy("scheduledAt", "desc")
           .limit(50)
           .get(),
 
         // diet_records (최근 1주)
         db.collection("diet_records")
           .where("memberId", "==", memberId)
-          .orderBy("createdAt", "desc")
+          .orderBy("analyzedAt", "desc")
           .limit(50)
           .get(),
       ]);
@@ -1396,9 +1382,8 @@ export const generateMemberInsights = functions
       const inbodyRecords: InbodyRecord[] = inbodyRecordsSnapshot.docs.map(
         (doc) => doc.data() as InbodyRecord
       );
-      const workoutRecords: WorkoutRecord[] = workoutRecordsSnapshot.docs.map(
-        (doc) => doc.data() as WorkoutRecord
-      );
+      // workout_records 컬렉션 미존재 → 빈 배열 (session_signatures는 출석 확인용)
+      const workoutRecords: WorkoutRecord[] = [];
       const schedules: ScheduleRecord[] = schedulesSnapshot.docs.map(
         (doc) => doc.data() as ScheduleRecord
       );
@@ -1507,6 +1492,7 @@ export const generateMemberInsights = functions
         success: true,
         insights: savedInsights.map((insight) => ({
           id: insight.id,
+          memberId,
           type: insight.type,
           priority: insight.priority,
           title: insight.title,
@@ -1514,6 +1500,9 @@ export const generateMemberInsights = functions
           graphData: insight.graphData,
           graphType: insight.graphType,
           data: insight.data,
+          isRead: false,
+          createdAt: now.toDate().toISOString(),
+          expiresAt: expiresAt.toDate().toISOString(),
         })),
         generatedAt: now.toDate().toISOString(),
       };
@@ -1584,22 +1573,16 @@ export const generateMemberInsightsScheduled = functions
             targetMuscleMass: memberData.targetMuscleMass,
           };
 
-          // 데이터 수집 기간 설정
-          const threeMonthsAgo = new Date();
-          threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-          const threeMonthsAgoTimestamp = admin.firestore.Timestamp.fromDate(threeMonthsAgo);
-
           // 데이터 병렬 조회
           const [
             bodyRecordsSnapshot,
             inbodyRecordsSnapshot,
-            workoutRecordsSnapshot,
             schedulesSnapshot,
             dietRecordsSnapshot,
           ] = await Promise.all([
             db.collection("body_records")
               .where("memberId", "==", memberId)
-              .orderBy("createdAt", "desc")
+              .orderBy("recordDate", "desc")
               .limit(100)
               .get(),
             db.collection("inbody_records")
@@ -1607,20 +1590,14 @@ export const generateMemberInsightsScheduled = functions
               .orderBy("measuredAt", "desc")
               .limit(50)
               .get(),
-            db.collection("workout_records")
-              .where("memberId", "==", memberId)
-              .where("createdAt", ">=", threeMonthsAgoTimestamp)
-              .orderBy("createdAt", "desc")
-              .limit(500)
-              .get(),
             db.collection("schedules")
               .where("memberId", "==", memberId)
-              .orderBy("date", "desc")
+              .orderBy("scheduledAt", "desc")
               .limit(50)
               .get(),
             db.collection("diet_records")
               .where("memberId", "==", memberId)
-              .orderBy("createdAt", "desc")
+              .orderBy("analyzedAt", "desc")
               .limit(50)
               .get(),
           ]);
@@ -1631,9 +1608,8 @@ export const generateMemberInsightsScheduled = functions
           const inbodyRecords: InbodyRecord[] = inbodyRecordsSnapshot.docs.map(
             (doc) => doc.data() as InbodyRecord
           );
-          const workoutRecords: WorkoutRecord[] = workoutRecordsSnapshot.docs.map(
-            (doc) => doc.data() as WorkoutRecord
-          );
+          // workout_records 컬렉션 미존재 → 빈 배열
+          const workoutRecords: WorkoutRecord[] = [];
           const schedules: ScheduleRecord[] = schedulesSnapshot.docs.map(
             (doc) => doc.data() as ScheduleRecord
           );

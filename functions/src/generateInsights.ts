@@ -83,9 +83,11 @@ interface WorkoutSetData {
 }
 
 interface MessageData {
-  memberId: string;
-  trainerId: string;
-  sentAt: admin.firestore.Timestamp;
+  memberId: string; // derived from chat room
+  chatRoomId: string;
+  senderId: string;
+  senderRole: string;
+  createdAt: admin.firestore.Timestamp;
 }
 
 // Google AI 클라이언트 (지연 초기화)
@@ -443,10 +445,10 @@ function analyzeChurnRisk(
   // 2주간 응답률: 0%=100점, 30%미만=70점, 50%미만=40점
   const memberMessages = messages.filter((m) => m.memberId === member.id);
   const trainerMessages = memberMessages.filter(
-    (m) => (m as unknown as {senderRole: string}).senderRole === "trainer"
+    (m) => m.senderRole === "trainer"
   );
   const memberReplies = memberMessages.filter(
-    (m) => (m as unknown as {senderRole: string}).senderRole === "member"
+    (m) => m.senderRole === "member"
   );
 
   let messageNoResponseScore = 0;
@@ -1690,7 +1692,7 @@ async function generateInsightsForTrainer(
   for (let i = 0; i < memberIds.length; i += batchSize) {
     const batchIds = memberIds.slice(i, i + batchSize);
     const sessionsSnapshot = await db
-      .collection("sessions")
+      .collection("schedules")
       .where("memberId", "in", batchIds)
       .where("trainerId", "==", trainerId)
       .where(
@@ -1713,21 +1715,43 @@ async function generateInsightsForTrainer(
   const twoWeeksAgo = new Date();
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
   const messages: MessageData[] = [];
-  for (let i = 0; i < memberIds.length; i += batchSize) {
-    const batchIds = memberIds.slice(i, i + batchSize);
+
+  // chat_rooms에서 트레이너의 채팅방 조회 → chatRoomId-memberId 매핑
+  const chatRoomsSnapshot = await db
+    .collection("chat_rooms")
+    .where("trainerId", "==", trainerId)
+    .get();
+
+  const chatRoomToMember: Record<string, string> = {};
+  const chatRoomIds: string[] = [];
+  chatRoomsSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    chatRoomToMember[doc.id] = data.memberId;
+    chatRoomIds.push(doc.id);
+  });
+
+  // chatRoomId로 메시지 조회 (10개씩 배치 - Firestore 'in' 제한)
+  for (let i = 0; i < chatRoomIds.length; i += batchSize) {
+    const batchIds = chatRoomIds.slice(i, i + batchSize);
     const messagesSnapshot = await db
       .collection("messages")
-      .where("memberId", "in", batchIds)
-      .where("trainerId", "==", trainerId)
+      .where("chatRoomId", "in", batchIds)
       .where(
-        "sentAt",
+        "createdAt",
         ">=",
         admin.firestore.Timestamp.fromDate(twoWeeksAgo)
       )
       .get();
 
     messagesSnapshot.docs.forEach((doc) => {
-      messages.push(doc.data() as MessageData);
+      const data = doc.data();
+      messages.push({
+        memberId: chatRoomToMember[data.chatRoomId] || "",
+        chatRoomId: data.chatRoomId,
+        senderId: data.senderId,
+        senderRole: data.senderRole,
+        createdAt: data.createdAt,
+      });
     });
   }
 

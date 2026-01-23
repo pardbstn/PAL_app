@@ -181,7 +181,7 @@ class _RankingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '트레이너 ${trainer.trainerId.substring(0, 6)}',
+                  '트레이너 ${trainer.trainerId.length >= 6 ? trainer.trainerId.substring(0, 6) : trainer.trainerId}',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

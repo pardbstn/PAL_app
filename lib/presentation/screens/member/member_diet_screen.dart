@@ -385,7 +385,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
         : ref.watch(dailyNutritionSummaryByDateProvider((memberId: member.id, date: _selectedDate)));
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('식단 기록'), centerTitle: true, elevation: 0, scrolledUnderElevation: 1),
       body: SafeArea(
         child: Column(

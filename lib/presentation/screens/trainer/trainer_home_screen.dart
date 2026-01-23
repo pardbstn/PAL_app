@@ -14,7 +14,7 @@ import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
-import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
+
 import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
@@ -22,30 +22,18 @@ import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_aler
 import 'package:flutter_pal_app/presentation/providers/reregistration_provider.dart';
 
 /// 트레이너 홈 (대시보드) 화면
-/// Glassmorphism 효과로 프리미엄 UI 제공
+/// 프리미엄 화이트 + 쉐도우 스타일의 깔끔한 UI 제공
 class TrainerHomeScreen extends ConsumerWidget {
   const TrainerHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final colorScheme = Theme.of(context).colorScheme;
     final displayName = authState.displayName ?? '트레이너님';
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.1),
-              colorScheme.surface,
-              colorScheme.secondary.withValues(alpha: 0.05),
-            ],
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
           child: CustomScrollView(
             slivers: [
               // 앱바
@@ -56,43 +44,56 @@ class TrainerHomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // 환영 메시지
+                    // 환영 메시지 (순차 등장 - 0ms)
                     _buildWelcomeSection(context, displayName),
                     const SizedBox(height: 28),
 
-                    // 오늘 일정
-                    _buildSectionHeader(context, '오늘 일정', Icons.calendar_today),
-                    const SizedBox(height: 16),
-                    _TodayScheduleSection(),
+                    // 오늘 일정 (순차 등장 - 100ms)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(context, '오늘 일정', Icons.calendar_today),
+                        const SizedBox(height: 16),
+                        _TodayScheduleSection(),
+                      ],
+                    ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                     const SizedBox(height: 28),
 
-                    // 회원 현황
-                    _buildSectionHeader(context, '회원 현황', Icons.people_alt),
-                    const SizedBox(height: 16),
-                    _MemberStatsSection(),
+                    // 회원 현황 (순차 등장 - 200ms)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(context, '회원 현황', Icons.people_alt),
+                        const SizedBox(height: 16),
+                        _MemberStatsSection(),
+                      ],
+                    ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                     const SizedBox(height: 28),
 
                     // 재등록 대기
                     _ReregistrationAlertSection(),
                     const SizedBox(height: 28),
 
-                    // PT 종료 임박
-                    _buildSectionHeader(context, 'PT 종료 임박', Icons.warning_amber_rounded),
-                    const SizedBox(height: 16),
-                    _EndingSoonSection(),
+                    // PT 종료 임박 (순차 등장 - 300ms)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(context, 'PT 종료 임박', Icons.warning_amber_rounded),
+                        const SizedBox(height: 16),
+                        _EndingSoonSection(),
+                      ],
+                    ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                     const SizedBox(height: 28),
 
-                    // AI 인사이트
-                    _buildSectionHeader(context, 'AI 인사이트', Icons.auto_awesome),
-                    const SizedBox(height: 16),
-                    _AiInsightSection(),
+                    // AI 인사이트 (순차 등장 - 400ms)
+                    _AiInsightSection()
+                        .animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                     const SizedBox(height: 40),
                   ]),
                 ),
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -130,27 +131,29 @@ class TrainerHomeScreen extends ConsumerWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notifications_outlined,
               color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
             ),
           ),
           onPressed: () {},
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.settings_outlined,
               color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
             ),
           ),
           onPressed: () => context.go('/trainer/settings'),
@@ -194,24 +197,11 @@ class TrainerHomeScreen extends ConsumerWidget {
 
   /// 섹션 헤더
   Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-          child: Icon(icon, color: AppTheme.primary, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-      ],
     ).animate().fadeIn(duration: 400.ms);
   }
 }
@@ -260,7 +250,8 @@ class _TodayScheduleSection extends ConsumerWidget {
           return _buildEmptyScheduleCard(context);
         }
 
-        return GlassCard(
+        return _buildPremiumCard(
+          context,
           child: Column(
             children: [
               for (int i = 0; i < activeSchedules.length; i++) ...[
@@ -273,13 +264,15 @@ class _TodayScheduleSection extends ConsumerWidget {
               ],
             ],
           ),
-        ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1);
+        );
       },
     );
   }
 
   Widget _buildEmptyScheduleCard(BuildContext context) {
-    return GlassCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return _buildPremiumCard(
+      context,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -288,13 +281,13 @@ class _TodayScheduleSection extends ConsumerWidget {
               Icon(
                 Icons.event_available,
                 size: 48,
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[500] : Colors.grey[400],
               ),
               const SizedBox(height: 12),
               Text(
                 '오늘 예정된 일정이 없습니다',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                   fontSize: 15,
                 ),
               ),
@@ -302,7 +295,7 @@ class _TodayScheduleSection extends ConsumerWidget {
           ),
         ),
       ),
-    ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1);
+    );
   }
 
   Widget _buildScheduleItem(BuildContext context, ScheduleModel schedule, int index) {
@@ -426,11 +419,12 @@ class _TodayScheduleSection extends ConsumerWidget {
   }
 
   Widget _buildScheduleShimmer() {
-    return GlassCard(
-      child: Builder(
-        builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          return Shimmer.fromColors(
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return _buildPremiumCard(
+          context,
+          child: Shimmer.fromColors(
             baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
             highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
             child: Column(
@@ -474,14 +468,16 @@ class _TodayScheduleSection extends ConsumerWidget {
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildErrorCard(BuildContext context, String message, WidgetRef ref, {String? trainerId}) {
-    return GlassCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return _buildPremiumCard(
+      context,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
@@ -491,12 +487,14 @@ class _TodayScheduleSection extends ConsumerWidget {
               Icon(
                 Icons.error_outline,
                 size: 40,
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[500] : Colors.grey[400],
               ),
               const SizedBox(height: 12),
               Text(
                 message,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
                 textAlign: TextAlign.center,
               ),
               if (trainerId != null) ...[
@@ -519,6 +517,29 @@ class _TodayScheduleSection extends ConsumerWidget {
       ),
     );
   }
+
+  /// 프리미엄 화이트 카드 (흰색 배경 + 쉐도우 + 그레이 보더)
+  Widget _buildPremiumCard(BuildContext context, {required Widget child}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 }
 
 /// 회원 현황 섹션
@@ -530,56 +551,39 @@ class _MemberStatsSection extends ConsumerWidget {
     return statsAsync.when(
       loading: () => _buildStatsShimmer(),
       error: (error, _) => _buildErrorRow(context),
-      data: (stats) => AnimatedListWrapper(
-        child: Row(
-          children: [
-            Expanded(
-              child: AnimatedListWrapper.item(
-                index: 0,
-                horizontalOffset: 0.0,
-                verticalOffset: 30.0,
-                child: _AnimatedStatCard(
-                  label: '전체 회원',
-                  value: stats.totalMembers,
-                  suffix: '명',
-                  icon: Icons.people,
-                  iconColor: AppTheme.primary,
-                  onTap: () => context.go('/trainer/members'),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AnimatedListWrapper.item(
-                index: 1,
-                horizontalOffset: 0.0,
-                verticalOffset: 30.0,
-                child: _AnimatedStatCard(
-                  label: 'PT 진행중',
-                  value: stats.activeMembers,
-                  suffix: '명',
-                  icon: Icons.fitness_center,
-                  iconColor: AppTheme.secondary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AnimatedListWrapper.item(
-                index: 2,
-                horizontalOffset: 0.0,
-                verticalOffset: 30.0,
-                child: _AnimatedStatCard(
-                  label: 'PT 완료',
-                  value: stats.completedMembers,
-                  suffix: '명',
-                  icon: Icons.check_circle_outline,
-                  iconColor: Colors.grey,
-                ),
-              ),
-            ),
-          ],
-        ),
+      data: (stats) => Row(
+        children: [
+          Expanded(
+            child: _AnimatedStatCard(
+              label: '전체 회원',
+              value: stats.totalMembers,
+              suffix: '명',
+              icon: Icons.people,
+              iconColor: AppTheme.primary,
+              onTap: () => context.go('/trainer/members'),
+            ).animate().fadeIn(delay: const Duration(milliseconds: 0), duration: 400.ms).slideX(begin: 0.1),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _AnimatedStatCard(
+              label: 'PT 진행중',
+              value: stats.activeMembers,
+              suffix: '명',
+              icon: Icons.people,
+              iconColor: AppTheme.secondary,
+            ).animate().fadeIn(delay: const Duration(milliseconds: 100), duration: 400.ms).slideX(begin: 0.1),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _AnimatedStatCard(
+              label: 'PT 완료',
+              value: stats.completedMembers,
+              suffix: '명',
+              icon: Icons.people,
+              iconColor: Colors.grey,
+            ).animate().fadeIn(delay: const Duration(milliseconds: 200), duration: 400.ms).slideX(begin: 0.1),
+          ),
+        ],
       ),
     );
   }
@@ -731,8 +735,10 @@ class _EndingSoonSection extends ConsumerWidget {
       loading: () => _buildEndingSoonShimmer(),
       error: (error, _) => _buildErrorCard(context, '데이터를 불러올 수 없습니다'),
       data: (members) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         if (members.isEmpty) {
-          return GlassCard(
+          return _buildEndingSoonPremiumCard(
+            context,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
@@ -747,7 +753,7 @@ class _EndingSoonSection extends ConsumerWidget {
                     Text(
                       '종료 임박 회원이 없습니다',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                         fontSize: 15,
                       ),
                     ),
@@ -755,10 +761,11 @@ class _EndingSoonSection extends ConsumerWidget {
                 ),
               ),
             ),
-          ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1);
+          );
         }
 
-        return GlassCard(
+        return _buildEndingSoonPremiumCard(
+          context,
           child: Column(
             children: [
               for (int i = 0; i < members.length; i++) ...[
@@ -771,7 +778,7 @@ class _EndingSoonSection extends ConsumerWidget {
               ],
             ],
           ),
-        ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1);
+        );
       },
     );
   }
@@ -844,11 +851,12 @@ class _EndingSoonSection extends ConsumerWidget {
   }
 
   Widget _buildEndingSoonShimmer() {
-    return GlassCard(
-      child: Builder(
-        builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          return Shimmer.fromColors(
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return _buildEndingSoonPremiumCard(
+          context,
+          child: Shimmer.fromColors(
             baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
             highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
             child: Column(
@@ -883,23 +891,50 @@ class _EndingSoonSection extends ConsumerWidget {
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildErrorCard(BuildContext context, String message) {
-    return GlassCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return _buildEndingSoonPremiumCard(
+      context,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Text(
             message,
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// PT 종료 임박 섹션용 프리미엄 화이트 카드
+  Widget _buildEndingSoonPremiumCard(BuildContext context, {required Widget child}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
@@ -913,6 +948,8 @@ class _AiInsightSection extends ConsumerStatefulWidget {
 class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
   /// 이전 생성 성공 상태 (SnackBar 중복 방지)
   bool _previousSuccessState = false;
+  /// 이전 에러 메시지 (SnackBar 중복 방지)
+  String? _previousErrorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -924,8 +961,9 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     final trainer = ref.watch(currentTrainerProvider);
     final trainerId = ref.watch(currentTrainerIdProvider);
 
-    // 생성 성공 시 SnackBar 표시
+    // 생성 성공/실패 시 SnackBar 표시
     _handleGenerationSuccess(context, generationState);
+    _handleGenerationError(context, generationState);
 
     // 로딩 중
     if (statsAsync.isLoading || endingSoonAsync.isLoading) {
@@ -1034,6 +1072,45 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
       });
     }
     _previousSuccessState = state.isSuccess;
+  }
+
+  /// 생성 실패 처리 (에러 SnackBar 표시)
+  void _handleGenerationError(
+    BuildContext context,
+    InsightsGenerationState state,
+  ) {
+    // 에러 상태로 변경되었을 때만 SnackBar 표시
+    final errorMessage = state.errorMessage;
+    if (errorMessage != null &&
+        !state.isLoading &&
+        !state.isSuccess &&
+        errorMessage != _previousErrorMessage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: '다시 시도',
+              textColor: Colors.white,
+              onPressed: () {
+                final trainerId = ref.read(currentTrainerIdProvider);
+                if (trainerId != null) {
+                  ref.read(insightsGenerationProvider.notifier).generate(
+                        trainerId: trainerId,
+                      );
+                }
+              },
+            ),
+          ),
+        );
+      });
+    }
+    _previousErrorMessage = errorMessage;
   }
 
   /// 섹션 헤더 (타이틀 + 배지 + 새로고침 버튼)
@@ -1747,44 +1824,62 @@ class _AnimatedStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final effectiveIconColor = iconColor ?? colorScheme.primary;
 
-    return AppCard(
+    return GestureDetector(
       onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: effectiveIconColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(
-              icon,
-              color: effectiveIconColor,
-              size: 24,
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 아이콘 원형 배경 (옅은 색상 유지)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: effectiveIconColor,
+                size: 24,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // 카운트업 애니메이션 적용
-          AnimatedCounter(
-            value: value,
-            suffix: suffix,
-            duration: const Duration(milliseconds: 1000),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            // 카운트업 애니메이션 적용
+            AnimatedCounter(
+              value: value,
+              suffix: suffix,
+              duration: const Duration(milliseconds: 1000),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

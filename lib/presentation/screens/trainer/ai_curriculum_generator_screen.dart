@@ -49,6 +49,9 @@ class _AiCurriculumGeneratorScreenState
   // Step 2: 생성된 커리큘럼
   List<GeneratedCurriculum> _generatedCurriculums = [];
 
+  // 펼쳐진 커리큘럼 카드 인덱스 추적
+  final Set<int> _expandedCards = {};
+
   // 로딩 카운트다운
   int _remainingSeconds = 0;
   Timer? _countdownTimer;
@@ -1217,7 +1220,7 @@ class _AiCurriculumGeneratorScreenState
               return _buildCurriculumCard(index)
                   .animate()
                   .fadeIn(delay: (index * 100).ms, duration: 400.ms)
-                  .slideX(begin: 0.1, end: 0);
+                  .slideY(begin: 0.05, duration: 400.ms);
             },
           ),
         ),
@@ -1229,15 +1232,21 @@ class _AiCurriculumGeneratorScreenState
 
   Widget _buildCurriculumCard(int index) {
     final curriculum = _generatedCurriculums[index];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isExpanded = _expandedCards.contains(index);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -1247,6 +1256,15 @@ class _AiCurriculumGeneratorScreenState
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          onExpansionChanged: (expanded) {
+            setState(() {
+              if (expanded) {
+                _expandedCards.add(index);
+              } else {
+                _expandedCards.remove(index);
+              }
+            });
+          },
           leading: Container(
             width: 48,
             height: 48,
@@ -1292,13 +1310,25 @@ class _AiCurriculumGeneratorScreenState
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 20),
                 onPressed: () => _editCurriculum(index),
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              const Icon(Icons.expand_more),
+              // 펼침 상태에 따라 아이콘 회전
+              AnimatedRotation(
+                turns: isExpanded ? 0.5 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.expand_more,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
           children: [
-            const Divider(),
+            Divider(
+              color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+              height: 1,
+            ),
+            const SizedBox(height: 8),
             ...curriculum.exercises.asMap().entries.map((entry) {
               final exerciseIndex = entry.key;
               final exercise = entry.value;
@@ -1328,22 +1358,33 @@ class _AiCurriculumGeneratorScreenState
 
   Widget _buildExerciseItem(
       int curriculumIndex, int exerciseIndex, GeneratedExercise exercise) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          width: 0.5,
+        ),
+      ),
       child: Row(
         children: [
           Container(
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: isDark ? const Color(0xFF2E3B5E) : Colors.grey[100],
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 '${exerciseIndex + 1}',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -1373,10 +1414,10 @@ class _AiCurriculumGeneratorScreenState
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.edit, size: 18),
+            icon: const Icon(Icons.edit_outlined, size: 18),
             onPressed: () =>
                 _editExercise(curriculumIndex, exerciseIndex, exercise),
-            color: Colors.grey[500],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -1384,7 +1425,7 @@ class _AiCurriculumGeneratorScreenState
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 18),
             onPressed: () => _deleteExercise(curriculumIndex, exerciseIndex),
-            color: Colors.grey[500],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

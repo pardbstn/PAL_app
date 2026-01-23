@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
@@ -36,6 +37,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
     final sortOption = ref.watch(memberSortOptionProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('회원 관리'),
         actions: [
@@ -238,16 +240,16 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -320,7 +322,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
     );
   }
 
-  /// 회원 목록 (flutter_staggered_animations 적용) - MemberWithUser 사용
+  /// 회원 목록 (staggered fadeIn + slideY 애니메이션 적용) - MemberWithUser 사용
   Widget _buildMemberListWithUser(List<MemberWithUser> membersWithUser) {
     final searchQuery = ref.watch(memberSearchQueryProvider);
     final sortOption = ref.watch(memberSortOptionProvider);
@@ -344,7 +346,15 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
               onEdit: () => _showEditMemberDialog(mwu.member),
               onDelete: () => _deleteMember(mwu.member),
             ),
-          );
+          )
+              .animate(delay: Duration(milliseconds: index * 50))
+              .fadeIn(duration: const Duration(milliseconds: 300))
+              .slideY(
+                begin: 0.1,
+                end: 0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
         },
       ),
     );

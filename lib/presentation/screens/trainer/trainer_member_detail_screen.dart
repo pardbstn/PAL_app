@@ -195,12 +195,12 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.edit_outlined),
+              icon: Icon(Icons.edit_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
               tooltip: '정보 수정',
               onPressed: () => _showEditMemberDialog(),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
               tooltip: '회원 삭제',
               onPressed: () => _showDeleteMemberDialog(),
             ),
@@ -471,7 +471,7 @@ class _InfoTab extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           width: 1,
         ),
         boxShadow: [
@@ -907,6 +907,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       }
     }
 
+    // 날짜 오름차순 정렬 (과거 → 최신)
+    dataPoints.sort((a, b) => a.date.compareTo(b.date));
+
     // 예측 데이터 추가
     if (bodyCompPrediction != null && dataPoints.isNotEmpty) {
       final MetricPrediction? metricPred = switch (_selectedMetric) {
@@ -918,15 +921,14 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
 
       if (metricPred != null) {
         final lastDate = dataPoints.last.date;
-        for (var i = 1; i <= 4; i++) {
-          final predDate = lastDate.add(Duration(days: i * 7));
-          final predValue = metricPred.current + (metricPred.weeklyTrend * i);
-          predictionPoints.add(_ChartDataPoint(
-            date: predDate,
-            value: predValue,
-            label: DateFormat('M/d').format(predDate),
-          ));
-        }
+        // 1주 후 예측만 표시
+        final predDate = lastDate.add(const Duration(days: 7));
+        final predValue = metricPred.current + metricPred.weeklyTrend;
+        predictionPoints.add(_ChartDataPoint(
+          date: predDate,
+          value: predValue,
+          label: DateFormat('M/d').format(predDate),
+        ));
       }
     }
 
@@ -1142,6 +1144,11 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         ));
       }
     }
+
+    // 날짜 오름차순 정렬 (과거 → 최신)
+    weightData.sort((a, b) => a.date.compareTo(b.date));
+    muscleData.sort((a, b) => a.date.compareTo(b.date));
+    bodyFatData.sort((a, b) => a.date.compareTo(b.date));
 
     final hasWeight = weightData.length >= 2;
     final hasMuscle = muscleData.length >= 2;
@@ -1669,20 +1676,38 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     final isPositive = prediction.weeklyTrend > 0;
     final isNeutral = prediction.weeklyTrend.abs() < 0.05;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withValues(alpha: 0.2),
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              // 좌측 색상 인디케이터 원
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
@@ -2179,7 +2204,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           width: 1,
         ),
         boxShadow: [
@@ -2316,7 +2341,9 @@ class _CurriculumTab extends ConsumerWidget {
                     await notifier.markAsCompleted(curriculum.id);
                   }
                 },
-              ).animateListItem(index);
+              ).animate()
+                .fadeIn(delay: Duration(milliseconds: index * 80), duration: 300.ms)
+                .slideY(begin: 0.03, duration: 300.ms);
             },
           ),
         ),
@@ -2775,7 +2802,7 @@ class _CurriculumCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.edit_outlined, color: AppTheme.primary),
+                leading: Icon(Icons.edit_outlined, color: Colors.grey[500]),
                 title: const Text('제목 수정'),
                 subtitle: Text(curriculum.title),
                 onTap: () {
@@ -2829,14 +2856,14 @@ class _CurriculumCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, size: 20),
+                      icon: Icon(Icons.edit, size: 20, color: Colors.grey[500]),
                       onPressed: () {
                         Navigator.pop(context);
                         _showEditExerciseDialog(context, ref, exercise, index);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                      icon: Icon(Icons.delete, size: 20, color: Colors.grey[500]),
                       onPressed: () {
                         Navigator.pop(context);
                         _showDeleteExerciseDialog(context, ref, index);
@@ -2871,15 +2898,15 @@ class _CurriculumCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: !isCompleted
-              ? AppTheme.primary.withValues(alpha: 0.3)
-              : (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
-          width: !isCompleted ? 2 : 1,
+              ? AppTheme.primary.withValues(alpha: 0.2)
+              : (isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB)),
+          width: !isCompleted ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -3131,7 +3158,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+                color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
                 width: 1,
               ),
               boxShadow: [
@@ -3163,7 +3190,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
                     ),
                     if (!_isEditing)
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: Icon(Icons.edit_outlined, color: Colors.grey[500]),
                         onPressed: () => setState(() => _isEditing = true),
                       ),
                   ],
@@ -3176,28 +3203,42 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
           const SizedBox(height: 24),
 
           // 안내 문구
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.primary.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.primary, size: 20),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '회원의 부상 이력, 주의사항, 운동 제한 등을 기록해두세요.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.primary),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Theme.of(context).colorScheme.surface
+                      : AppTheme.primary.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+                    width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '회원의 부상 이력, 주의사항, 운동 제한 등을 기록해두세요.',
+                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -4002,9 +4043,8 @@ class _InbodyHistoryListTile extends StatelessWidget {
                 tooltip: '인바디 결과지 보기',
               ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18),
+              icon: Icon(Icons.delete_outline, size: 18, color: Colors.grey[500]),
               onPressed: onDelete,
-              color: colorScheme.error,
             ),
           ],
         ),

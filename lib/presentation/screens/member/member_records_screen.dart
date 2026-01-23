@@ -48,6 +48,7 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -65,16 +66,7 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
               titlePadding:
                   const EdgeInsets.only(left: 16, bottom: 72),
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      colorScheme.primaryContainer.withValues(alpha: 0.3),
-                      colorScheme.surface,
-                    ],
-                  ),
-                ),
+                color: Colors.transparent,
               ),
             ),
             bottom: PreferredSize(
@@ -371,13 +363,13 @@ class _AIPredictionCard extends ConsumerWidget {
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -404,13 +396,13 @@ class _AIPredictionCard extends ConsumerWidget {
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -422,12 +414,7 @@ class _AIPredictionCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primary.withValues(alpha: 0.2),
-                        AppTheme.secondary.withValues(alpha: 0.2),
-                      ],
-                    ),
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -701,13 +688,13 @@ class _StatCard extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -776,10 +763,12 @@ class _BodyCompositionChart extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final predictionState = ref.watch(bodyCompositionPredictionProvider);
 
-    // 최근 10개만 표시
-    final chartData = history.length > 10
-        ? history.sublist(history.length - 10)
-        : history;
+    // 날짜 오름차순으로 정렬 후 최근 10개만 표시
+    final sortedHistory = List<WeightHistoryData>.from(history)
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final chartData = sortedHistory.length > 10
+        ? sortedHistory.sublist(sortedHistory.length - 10)
+        : sortedHistory;
 
     // 선택된 메트릭에 따른 타이틀과 색상
     String chartTitle;
@@ -813,13 +802,13 @@ class _BodyCompositionChart extends ConsumerWidget {
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1335,13 +1324,13 @@ class _BodyRecordCard extends StatelessWidget {
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1637,14 +1626,14 @@ class _ExerciseTimelineCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: theme.brightness == Brightness.dark
-                        ? const Color(0xFF374151)
+                        ? const Color(0xFF2E3B5E)
                         : const Color(0xFFE5E7EB),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -2036,16 +2025,16 @@ class _ExerciseDetailCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -2329,13 +2318,13 @@ class _SignatureCard extends StatelessWidget {
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -2347,7 +2336,7 @@ class _SignatureCard extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: colorScheme.surface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
@@ -2455,7 +2444,7 @@ class _SignatureCard extends StatelessWidget {
                 height: 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: colorScheme.outlineVariant,
@@ -2841,16 +2830,16 @@ class _ChartPlaceholder extends StatelessWidget {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

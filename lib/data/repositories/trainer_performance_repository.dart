@@ -122,14 +122,25 @@ class TrainerPerformanceRepository extends BaseRepository<TrainerPerformanceMode
   }
 
   /// 랭킹 조회 (재등록률 기준)
+  /// 재등록률 > 0인 트레이너만 필터링 후 클라이언트에서 정렬
   Future<List<TrainerPerformanceModel>> getRankingByReregistration({int limit = 10}) async {
+    // 복합 인덱스 없이 작동하도록 클라이언트 측 정렬 사용
     final snapshot = await collection
-        .orderBy('reregistrationRate', descending: true)
-        .limit(limit)
+        .where('reregistrationRate', isGreaterThan: 0)
         .get();
-    return snapshot.docs
+
+    final results = snapshot.docs
         .map((doc) => TrainerPerformanceModel.fromFirestore(doc))
         .toList();
+
+    // 재등록률 내림차순 정렬 (동점이면 리뷰 수 많은 순)
+    results.sort((a, b) {
+      final rateCompare = b.reregistrationRate.compareTo(a.reregistrationRate);
+      if (rateCompare != 0) return rateCompare;
+      return b.totalReviews.compareTo(a.totalReviews);
+    });
+
+    return results.take(limit).toList();
   }
 
   @override

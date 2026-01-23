@@ -291,13 +291,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor =
-        isDark ? theme.scaffoldBackgroundColor : colorScheme.surface;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
           children: [

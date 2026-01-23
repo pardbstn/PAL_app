@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
-import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
-import 'package:flutter_pal_app/presentation/widgets/notification/notification_badge.dart';
 
 /// 트레이너 앱 셸 (Bottom Navigation)
 class TrainerShell extends ConsumerWidget {
@@ -14,21 +12,21 @@ class TrainerShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final userId = authState.userId;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_getTitle(context)),
-        actions: [
-          if (userId != null)
-            NotificationActionButton(
-              userId: userId,
-              onTap: () => context.push('/notifications'),
-            ),
-        ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [const Color(0xFF1A2140), const Color(0xFF162035)]
+                : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
+          ),
+        ),
+        child: child,
       ),
-      body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
         onDestinationSelected: (index) => _onItemTapped(index, context),
@@ -77,14 +75,6 @@ class TrainerShell extends ConsumerWidget {
     );
   }
 
-  String _getTitle(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/trainer/home')) return '홈';
-    if (location.startsWith('/trainer/members')) return '회원';
-    if (location.startsWith('/trainer/calendar')) return '캘린더';
-    if (location.startsWith('/trainer/messages')) return '메시지';
-    return 'PAL';
-  }
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;

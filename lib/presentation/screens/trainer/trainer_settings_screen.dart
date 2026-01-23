@@ -40,7 +40,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
             title: const Text('내 평가 보기'),
             subtitle: const Text('회원들의 평가 확인'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/my-reviews'),
+            onTap: () => context.push('/trainer/my-reviews?trainerId=${authState.userId}'),
           ),
           ListTile(
             leading: const Icon(Icons.leaderboard_outlined),

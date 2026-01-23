@@ -132,11 +132,6 @@ class _MemberCardContent extends StatelessWidget {
     required this.isCompleted,
   });
 
-  // 통일된 색상 상수
-  static const Color _lightBorderColor = Color(0xFFE5E7EB); // Gray-200
-  static const Color _darkBorderColor = Color(0xFF374151); // Gray-700
-  static const Color _darkBackgroundColor = Color(0xFF1F2937); // Gray-800
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -145,26 +140,27 @@ class _MemberCardContent extends StatelessWidget {
     final progressPercent = (member.progressRate * 100).toInt();
     final displayName = memberName ?? '회원 ${member.id.substring(0, 4)}';
 
-    // 통일된 카드 스타일 적용
-    final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
-    final borderColor = isDark ? _darkBorderColor : _lightBorderColor;
-
-    return Container(
+    return Opacity(
+      // 완료 상태일 때 전체 카드를 회색빛으로 처리
+      opacity: isCompleted ? 0.7 : 1.0,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: isWarning
             ? Border.all(
-                color: AppTheme.tertiary.withValues(alpha: 0.5), width: 2)
+                color: AppTheme.tertiary.withValues(alpha: 0.3), width: 1.5)
             : isCompleted
-                ? Border.all(color: colorScheme.outline.withValues(alpha: 0.3))
-                : Border.all(color: borderColor, width: 1),
+                ? Border.all(
+                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB))
+                : Border.all(
+                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -202,6 +198,7 @@ class _MemberCardContent extends StatelessWidget {
           _buildRemainingBadge(),
         ],
       ),
+    ),
     );
   }
 
@@ -529,11 +526,6 @@ class MemberCardCompact extends StatelessWidget {
     this.onTap,
   });
 
-  // 통일된 색상 상수
-  static const Color _lightBorderColor = Color(0xFFE5E7EB); // Gray-200
-  static const Color _darkBorderColor = Color(0xFF374151); // Gray-700
-  static const Color _darkBackgroundColor = Color(0xFF1F2937); // Gray-800
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -543,26 +535,24 @@ class MemberCardCompact extends StatelessWidget {
     final displayName = memberName ?? '회원';
     final goalColor = _getGoalColor(member.goal);
 
-    // 통일된 카드 스타일 적용
-    final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
-    final borderColor = isDark ? _darkBorderColor : _lightBorderColor;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 140,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: isWarning
-              ? Border.all(color: AppTheme.error.withValues(alpha: 0.3))
-              : Border.all(color: borderColor, width: 1),
+              ? Border.all(
+                  color: AppTheme.tertiary.withValues(alpha: 0.3), width: 1.5)
+              : Border.all(
+                  color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

@@ -61,11 +61,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF0F172A) : const Color(0xFF2563EB);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Center(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [const Color(0xFF1A2140), const Color(0xFF162035)]
+                : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
+          ),
+        ),
+        child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -102,12 +110,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             const SizedBox(height: 32),
 
             // 앱 이름
-            const Text(
+            Text(
               'PAL',
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: isDark ? Colors.white : const Color(0xFF2563EB),
                 letterSpacing: 8,
               ),
             )
@@ -123,7 +131,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.8)
+                    : const Color(0xFF64748B),
                 letterSpacing: 1,
               ),
             )
@@ -139,7 +149,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.white.withValues(alpha: 0.7),
+                  isDark
+                      ? Colors.white.withValues(alpha: 0.7)
+                      : const Color(0xFF2563EB).withValues(alpha: 0.5),
                 ),
               ),
             )
@@ -147,6 +159,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 .fadeIn(duration: 300.ms),
           ],
         ),
+      ),
       ),
     );
   }

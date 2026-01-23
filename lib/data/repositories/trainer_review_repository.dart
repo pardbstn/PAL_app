@@ -21,11 +21,13 @@ class TrainerReviewRepository extends BaseRepository<TrainerReviewModel> {
   Future<List<TrainerReviewModel>> getByTrainerId(String trainerId) async {
     final snapshot = await collection
         .where('trainerId', isEqualTo: trainerId)
-        .orderBy('createdAt', descending: true)
         .get();
-    return snapshot.docs
+    final reviews = snapshot.docs
         .map((doc) => TrainerReviewModel.fromFirestore(doc))
         .toList();
+    // 클라이언트에서 최신순 정렬 (복합 인덱스 불필요)
+    reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return reviews;
   }
 
   /// 트레이너별 공개 평가만 조회 (5개 이상일 때)
@@ -33,22 +35,28 @@ class TrainerReviewRepository extends BaseRepository<TrainerReviewModel> {
     final snapshot = await collection
         .where('trainerId', isEqualTo: trainerId)
         .where('isPublic', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
         .get();
-    return snapshot.docs
+    final reviews = snapshot.docs
         .map((doc) => TrainerReviewModel.fromFirestore(doc))
         .toList();
+    // 클라이언트에서 최신순 정렬 (복합 인덱스 불필요)
+    reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return reviews;
   }
 
   /// 트레이너별 평가 실시간 감시
   Stream<List<TrainerReviewModel>> watchByTrainerId(String trainerId) {
     return collection
         .where('trainerId', isEqualTo: trainerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => TrainerReviewModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      final reviews = snapshot.docs
+          .map((doc) => TrainerReviewModel.fromFirestore(doc))
+          .toList();
+      // 클라이언트에서 최신순 정렬 (복합 인덱스 불필요)
+      reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return reviews;
+    });
   }
 
   /// 평균 평점 계산

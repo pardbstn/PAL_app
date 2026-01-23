@@ -55,6 +55,7 @@ class MemberHomeScreen extends ConsumerWidget {
     final memberInsightsAsync = ref.watch(memberInsightsStreamProvider(memberId));
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         onRefresh: () async {
           // 데이터 새로고침
@@ -62,15 +63,30 @@ class MemberHomeScreen extends ConsumerWidget {
           ref.invalidate(nextMemberPtScheduleProvider(memberId));
           ref.invalidate(weightHistoryProvider(memberId));
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. 상단 인사말 섹션 (index 0)
-              _GreetingSection(userName: user?.name ?? '회원님')
-                  .animateListItem(0),
+              // 1. 상단 인사말 + 알림/설정 아이콘
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _GreetingSection(userName: user?.name ?? '회원님'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => context.push('/notifications'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    onPressed: () => context.push('/member/settings'),
+                  ),
+                ],
+              ).animateListItem(0),
               const SizedBox(height: 16),
 
               // 재등록 배너 (80% 이상 완료 시)
@@ -166,6 +182,7 @@ class MemberHomeScreen extends ConsumerWidget {
               const SizedBox(height: 32),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -336,16 +353,18 @@ class MemberHomeScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primary.withValues(alpha: 0.1),
-                      AppTheme.primary.withValues(alpha: 0.05),
-                    ],
-                  ),
+                  color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
+                    color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -538,8 +557,8 @@ class _PtProgressCardState extends State<_PtProgressCard>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.3),
-            blurRadius: 12,
+            color: AppTheme.primary.withValues(alpha: 0.2),
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -726,118 +745,132 @@ class _NextClassCard extends StatelessWidget {
       dDayText = 'D-$daysUntil';
     }
 
-    return Card(
-      elevation: 2,
-      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: () {
-          // 캘린더 화면으로 이동
-          context.go('/member/calendar');
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.fitness_center,
-                      color: theme.colorScheme.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '다음 PT 수업',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: daysUntil == 0
-                                    ? AppTheme.secondary.withValues(alpha: 0.15)
-                                    : theme.colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                dDayText,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: daysUntil == 0
-                                      ? AppTheme.secondary
-                                      : theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                schedule!.memberName ?? 'PT 수업',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // 캘린더 화면으로 이동
+            context.go('/member/calendar');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(
-                      Icons.access_time_outlined,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$formattedDate $formattedTime (${duration}분)',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: Icon(
+                        Icons.fitness_center,
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '다음 PT 수업',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: daysUntil == 0
+                                      ? AppTheme.secondary.withValues(alpha: 0.15)
+                                      : theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  dDayText,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: daysUntil == 0
+                                        ? AppTheme.secondary
+                                        : theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  schedule!.memberName ?? 'PT 수업',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.access_time_outlined,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$formattedDate $formattedTime (${duration}분)',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -845,10 +878,23 @@ class _NextClassCard extends StatelessWidget {
   }
 
   Widget _buildEmptyCard(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: const EmptyState(
         type: EmptyStateType.sessions,
@@ -859,10 +905,23 @@ class _NextClassCard extends StatelessWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, String error) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ErrorState.fromError(
         error,
@@ -927,11 +986,22 @@ class _WeightChangeCard extends StatelessWidget {
     final changeColor = isLoss ? AppTheme.secondary : AppTheme.error;
     final changeSign = isLoss ? '' : '+';
 
-    return Card(
-      elevation: 2,
-      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1040,15 +1110,19 @@ class _WeightChangeCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // 날짜 오름차순 정렬 (왼쪽=과거, 오른쪽=최신)
+    final sortedHistory = List<WeightHistoryData>.from(weightHistory)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
     final theme = Theme.of(context);
     final spots = <FlSpot>[];
 
-    for (var i = 0; i < weightHistory.length; i++) {
-      spots.add(FlSpot(i.toDouble(), weightHistory[i].weight));
+    for (var i = 0; i < sortedHistory.length; i++) {
+      spots.add(FlSpot(i.toDouble(), sortedHistory[i].weight));
     }
 
     // 최소/최대 체중 계산 (차트 범위 설정용)
-    final weights = weightHistory.map((e) => e.weight).toList();
+    final weights = sortedHistory.map((e) => e.weight).toList();
     final minWeight = weights.reduce((a, b) => a < b ? a : b);
     final maxWeight = weights.reduce((a, b) => a > b ? a : b);
     final padding = (maxWeight - minWeight) * 0.2;
@@ -1059,7 +1133,7 @@ class _WeightChangeCard extends StatelessWidget {
         titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
         minX: 0,
-        maxX: (weightHistory.length - 1).toDouble(),
+        maxX: (sortedHistory.length - 1).toDouble(),
         minY: minWeight - padding - 1,
         maxY: maxWeight + padding + 1,
         lineTouchData: LineTouchData(
@@ -1127,10 +1201,23 @@ class _WeightChangeCard extends StatelessWidget {
   }
 
   Widget _buildEmptyCard(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: const EmptyState(
         type: EmptyStateType.bodyRecords,
@@ -1142,10 +1229,23 @@ class _WeightChangeCard extends StatelessWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, String error) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ErrorState.fromError(
         error,
@@ -1218,41 +1318,54 @@ class _QuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Card(
-      elevation: 2,
-      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1349,19 +1462,27 @@ class _EmptyInsightSection extends ConsumerWidget {
 /// _MemberInsightCard에서 사용할 통일된 카드 데코레이션
 BoxDecoration _getUnifiedCardDecoration(BuildContext context, Color? accentColor) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
+  // 기본 그레이 보더, accentColor가 있으면 아주 미세하게만 적용
+  final borderColor = accentColor != null
+      ? Color.lerp(
+          isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          accentColor,
+          0.15,
+        )!
+      : (isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB));
+
   return BoxDecoration(
-    color: isDark ? const Color(0xFF1F2937) : Colors.white,
+    color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
     borderRadius: BorderRadius.circular(16),
     border: Border.all(
-      color: accentColor?.withValues(alpha: 0.3) ??
-          (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+      color: borderColor,
       width: 1,
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.03),
-        blurRadius: 8,
-        offset: const Offset(0, 2),
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
       ),
     ],
   );

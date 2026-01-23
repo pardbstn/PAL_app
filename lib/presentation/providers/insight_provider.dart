@@ -378,9 +378,26 @@ class InsightsGenerationNotifier extends Notifier<InsightsGenerationState> {
     } catch (e) {
       debugPrint('InsightsGenerationNotifier.generate error: $e');
       state = InsightsGenerationState.error(
-        '인사이트 생성 중 오류가 발생했습니다: ${e.toString()}',
+        _formatErrorMessage(e.toString()),
       );
     }
+  }
+
+  /// 에러 메시지를 사용자 친화적 메시지로 변환
+  String _formatErrorMessage(String rawError) {
+    // "Exception: " 접두사 제거
+    String message = rawError;
+    if (message.startsWith('Exception: ')) {
+      message = message.substring('Exception: '.length);
+    }
+
+    // 서버 내부 에러 (INTERNAL)
+    if (message == 'INTERNAL' || message.contains('INTERNAL')) {
+      return '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    // 기타 에러는 정제된 메시지 반환
+    return message.isNotEmpty ? message : '인사이트 생성에 실패했습니다.';
   }
 
   /// 상태 초기화

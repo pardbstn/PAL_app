@@ -184,7 +184,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: Colors.transparent,
       appBar: _buildAppBar(theme, colorScheme, isDark),
       body: Column(
         children: [

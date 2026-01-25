@@ -7,7 +7,6 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
-import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';

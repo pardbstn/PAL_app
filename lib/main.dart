@@ -60,9 +60,7 @@ void main() async {
       );
 
       // Kakao SDK 초기화
-      KakaoSdk.init(
-        nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa',
-      );
+      KakaoSdk.init(nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa');
 
       // FCM 초기화 (웹에서는 지원하지 않음)
       if (!kIsWeb) {

@@ -197,7 +197,7 @@ class _StreakCounterWidgetState extends ConsumerState<StreakCounterWidget> {
                     children: [
                       if (widget.showLabel)
                         Text(
-                          '${widget.type.label} 스트릭',
+                          widget.type.label,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurface.withValues(alpha: 0.7),
                           ),

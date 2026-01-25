@@ -99,6 +99,26 @@ class MemberHomeScreen extends ConsumerWidget {
                 ReregistrationBanner(memberId: memberId),
                 const SizedBox(height: 16),
 
+                // 2. PT 진행 현황 카드 (index 1)
+                _PtProgressCard(
+                  completed: member.ptInfo.completedSessions,
+                  total: member.ptInfo.totalSessions,
+                  progressRate: member.progressRate,
+                ).animateListItem(1),
+                const SizedBox(height: 16),
+
+                // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
+                nextPtScheduleAsync.when(
+                  loading: () => _buildNextClassSkeleton(context),
+                  error: (error, _) => _NextClassCard(
+                    schedule: null,
+                    error: error.toString(),
+                  ).animateListItem(2),
+                  data: (schedule) =>
+                      _NextClassCard(schedule: schedule).animateListItem(2),
+                ),
+                const SizedBox(height: 16),
+
                 // 스트릭 카운터
                 Consumer(
                   builder: (context, ref, child) {
@@ -127,26 +147,6 @@ class MemberHomeScreen extends ConsumerWidget {
                       error: (_, __) => const SizedBox.shrink(),
                     );
                   },
-                ),
-                const SizedBox(height: 16),
-
-                // 2. PT 진행 현황 카드 (index 1)
-                _PtProgressCard(
-                  completed: member.ptInfo.completedSessions,
-                  total: member.ptInfo.totalSessions,
-                  progressRate: member.progressRate,
-                ).animateListItem(1),
-                const SizedBox(height: 16),
-
-                // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
-                nextPtScheduleAsync.when(
-                  loading: () => _buildNextClassSkeleton(context),
-                  error: (error, _) => _NextClassCard(
-                    schedule: null,
-                    error: error.toString(),
-                  ).animateListItem(2),
-                  data: (schedule) =>
-                      _NextClassCard(schedule: schedule).animateListItem(2),
                 ),
                 const SizedBox(height: 16),
 

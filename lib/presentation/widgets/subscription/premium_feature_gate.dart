@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
-import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/subscription_provider.dart';
 
 /// 프리미엄 기능 게이트 위젯
 /// 프리미엄 전용 기능을 감싸서 접근 권한이 없으면 잠금 오버레이를 표시
@@ -80,17 +78,17 @@ class PremiumFeatureGate extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.lock_outline,
-                          size: iconSize,
-                          color: AppTheme.primary,
-                        ),
-                      )
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.lock_outline,
+                              size: iconSize,
+                              color: AppTheme.primary,
+                            ),
+                          )
                           .animate(onPlay: (controller) => controller.repeat())
                           .shimmer(
                             duration: 2000.ms,
@@ -193,11 +191,11 @@ class PremiumFeatureGate extends ConsumerWidget {
                   color: AppTheme.primary,
                 ),
               ).animate().scale(
-                    begin: const Offset(0.8, 0.8),
-                    end: const Offset(1, 1),
-                    duration: 300.ms,
-                    curve: Curves.easeOutBack,
-                  ),
+                begin: const Offset(0.8, 0.8),
+                end: const Offset(1, 1),
+                duration: 300.ms,
+                curve: Curves.easeOutBack,
+              ),
               const SizedBox(height: 20),
               Text(
                 '프리미엄으로 업그레이드',
@@ -277,10 +275,7 @@ class PremiumFeatureGate extends ConsumerWidget {
                   ),
                   child: const Text(
                     '프리미엄 시작하기',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -344,11 +339,7 @@ class _PremiumBenefitItem extends StatelessWidget {
               color: AppTheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: AppTheme.primary,
-            ),
+            child: Icon(icon, size: 20, color: AppTheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -370,11 +361,7 @@ class _PremiumBenefitItem extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.check_circle,
-            size: 20,
-            color: AppTheme.secondary,
-          ),
+          Icon(Icons.check_circle, size: 20, color: AppTheme.secondary),
         ],
       ),
     );

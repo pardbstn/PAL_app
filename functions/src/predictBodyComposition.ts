@@ -7,6 +7,9 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
 import {
   WeightDataPoint,
   MIN_DATA_POINTS,
@@ -18,9 +21,6 @@ import {
   calculateConfidence,
   calculateWeeksToTarget,
 } from "./utils/predictionHelpers";
-
-// Firestore 인스턴스
-const db = admin.firestore();
 
 // ==================== 인터페이스 정의 ====================
 
@@ -226,15 +226,7 @@ export const predictBodyComposition = functions
     });
 
     // 1. 인증 확인
-    if (!context.auth) {
-      functions.logger.warn("[predictBodyComposition] 인증되지 않은 요청");
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
-
-    const userId = context.auth.uid;
+    const userId = requireAuth(context);
 
     // 2. 입력 데이터 검증
     const {memberId, targetWeight, targetMuscle, targetBodyFat} = data || {};
@@ -253,7 +245,7 @@ export const predictBodyComposition = functions
       let trainerDoc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot;
 
       const trainerSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .where("userId", "==", userId)
         .limit(1)
         .get();
@@ -266,7 +258,7 @@ export const predictBodyComposition = functions
       } else {
         // 회원이 호출한 경우 - 회원의 trainerId로 트레이너 찾기
         const memberSnapshot = await db
-          .collection("members")
+          .collection(Collections.MEMBERS)
           .where("userId", "==", userId)
           .limit(1)
           .get();
@@ -288,7 +280,7 @@ export const predictBodyComposition = functions
           );
         }
 
-        const trainerDocRef = await db.collection("trainers").doc(memberTrainerId).get();
+        const trainerDocRef = await db.collection(Collections.TRAINERS).doc(memberTrainerId).get();
         if (!trainerDocRef.exists) {
           throw new functions.https.HttpsError(
             "not-found",
@@ -331,7 +323,7 @@ export const predictBodyComposition = functions
       // TODO: 테스트 완료 후 한도 체크 활성화
 
       // 5. 회원 정보 확인
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -353,7 +345,7 @@ export const predictBodyComposition = functions
       let weightRecordsSnapshot;
       try {
         weightRecordsSnapshot = await db
-          .collection("body_records")
+          .collection(Collections.BODY_RECORDS)
           .where("memberId", "==", memberId)
           .where("recordDate", ">=", sixMonthsAgoTimestamp)
           .orderBy("recordDate", "asc")
@@ -437,7 +429,7 @@ export const predictBodyComposition = functions
       let inbodyRecordsSnapshot;
       try {
         inbodyRecordsSnapshot = await db
-          .collection("inbody_records")
+          .collection(Collections.INBODY_RECORDS)
           .where("memberId", "==", memberId)
           .where("recordDate", ">=", sixMonthsAgoTimestamp)
           .orderBy("recordDate", "asc")
@@ -558,7 +550,7 @@ export const predictBodyComposition = functions
         createdAt: admin.firestore.Timestamp.now(),
       };
 
-      const predictionRef = await db.collection("predictions").add(predictionData);
+      const predictionRef = await db.collection(Collections.PREDICTIONS).add(predictionData);
 
       functions.logger.info("[predictBodyComposition] 예측 저장 완료", {
         predictionId: predictionRef.id,

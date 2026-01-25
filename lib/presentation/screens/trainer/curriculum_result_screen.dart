@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,6 +56,80 @@ class _CurriculumResultScreenState
     );
   }
 
+  Future<void> _saveAsTemplate() async {
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('템플릿 저장'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            hintText: '템플릿 이름을 입력하세요',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+
+    if (name == null || name.trim().isEmpty || !mounted) return;
+
+    try {
+      final state = ref.read(curriculumGeneratorV2Provider);
+      final authState = ref.read(authProvider);
+      final trainerId = authState.userId ?? '';
+
+      final sessions = <Map<String, dynamic>>[];
+      for (int i = 0; i < state.sessions.length; i++) {
+        sessions.add({
+          'sessionNumber': i + 1,
+          'title': '${i + 1}회차',
+          'exercises': state.sessions[i].map((e) => e.toJson()).toList(),
+        });
+      }
+
+      await FirebaseFirestore.instance.collection('curriculum_templates').add({
+        'trainerId': trainerId,
+        'name': name.trim(),
+        'sessionCount': state.sessionCount,
+        'sessions': sessions,
+        'settings': widget.settings?.toJson(),
+        'usageCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("'${name.trim()}' 템플릿이 저장되었습니다."),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('템플릿 저장에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _saveCurriculum() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -78,8 +153,12 @@ class _CurriculumResultScreenState
           backgroundColor: const Color(0xFF10B981),
         ),
       );
-      context.pop();
-      context.pop();
+      // 회원 상세 화면으로 이동 (memberId가 있으면 해당 회원으로, 없으면 홈으로)
+      if (widget.memberId != null && widget.memberId!.isNotEmpty) {
+        context.go('/trainer/members/${widget.memberId}');
+      } else {
+        context.go('/trainer');
+      }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -163,10 +242,21 @@ class _CurriculumResultScreenState
         ),
         actions: [
           if (state.status == CurriculumGeneratorStatus.generated)
+            IconButton(
+              icon: const Icon(Icons.bookmark_add_outlined),
+              tooltip: '템플릿으로 저장',
+              onPressed: _saveAsTemplate,
+            ),
+          if (state.status == CurriculumGeneratorStatus.generated)
             TextButton(
               onPressed: () {
                 ref.read(curriculumGeneratorV2Provider.notifier).reset();
-                context.pop();
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  // 설정 화면으로 다시 이동
+                  context.go('/trainer/curriculum/create${widget.memberId != null ? '?memberId=${widget.memberId}' : ''}');
+                }
               },
               child: const Text(
                 '다시 설정',

@@ -1,13 +1,12 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import OpenAI from "openai";
-import {GoogleGenerativeAI} from "@google/generative-ai";
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
+import {getGoogleAIClient, callGPT} from "./services/ai-service";
 
 // Firebase Admin 초기화
 admin.initializeApp();
-
-// Firestore 인스턴스
-const db = admin.firestore();
 
 // AI 모델 설정 (모든 사용자 동일)
 const AI_CONFIG = {
@@ -30,23 +29,7 @@ const EXPERIENCE_LABELS: Record<string, string> = {
   advanced: "상급자 (2년 이상)",
 };
 
-// OpenAI 클라이언트 (지연 초기화)
-const getOpenAIClient = (): OpenAI => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-  return new OpenAI({apiKey});
-};
-
-// Google AI 클라이언트 (지연 초기화)
-const getGoogleAIClient = (): GoogleGenerativeAI => {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_AI_API_KEY is not configured");
-  }
-  return new GoogleGenerativeAI(apiKey);
-};
+// AI 클라이언트는 ./services/ai-service에서 import
 
 // 프롬프트 빌더
 function buildCurriculumPrompt(
@@ -118,19 +101,12 @@ async function generateWithOpenAI(
   prompt: string,
   modelName: string
 ): Promise<{curriculums: unknown[]}> {
-  const openai = getOpenAIClient();
-  const response = await openai.chat.completions.create({
+  const content = await callGPT(prompt, {
     model: modelName,
-    messages: [{role: "user", content: prompt}],
-    response_format: {type: "json_object"},
+    maxTokens: 4000,
     temperature: 0.7,
-    max_tokens: 4000,
+    jsonMode: true,
   });
-
-  const content = response.choices[0].message.content;
-  if (!content) {
-    throw new Error("AI 응답이 비어있습니다.");
-  }
   return JSON.parse(content);
 }
 
@@ -141,14 +117,7 @@ export const generateCurriculum = functions
   .region("asia-northeast3")
   .https.onCall(async (data, context) => {
     // 1. 인증 확인
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
-
-    const userId = context.auth.uid;
+    const userId = requireAuth(context);
 
     // 2. 입력 데이터 검증
     const {memberId, goal, experience, sessionCount, restrictions} = data;
@@ -170,7 +139,7 @@ export const generateCurriculum = functions
     try {
       // 3. 트레이너 정보 확인
       const trainerSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .where("userId", "==", userId)
         .limit(1)
         .get();
@@ -183,7 +152,7 @@ export const generateCurriculum = functions
       }
 
       // 4. 회원 정보 확인
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -228,12 +197,7 @@ export const generateCurriculum = functions
 export const getAIUsage = functions
   .region("asia-northeast3")
   .https.onCall(async (data, context) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
+    requireAuth(context);
 
     // 모든 기능 무제한 (-1)
     return {
@@ -265,7 +229,7 @@ export const sendMessageNotification = functions
 
     try {
       // 1. 채팅방 정보 가져오기
-      const chatRoomDoc = await db.collection("chat_rooms").doc(chatRoomId).get();
+      const chatRoomDoc = await db.collection(Collections.CHAT_ROOMS).doc(chatRoomId).get();
       if (!chatRoomDoc.exists) {
         console.log("채팅방을 찾을 수 없음:", chatRoomId);
         return null;
@@ -279,7 +243,7 @@ export const sendMessageNotification = functions
         : chatRoom.trainerId;
 
       // 3. 수신자의 FCM 토큰 가져오기
-      const userDoc = await db.collection("users").doc(receiverId).get();
+      const userDoc = await db.collection(Collections.USERS).doc(receiverId).get();
       if (!userDoc.exists) {
         console.log("수신자를 찾을 수 없음:", receiverId);
         return null;
@@ -366,7 +330,7 @@ export const sendPTExpiryNotification = functions
         const targetDateStr = targetDate.toISOString().split("T")[0];
 
         // 해당 날짜에 만료되는 회원 조회
-        const membersSnapshot = await db.collection("members")
+        const membersSnapshot = await db.collection(Collections.MEMBERS)
           .where("endDate", ">=", new Date(targetDateStr + "T00:00:00"))
           .where("endDate", "<", new Date(targetDateStr + "T23:59:59"))
           .get();
@@ -378,7 +342,7 @@ export const sendPTExpiryNotification = functions
           if (!memberId) continue;
 
           // 회원의 FCM 토큰 가져오기
-          const userDoc = await db.collection("users").doc(memberId).get();
+          const userDoc = await db.collection(Collections.USERS).doc(memberId).get();
           if (!userDoc.exists) continue;
 
           const userData = userDoc.data()!;

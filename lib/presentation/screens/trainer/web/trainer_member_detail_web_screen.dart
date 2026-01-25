@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:flutter_pal_app/core/constants/firestore_constants.dart';
 import 'package:flutter_pal_app/core/theme/web_theme.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/data/models/user_model.dart';
@@ -26,7 +27,7 @@ final memberDetailProvider =
   final member = await ref.watch(memberByIdFutureProvider(memberId).future);
   if (member == null) return null;
   final userDoc = await FirebaseFirestore.instance
-      .collection('users')
+      .collection(FirestoreCollections.users)
       .doc(member.userId)
       .get();
   final user = userDoc.exists

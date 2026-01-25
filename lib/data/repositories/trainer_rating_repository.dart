@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/constants/firestore_constants.dart';
 import '../models/trainer_rating_model.dart';
 import '../models/member_review_model.dart';
 
@@ -12,9 +13,9 @@ class TrainerRatingRepository {
   /// 트레이너 평점 조회
   Future<TrainerRatingModel?> getRating(String trainerId) async {
     final doc = await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('rating')
+        .collection(FirestoreCollections.rating)
         .doc('current')
         .get();
     if (!doc.exists) return null;
@@ -24,9 +25,9 @@ class TrainerRatingRepository {
   /// 트레이너 평점 업데이트
   Future<void> updateRating(String trainerId, TrainerRatingModel rating) async {
     await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('rating')
+        .collection(FirestoreCollections.rating)
         .doc('current')
         .set(rating.toJson());
   }
@@ -34,9 +35,9 @@ class TrainerRatingRepository {
   /// 리뷰 목록 조회
   Future<List<MemberReviewModel>> getReviews(String trainerId, {int limit = 20}) async {
     final snapshot = await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('reviews')
+        .collection(FirestoreCollections.reviews)
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .get();
@@ -48,9 +49,9 @@ class TrainerRatingRepository {
   /// 리뷰 작성
   Future<void> addReview(String trainerId, MemberReviewModel review) async {
     await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('reviews')
+        .collection(FirestoreCollections.reviews)
         .add(review.toJson());
     // 평점 재계산
     await _recalculateRating(trainerId);
@@ -107,9 +108,9 @@ class TrainerRatingRepository {
   /// 리뷰 스트림 (실시간)
   Stream<List<MemberReviewModel>> watchReviews(String trainerId) {
     return _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('reviews')
+        .collection(FirestoreCollections.reviews)
         .orderBy('createdAt', descending: true)
         .limit(20)
         .snapshots()
@@ -121,9 +122,9 @@ class TrainerRatingRepository {
   /// 평점 스트림 (실시간)
   Stream<TrainerRatingModel?> watchRating(String trainerId) {
     return _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('rating')
+        .collection(FirestoreCollections.rating)
         .doc('current')
         .snapshots()
         .map((doc) {

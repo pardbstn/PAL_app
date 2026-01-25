@@ -1,14 +1,8 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-import OpenAI from "openai";
-
-const db = admin.firestore();
-
-const getOpenAI = (): OpenAI => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
-  return new OpenAI({ apiKey });
-};
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
+import {requireAuth} from "../middleware/auth";
+import {callGPT} from "../services/ai-service";
 
 /**
  * 대체 운동 추천 Cloud Function
@@ -17,9 +11,7 @@ const getOpenAI = (): OpenAI => {
 export const getAlternativeExercises = functions
   .region("asia-northeast3")
   .https.onCall(async (data, context) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "로그인이 필요합니다.");
-    }
+    requireAuth(context);
 
     const { exerciseId, excludedIds = [] } = data;
 
@@ -29,7 +21,7 @@ export const getAlternativeExercises = functions
 
     try {
       // 1. 현재 운동 정보 가져오기
-      const exerciseDoc = await db.collection("exercises").doc(exerciseId).get();
+      const exerciseDoc = await db.collection(Collections.EXERCISES).doc(exerciseId).get();
       if (!exerciseDoc.exists) {
         throw new functions.https.HttpsError("not-found", "운동을 찾을 수 없습니다.");
       }
@@ -39,25 +31,27 @@ export const getAlternativeExercises = functions
 
       // 2. 같은 근육군 운동 조회 (제외 목록 필터링)
       const allExcluded = [exerciseId, ...excludedIds];
-      const snapshot = await db.collection("exercises")
+      const snapshot = await db.collection(Collections.EXERCISES)
         .where("primaryMuscle", "==", primaryMuscle)
         .limit(20)
         .get();
 
       let candidates = snapshot.docs
         .filter(doc => !allExcluded.includes(doc.id))
-        .map(doc => ({ id: doc.id, ...doc.data() as any }));
+        .map(doc => ({id: doc.id, ...doc.data() as Record<string, unknown>}));
 
       // 3. 다양한 장비 타입 우선 선택
-      const equipmentGroups = new Map<string, any[]>();
-      candidates.forEach(ex => {
-        const group = equipmentGroups.get(ex.equipment) || [];
+      type ExerciseCandidate = Record<string, unknown> & {id: string};
+      const equipmentGroups = new Map<string, ExerciseCandidate[]>();
+      (candidates as ExerciseCandidate[]).forEach(ex => {
+        const equipment = ex.equipment as string;
+        const group = equipmentGroups.get(equipment) || [];
         group.push(ex);
-        equipmentGroups.set(ex.equipment, group);
+        equipmentGroups.set(equipment, group);
       });
 
       // 각 장비군에서 1개씩 선택, 부족하면 추가
-      let selected: any[] = [];
+      let selected: ExerciseCandidate[] = [];
       for (const [, group] of equipmentGroups) {
         if (selected.length >= 3) break;
         selected.push(group[0]);
@@ -73,34 +67,37 @@ export const getAlternativeExercises = functions
       }
 
       // 4. GPT-4o-mini로 추천 이유 생성
-      let alternatives: any[];
+      interface AlternativeExercise {
+        exerciseId: string;
+        name: string;
+        equipment: string;
+        primaryMuscle: string;
+        reason: string;
+      }
+      let alternatives: AlternativeExercise[];
       try {
-        const openai = getOpenAI();
-        const exerciseNames = selected.map(ex => ex.nameKo).join(", ");
+        const exerciseNames = selected.map(ex => ex.nameKo as string).join(", ");
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [{
-            role: "user",
-            content: `현재 운동 "${currentExercise.nameKo}" (${currentExercise.equipment}, ${primaryMuscle})의 대체 운동으로 다음을 추천합니다: ${exerciseNames}
+        const gptPrompt = `현재 운동 "${currentExercise.nameKo}" (${currentExercise.equipment}, ${primaryMuscle})의 대체 운동으로 다음을 추천합니다: ${exerciseNames}
 
 각 운동에 대해 왜 좋은 대체 운동인지 한 줄로 설명해주세요.
-JSON 형식으로 응답: { "reasons": ["이유1", "이유2", "이유3"] }`,
-          }],
-          response_format: { type: "json_object" },
+JSON 형식으로 응답: { "reasons": ["이유1", "이유2", "이유3"] }`;
+
+        const content = await callGPT(gptPrompt, {
+          model: "gpt-4o-mini",
+          jsonMode: true,
           temperature: 0.5,
-          max_tokens: 300,
+          maxTokens: 300,
         });
 
-        const content = response.choices[0].message.content;
-        const parsed = content ? JSON.parse(content) : { reasons: [] };
-        const reasons = parsed.reasons || [];
+        const parsed = content ? JSON.parse(content) : {reasons: []};
+        const reasons: string[] = parsed.reasons || [];
 
         alternatives = selected.map((ex, i) => ({
           exerciseId: ex.id,
-          name: ex.nameKo,
-          equipment: ex.equipment,
-          primaryMuscle: ex.primaryMuscle,
+          name: ex.nameKo as string,
+          equipment: ex.equipment as string,
+          primaryMuscle: ex.primaryMuscle as string,
           reason: reasons[i] || `같은 ${primaryMuscle} 운동`,
         }));
       } catch (aiError) {
@@ -108,9 +105,9 @@ JSON 형식으로 응답: { "reasons": ["이유1", "이유2", "이유3"] }`,
         console.error("AI reason generation failed:", aiError);
         alternatives = selected.map(ex => ({
           exerciseId: ex.id,
-          name: ex.nameKo,
-          equipment: ex.equipment,
-          primaryMuscle: ex.primaryMuscle,
+          name: ex.nameKo as string,
+          equipment: ex.equipment as string,
+          primaryMuscle: ex.primaryMuscle as string,
           reason: `같은 ${primaryMuscle} 타겟 운동 (${ex.equipment})`,
         }));
       }

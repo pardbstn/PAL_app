@@ -135,6 +135,18 @@ class _CurriculumSettingsScreenState
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else if (widget.memberId != null && widget.memberId!.isNotEmpty) {
+              context.go('/trainer/members/${widget.memberId}');
+            } else {
+              context.go('/trainer');
+            }
+          },
+        ),
         title: Text(
           widget.memberName != null
               ? '${widget.memberName} 커리큘럼 설정'

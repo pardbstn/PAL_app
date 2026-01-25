@@ -7,6 +7,9 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
 import {
   WeightDataPoint,
   PredictedPoint,
@@ -27,9 +30,6 @@ import {
   generateGeminiAnalysis,
   GeminiAnalysisResult,
 } from "./utils/predictionHelpers";
-
-// Firestore 인스턴스
-const db = admin.firestore();
 
 /**
  * AI 체중 예측 Cloud Function
@@ -63,15 +63,7 @@ export const predictWeight = functions
     });
 
     // 1. 인증 확인
-    if (!context.auth) {
-      functions.logger.warn("[predictWeight] 인증되지 않은 요청");
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
-
-    const userId = context.auth.uid;
+    const userId = requireAuth(context);
 
     // 2. 입력 데이터 검증
     const {memberId, weeksAhead = 1} = data || {};
@@ -99,7 +91,7 @@ export const predictWeight = functions
     try {
       // 3. 트레이너 정보 확인
       const trainerSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .where("userId", "==", userId)
         .limit(1)
         .get();
@@ -115,7 +107,7 @@ export const predictWeight = functions
       const trainerId = trainerDoc.id;
 
       // 4. 회원 정보 확인
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -132,7 +124,7 @@ export const predictWeight = functions
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
       const recordsSnapshot = await db
-        .collection("body_records")
+        .collection(Collections.BODY_RECORDS)
         .where("memberId", "==", memberId)
         .where("recordDate", ">=", admin.firestore.Timestamp.fromDate(sixMonthsAgo))
         .orderBy("recordDate", "asc")
@@ -317,7 +309,7 @@ export const predictWeight = functions
         };
       }
 
-      const predictionRef = await db.collection("predictions").add(predictionData);
+      const predictionRef = await db.collection(Collections.PREDICTIONS).add(predictionData);
 
       functions.logger.info("[predictWeight] 예측 저장 완료", {
         predictionId: predictionRef.id,

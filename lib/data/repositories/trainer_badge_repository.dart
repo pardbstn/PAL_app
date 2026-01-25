@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/constants/firestore_constants.dart';
 import '../models/trainer_badge_model.dart';
 import '../models/trainer_stats_model.dart';
 
@@ -12,9 +13,9 @@ class TrainerBadgeRepository {
   /// 배지 조회
   Future<TrainerBadgeModel?> getBadges(String trainerId) async {
     final doc = await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('badges')
+        .collection(FirestoreCollections.badges)
         .doc('current')
         .get();
     if (!doc.exists) return null;
@@ -24,9 +25,9 @@ class TrainerBadgeRepository {
   /// 배지 업데이트
   Future<void> updateBadges(String trainerId, TrainerBadgeModel badges) async {
     await _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('badges')
+        .collection(FirestoreCollections.badges)
         .doc('current')
         .set(badges.toJson());
   }
@@ -111,9 +112,9 @@ class TrainerBadgeRepository {
   /// 배지 스트림 (실시간)
   Stream<TrainerBadgeModel?> watchBadges(String trainerId) {
     return _firestore
-        .collection('trainers')
+        .collection(FirestoreCollections.trainers)
         .doc(trainerId)
-        .collection('badges')
+        .collection(FirestoreCollections.badges)
         .doc('current')
         .snapshots()
         .map((doc) {

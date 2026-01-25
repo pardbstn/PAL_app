@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 /**
  * 매주 월요일 오전 9시 주간 리포트 푸시
@@ -47,7 +47,7 @@ async function sendTrainerWeeklyReports(
   endDate: Date
 ): Promise<void> {
   // 모든 트레이너 조회
-  const trainersSnapshot = await db.collection("users")
+  const trainersSnapshot = await db.collection(Collections.USERS)
     .where("role", "==", "trainer")
     .get();
 
@@ -59,7 +59,7 @@ async function sendTrainerWeeklyReports(
     if (!fcmToken) continue;
 
     // 담당 회원 수 조회
-    const membersSnapshot = await db.collection("members")
+    const membersSnapshot = await db.collection(Collections.MEMBERS)
       .where("trainerId", "==", trainerId)
       .where("endDate", ">=", new Date())
       .get();
@@ -68,7 +68,7 @@ async function sendTrainerWeeklyReports(
     if (totalMembers === 0) continue;
 
     // 지난주 PT 세션 수 조회
-    const schedulesSnapshot = await db.collection("schedules")
+    const schedulesSnapshot = await db.collection(Collections.SCHEDULES)
       .where("trainerId", "==", trainerId)
       .where("startTime", ">=", startDate)
       .where("startTime", "<=", endDate)
@@ -83,7 +83,7 @@ async function sendTrainerWeeklyReports(
 
     let dietRecords = 0;
     for (const memberDoc of membersSnapshot.docs) {
-      const dietsSnapshot = await db.collection("diets")
+      const dietsSnapshot = await db.collection(Collections.DIETS)
         .where("memberId", "==", memberDoc.id)
         .where("date", ">=", startDateStr)
         .where("date", "<=", endDateStr)
@@ -145,7 +145,7 @@ async function sendMemberWeeklyReports(
   endDate: Date
 ): Promise<void> {
   // 활성 회원 조회
-  const membersSnapshot = await db.collection("members")
+  const membersSnapshot = await db.collection(Collections.MEMBERS)
     .where("endDate", ">=", new Date())
     .get();
 
@@ -159,7 +159,7 @@ async function sendMemberWeeklyReports(
     if (!memberId) continue;
 
     // 회원의 FCM 토큰 가져오기
-    const userDoc = await db.collection("users").doc(memberId).get();
+    const userDoc = await db.collection(Collections.USERS).doc(memberId).get();
     if (!userDoc.exists) continue;
 
     const userData = userDoc.data()!;
@@ -168,7 +168,7 @@ async function sendMemberWeeklyReports(
     if (!fcmToken) continue;
 
     // 지난주 PT 세션 수 조회
-    const schedulesSnapshot = await db.collection("schedules")
+    const schedulesSnapshot = await db.collection(Collections.SCHEDULES)
       .where("memberId", "==", memberDoc.id)
       .where("startTime", ">=", startDate)
       .where("startTime", "<=", endDate)
@@ -178,7 +178,7 @@ async function sendMemberWeeklyReports(
     const completedSessions = schedulesSnapshot.size;
 
     // 지난주 식단 기록 수 조회
-    const dietsSnapshot = await db.collection("diets")
+    const dietsSnapshot = await db.collection(Collections.DIETS)
       .where("memberId", "==", memberDoc.id)
       .where("date", ">=", startDateStr)
       .where("date", "<=", endDateStr)

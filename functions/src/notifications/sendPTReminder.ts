@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 /**
  * PT 1시간 전 회원/트레이너에게 알림 전송
@@ -24,13 +24,13 @@ export const sendPTReminder = functions
 
     try {
       // 1시간 후 시작하는 예약 조회
-      const schedulesSnapshot = await db.collection("schedules")
+      const schedulesSnapshot = await db.collection(Collections.SCHEDULES)
         .where("startTime", ">=", oneHourLater)
         .where("startTime", "<=", oneHourLaterEnd)
         .where("status", "==", "confirmed")
         .get();
 
-      console.log(`1시간 후 예약 수: ${schedulesSnapshot.size}`);
+      functions.logger.info(`1시간 후 예약 수: ${schedulesSnapshot.size}`);
 
       for (const scheduleDoc of schedulesSnapshot.docs) {
         const schedule = scheduleDoc.data();
@@ -59,10 +59,10 @@ export const sendPTReminder = functions
         );
       }
 
-      console.log("PT 리마인더 스케줄 완료");
+      functions.logger.info("PT 리마인더 스케줄 완료");
       return null;
     } catch (error) {
-      console.error("PT 리마인더 스케줄 실패:", error);
+      functions.logger.error("PT 리마인더 스케줄 실패:", error);
       return null;
     }
   });
@@ -81,9 +81,9 @@ async function sendReminderToUser(
 
   try {
     // 사용자의 FCM 토큰 가져오기
-    const userDoc = await db.collection("users").doc(userId).get();
+    const userDoc = await db.collection(Collections.USERS).doc(userId).get();
     if (!userDoc.exists) {
-      console.log("사용자를 찾을 수 없음:", userId);
+      functions.logger.info("사용자를 찾을 수 없음:", userId);
       return;
     }
 
@@ -91,7 +91,7 @@ async function sendReminderToUser(
     const fcmToken = userData.fcmToken;
 
     if (!fcmToken) {
-      console.log("FCM 토큰 없음:", userId);
+      functions.logger.info("FCM 토큰 없음:", userId);
       return;
     }
 
@@ -128,8 +128,8 @@ async function sendReminderToUser(
     };
 
     await admin.messaging().send(notificationMessage);
-    console.log("PT 리마인더 전송 성공:", userId);
+    functions.logger.info("PT 리마인더 전송 성공:", userId);
   } catch (error) {
-    console.error("PT 리마인더 전송 실패:", userId, error);
+    functions.logger.error("PT 리마인더 전송 실패:", userId, error);
   }
 }

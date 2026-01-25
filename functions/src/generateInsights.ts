@@ -7,28 +7,9 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import OpenAI from "openai";
-
-/**
- * Firestore에서 읽은 날짜 값을 Date 객체로 안전하게 변환
- */
-function safeToDate(value: unknown): Date | null {
-  if (!value) return null;
-  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as {toDate: () => Date}).toDate === "function") {
-    return (value as {toDate: () => Date}).toDate();
-  }
-  if (typeof value === "string") {
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  if (value instanceof Date) {
-    return value;
-  }
-  return null;
-}
-
-// Firestore 인스턴스
-const db = admin.firestore();
+import {db, safeToDate} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {getOpenAIClient} from "./services/ai-service";
 
 // 인사이트 타입 정의
 type InsightType =
@@ -108,14 +89,7 @@ interface MessageData {
   createdAt: admin.firestore.Timestamp;
 }
 
-// OpenAI 클라이언트 (지연 초기화)
-const getOpenAIClient = (): OpenAI => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-  return new OpenAI({apiKey});
-};
+// OpenAI 클라이언트는 services/ai-service에서 import
 
 /**
  * 회원의 출석 패턴 분석
@@ -1677,7 +1651,7 @@ async function generateInsightsForTrainer(
 
   // 1. 트레이너의 회원 목록 조회
   const membersSnapshot = await db
-    .collection("members")
+    .collection(Collections.MEMBERS)
     .where("trainerId", "==", trainerId)
     .get();
 
@@ -1715,7 +1689,7 @@ async function generateInsightsForTrainer(
   for (let i = 0; i < memberIds.length; i += batchSize) {
     const batchIds = memberIds.slice(i, i + batchSize);
     const recordsSnapshot = await db
-      .collection("body_records")
+      .collection(Collections.BODY_RECORDS)
       .where("memberId", "in", batchIds)
       .where(
         "recordDate",
@@ -1739,7 +1713,7 @@ async function generateInsightsForTrainer(
   for (let i = 0; i < memberIds.length; i += batchSize) {
     const batchIds = memberIds.slice(i, i + batchSize);
     const sessionsSnapshot = await db
-      .collection("schedules")
+      .collection(Collections.SCHEDULES)
       .where("memberId", "in", batchIds)
       .where("trainerId", "==", trainerId)
       .where(
@@ -1765,7 +1739,7 @@ async function generateInsightsForTrainer(
 
   // chat_rooms에서 트레이너의 채팅방 조회 → chatRoomId-memberId 매핑
   const chatRoomsSnapshot = await db
-    .collection("chat_rooms")
+    .collection(Collections.CHAT_ROOMS)
     .where("trainerId", "==", trainerId)
     .get();
 
@@ -1781,7 +1755,7 @@ async function generateInsightsForTrainer(
   for (let i = 0; i < chatRoomIds.length; i += batchSize) {
     const batchIds = chatRoomIds.slice(i, i + batchSize);
     const messagesSnapshot = await db
-      .collection("messages")
+      .collection(Collections.MESSAGES)
       .where("chatRoomId", "in", batchIds)
       .where(
         "createdAt",
@@ -1943,7 +1917,7 @@ async function generateInsightsForTrainer(
   // 4. 기존 중복 인사이트 제거 (같은 타입, 같은 회원의 24시간 이내 인사이트)
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const existingInsightsSnapshot = await db
-    .collection("insights")
+    .collection(Collections.INSIGHTS)
     .where("trainerId", "==", trainerId)
     .where(
       "createdAt",
@@ -1968,7 +1942,7 @@ async function generateInsightsForTrainer(
   if (newInsights.length > 0) {
     const batch = db.batch();
     newInsights.forEach((insight) => {
-      const docRef = db.collection("insights").doc();
+      const docRef = db.collection(Collections.INSIGHTS).doc();
       const cleanInsight = JSON.parse(JSON.stringify(insight));
       batch.set(docRef, cleanInsight);
     });
@@ -2041,7 +2015,7 @@ export const generateInsights = functions
     try {
       // 2. 트레이너 정보 확인
       const trainerSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .where("userId", "==", userId)
         .limit(1)
         .get();
@@ -2112,7 +2086,7 @@ export const generateInsightsScheduled = functions
     try {
       // 모든 트레이너 조회
       const trainersSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .get();
 
       functions.logger.info("[generateInsightsScheduled] 트레이너 조회 완료", {
@@ -2189,7 +2163,7 @@ export const generateInsightsWeekly = functions
     try {
       // 모든 트레이너 조회
       const trainersSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .get();
 
       functions.logger.info("[generateInsightsWeekly] 트레이너 조회 완료", {
@@ -2329,7 +2303,7 @@ export const onBodyRecordCreated = functions
 
     try {
       // 회원의 트레이너 찾기
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         return null;
       }
@@ -2383,7 +2357,7 @@ export const onInbodyRecordCreated = functions
 
     try {
       // 회원의 트레이너 찾기
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         return null;
       }

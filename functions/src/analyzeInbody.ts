@@ -7,26 +7,10 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import OpenAI from "openai";
-
-const db = admin.firestore();
-
-// OpenAI 클라이언트 (lazy initialization)
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new functions.https.HttpsError(
-        "failed-precondition",
-        "OpenAI API 키가 설정되지 않았습니다."
-      );
-    }
-    openaiClient = new OpenAI({ apiKey });
-  }
-  return openaiClient;
-}
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
+import {getOpenAIClient} from "./services/ai-service";
 
 // 인바디 분석 결과 인터페이스
 interface InbodyAnalysisResult {
@@ -64,12 +48,7 @@ export const analyzeInbody = functions
   })
   .https.onCall(async (data: AnalyzeInbodyRequest, context) => {
     // 1. 인증 확인
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
+    requireAuth(context);
 
     const { memberId, imageUrl } = data;
 
@@ -89,7 +68,7 @@ export const analyzeInbody = functions
     }
 
     // 3. 회원 존재 확인
-    const memberDoc = await db.collection("members").doc(memberId).get();
+    const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
     if (!memberDoc.exists) {
       throw new functions.https.HttpsError(
         "not-found",
@@ -198,7 +177,7 @@ export const analyzeInbody = functions
         createdAt: now,
       };
 
-      const docRef = await db.collection("inbody_records").add(inbodyRecord);
+      const docRef = await db.collection(Collections.INBODY_RECORDS).add(inbodyRecord);
 
       console.log(
         `InBody analysis saved for member ${memberId}, record ID: ${docRef.id}`

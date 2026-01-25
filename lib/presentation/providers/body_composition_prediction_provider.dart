@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_pal_app/core/constants/api_constants.dart';
+import 'package:flutter_pal_app/core/constants/firestore_constants.dart';
 import 'package:flutter_pal_app/data/models/body_composition_prediction_model.dart';
 
 /// 체성분 예측 상태
@@ -44,14 +46,19 @@ class BodyCompositionPredictionNotifier
     state = state.copyWith(isLoading: true, error: null, isDemo: false);
 
     try {
-      final functions =
-          FirebaseFunctions.instanceFor(region: 'asia-northeast3');
-      final callable = functions.httpsCallable('predictBodyComposition');
+      final functions = FirebaseFunctions.instanceFor(
+        region: 'asia-northeast3',
+      );
+      final callable = functions.httpsCallable(
+        CloudFunctions.predictBodyComposition,
+      );
       final result = await callable.call({'memberId': memberId});
       final data = Map<String, dynamic>.from(result.data as Map);
 
       if (data['success'] == true) {
-        final predictions = Map<String, dynamic>.from(data['predictions'] as Map);
+        final predictions = Map<String, dynamic>.from(
+          data['predictions'] as Map,
+        );
 
         // Parse each metric prediction
         MetricPrediction? weightPred;
@@ -82,8 +89,9 @@ class BodyCompositionPredictionNotifier
           musclePrediction: musclePred,
           bodyFatPrediction: bodyFatPred,
           analysisMessage: data['analysisMessage']?.toString() ?? '',
-          dataPointsUsed:
-              Map<String, int>.from(data['dataPointsUsed'] as Map? ?? {}),
+          dataPointsUsed: Map<String, int>.from(
+            data['dataPointsUsed'] as Map? ?? {},
+          ),
           createdAt: DateTime.now(),
         );
 
@@ -107,7 +115,7 @@ class BodyCompositionPredictionNotifier
       // 체중 기록 가져오기 시도 (인덱스 없이 단순 쿼리)
       final firestore = FirebaseFirestore.instance;
       final bodyRecords = await firestore
-          .collection('body_records')
+          .collection(FirestoreCollections.bodyRecords)
           .where('memberId', isEqualTo: memberId)
           .limit(20)
           .get();
@@ -134,10 +142,7 @@ class BodyCompositionPredictionNotifier
       final latestWeight = (latestData['weight'] as num?)?.toDouble();
 
       if (latestWeight == null) {
-        state = state.copyWith(
-          isLoading: false,
-          error: '체중 데이터가 없습니다.',
-        );
+        state = state.copyWith(isLoading: false, error: '체중 데이터가 없습니다.');
         return;
       }
 
@@ -211,7 +216,9 @@ class BodyCompositionPredictionNotifier
 
     if (weeklyTrend != null) {
       if (weeklyTrend < -0.1) {
-        buffer.writeln('📉 주간 ${weeklyTrend.abs().toStringAsFixed(2)}kg 감량 추세입니다.');
+        buffer.writeln(
+          '📉 주간 ${weeklyTrend.abs().toStringAsFixed(2)}kg 감량 추세입니다.',
+        );
       } else if (weeklyTrend > 0.1) {
         buffer.writeln('📈 주간 ${weeklyTrend.toStringAsFixed(2)}kg 증가 추세입니다.');
       } else {
@@ -222,7 +229,7 @@ class BodyCompositionPredictionNotifier
 
     if (dataPoints < 5) {
       buffer.writeln('💡 더 정확한 예측을 위해 체중을 꾸준히 기록해주세요.');
-      buffer.writeln('   (현재 ${dataPoints}개 기록, 권장 10개 이상)');
+      buffer.writeln('   (현재 $dataPoints개 기록, 권장 10개 이상)');
     }
 
     return buffer.toString();
@@ -235,7 +242,8 @@ class BodyCompositionPredictionNotifier
 }
 
 /// Provider
-final bodyCompositionPredictionProvider = NotifierProvider<
-    BodyCompositionPredictionNotifier, BodyCompositionPredictionState>(
-  BodyCompositionPredictionNotifier.new,
-);
+final bodyCompositionPredictionProvider =
+    NotifierProvider<
+      BodyCompositionPredictionNotifier,
+      BodyCompositionPredictionState
+    >(BodyCompositionPredictionNotifier.new);

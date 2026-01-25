@@ -1,24 +1,15 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-import {GoogleGenerativeAI} from "@google/generative-ai";
-
-const db = admin.firestore();
-
-// Google AI 클라이언트
-const getGoogleAI = (): GoogleGenerativeAI => {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
-  return new GoogleGenerativeAI(apiKey);
-};
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
+import {requireAuth} from "../middleware/auth";
+import {callGemini} from "../services/ai-service";
 
 export const generateCurriculumV2 = functions
   .region("asia-northeast3")
   .runWith({timeoutSeconds: 60, memory: "256MB"})
   .https.onCall(async (data, context) => {
     // 1. Auth check
-    if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "로그인이 필요합니다.");
-    }
+    requireAuth(context);
 
     // 2. Extract input
     const {memberId, trainerId: _trainerId, settings} = data;
@@ -38,10 +29,10 @@ export const generateCurriculumV2 = functions
 
     try {
       // 3. Load exercises from Firestore based on focus parts
-      let exercisesQuery: admin.firestore.Query = db.collection("exercises");
+      let exercisesQuery: FirebaseFirestore.Query = db.collection(Collections.EXERCISES);
 
       // If focusParts specified, filter by primary muscle
-      let allExercises: any[] = [];
+      let allExercises: Array<Record<string, unknown> & {id: string}> = [];
 
       if (focusParts.length > 0 && !focusParts.includes("전신")) {
         // Query for each focus part and merge
@@ -65,7 +56,8 @@ export const generateCurriculumV2 = functions
         if (excludedExerciseIds.includes(ex.id)) return false;
         if (excludedBodyParts.includes(ex.primaryMuscle)) return false;
         // Check secondary muscles too
-        if (ex.secondaryMuscles?.some((m: string) => excludedBodyParts.includes(m))) return false;
+        const secondaryMuscles = ex.secondaryMuscles as string[] | undefined;
+        if (secondaryMuscles?.some((m: string) => excludedBodyParts.includes(m))) return false;
         return true;
       });
 
@@ -135,29 +127,19 @@ ${additionalNotes ? `- 추가 요청: ${additionalNotes}` : ""}
 }`;
 
       // 6. Call Gemini 2.0 Flash
-      const genAI = getGoogleAI();
-      const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.7,
-        },
-      });
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      const text = await callGemini(prompt, {model: "gemini-2.0-flash", jsonMode: true, temperature: 0.7});
       const parsed = JSON.parse(text);
 
       // 7. Map exercise names to IDs
-      const exercises = (parsed.exercises || []).map((ex: any) => {
+      const exercises = (parsed.exercises || []).map((ex: Record<string, unknown>) => {
         const match = allExercises.find(e => e.nameKo === ex.name);
         return {
           exerciseId: match?.id || "",
-          name: ex.name,
-          sets: ex.sets || setCount,
-          reps: ex.reps || 10,
-          restSeconds: ex.restSeconds || 60,
-          notes: ex.notes || "",
+          name: ex.name as string,
+          sets: (ex.sets as number) || setCount,
+          reps: (ex.reps as number) || 10,
+          restSeconds: (ex.restSeconds as number) || 60,
+          notes: (ex.notes as string) || "",
         };
       });
 
@@ -166,8 +148,8 @@ ${additionalNotes ? `- 추가 요청: ${additionalNotes}` : ""}
         curriculum: {
           exercises,
           aiNotes: parsed.aiNotes || "",
-          totalSets: exercises.reduce((sum: number, ex: any) => sum + ex.sets, 0),
-          estimatedDuration: exercises.reduce((sum: number, ex: any) => sum + ex.sets, 0) * 2,
+          totalSets: exercises.reduce((sum: number, ex: {sets: number}) => sum + ex.sets, 0),
+          estimatedDuration: exercises.reduce((sum: number, ex: {sets: number}) => sum + ex.sets, 0) * 2,
         },
       };
     } catch (error) {
@@ -176,9 +158,9 @@ ${additionalNotes ? `- 추가 요청: ${additionalNotes}` : ""}
       // Fallback: return random exercises from the filtered list
       try {
         // Re-query exercises for fallback
-        const snapshot = await db.collection("exercises").limit(100).get();
-        let fallbackExercises = snapshot.docs
-          .map(doc => ({id: doc.id, ...doc.data() as any}))
+        const snapshot = await db.collection(Collections.EXERCISES).limit(100).get();
+        let fallbackExercises: Array<Record<string, unknown> & {id: string}> = snapshot.docs
+          .map(doc => ({...doc.data(), id: doc.id}))
           .filter(ex => !excludedExerciseIds.includes(ex.id));
 
         // Shuffle and take exerciseCount
@@ -186,9 +168,9 @@ ${additionalNotes ? `- 추가 요청: ${additionalNotes}` : ""}
           .sort(() => Math.random() - 0.5)
           .slice(0, exerciseCount);
 
-        const exercises = fallbackExercises.map((ex: any) => ({
+        const exercises = fallbackExercises.map((ex) => ({
           exerciseId: ex.id,
-          name: ex.nameKo || ex.name || "운동",
+          name: (ex.nameKo as string | undefined) || (ex.name as string | undefined) || "운동",
           sets: setCount,
           reps: 10,
           restSeconds: 60,

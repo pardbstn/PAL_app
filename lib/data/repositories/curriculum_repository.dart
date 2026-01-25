@@ -111,14 +111,32 @@ class CurriculumRepository extends BaseRepository<CurriculumModel> {
 
   /// 다음 회차 번호 가져오기
   Future<int> getNextSessionNumber(String memberId) async {
-    final snapshot = await collection
-        .where('memberId', isEqualTo: memberId)
-        .orderBy('sessionNumber', descending: true)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isEmpty) return 1;
-    final lastCurriculum = CurriculumModel.fromFirestore(snapshot.docs.first);
-    return lastCurriculum.sessionNumber + 1;
+    try {
+      final snapshot = await collection
+          .where('memberId', isEqualTo: memberId)
+          .orderBy('sessionNumber', descending: true)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return 1;
+      final lastCurriculum = CurriculumModel.fromFirestore(snapshot.docs.first);
+      return lastCurriculum.sessionNumber + 1;
+    } catch (e) {
+      // 복합 인덱스 미생성 시 fallback: orderBy 없이 조회
+      try {
+        final snapshot = await collection
+            .where('memberId', isEqualTo: memberId)
+            .get();
+        if (snapshot.docs.isEmpty) return 1;
+        int maxSession = 0;
+        for (final doc in snapshot.docs) {
+          final num = doc.data()['sessionNumber'] as int? ?? 0;
+          if (num > maxSession) maxSession = num;
+        }
+        return maxSession + 1;
+      } catch (_) {
+        return 1;
+      }
+    }
   }
 
   /// 커리큘럼 완료 처리

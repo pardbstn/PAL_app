@@ -7,6 +7,7 @@ library;
 import 'dart:io';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_pal_app/core/constants/api_constants.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/diet_analysis_model.dart';
@@ -151,7 +152,7 @@ class DietAnalysisService {
           .getPublicUrl(fileName);
 
       // 2. Cloud Function 호출
-      final callable = _functions.httpsCallable('analyzeDiet');
+      final callable = _functions.httpsCallable(CloudFunctions.analyzeDiet);
       final response = await callable.call<Map<String, dynamic>>({
         'memberId': memberId,
         'imageUrl': imageUrl,

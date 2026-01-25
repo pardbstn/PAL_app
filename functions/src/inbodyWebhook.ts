@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
 
 // LookinBody 웹훅 페이로드 타입
 interface LookinBodyPayload {
@@ -107,7 +107,7 @@ export const inbodyWebhook = functions
       // 전화번호로 회원 찾기
       const normalizedPhone = normalizePhoneNumber(payload.TelHP);
 
-      const membersSnapshot = await db.collection("members")
+      const membersSnapshot = await db.collection(Collections.MEMBERS)
         .where("phone", "==", normalizedPhone)
         .limit(1)
         .get();
@@ -118,7 +118,7 @@ export const inbodyWebhook = functions
           /(\d{3})(\d{4})(\d{4})/,
           "$1-$2-$3"
         );
-        const membersSnapshot2 = await db.collection("members")
+        const membersSnapshot2 = await db.collection(Collections.MEMBERS)
           .where("phone", "==", formattedPhone)
           .limit(1)
           .get();
@@ -197,7 +197,7 @@ export const inbodyWebhook = functions
       };
 
       // Firestore에 저장
-      const docRef = await db.collection("inbody_records").add(inbodyRecord);
+      const docRef = await db.collection(Collections.INBODY_RECORDS).add(inbodyRecord);
 
       console.log("InBody 기록 저장 완료:", {
         docId: docRef.id,
@@ -208,7 +208,7 @@ export const inbodyWebhook = functions
 
       // 회원에게 푸시 알림 전송 (선택적)
       if (memberData.userId) {
-        const userDoc = await db.collection("users").doc(memberData.userId).get();
+        const userDoc = await db.collection(Collections.USERS).doc(memberData.userId).get();
         if (userDoc.exists) {
           const userData = userDoc.data();
           const fcmToken = userData?.fcmToken;

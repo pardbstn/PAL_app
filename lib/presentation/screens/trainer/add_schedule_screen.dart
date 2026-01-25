@@ -256,7 +256,13 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/trainer/calendar');
+            }
+          },
         ),
         title: const Text('일정 추가'),
       ),

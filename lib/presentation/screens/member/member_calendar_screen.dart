@@ -2042,7 +2042,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
           SnackBar(
             content: Text(
               totalSchedules > 1
-                  ? '$typeLabel 일정 ${totalSchedules}개가 추가되었습니다'
+                  ? '$typeLabel 일정 $totalSchedules개가 추가되었습니다'
                   : '$typeLabel 일정이 추가되었습니다',
             ),
             backgroundColor:

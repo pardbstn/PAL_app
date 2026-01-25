@@ -7,27 +7,8 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
-
-/**
- * Firestore에서 읽은 날짜 값을 Date 객체로 안전하게 변환
- * Timestamp, 문자열(ISO), Date 모두 처리
- */
-function safeToDate(value: unknown): Date | null {
-  if (!value) return null;
-  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as {toDate: () => Date}).toDate === "function") {
-    return (value as {toDate: () => Date}).toDate();
-  }
-  if (typeof value === "string") {
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  if (value instanceof Date) {
-    return value;
-  }
-  return null;
-}
+import {db, safeToDate} from "./utils/firestore";
+import {Collections} from "./constants/collections";
 
 // 인사이트 타입 정의
 type MemberInsightType =
@@ -1140,7 +1121,7 @@ async function generateBenchmarking(
   const memberGoal = member.goal || "fitness";
 
   // Firestore에서 동일 그룹 회원 조회
-  let similarMembersQuery = db.collection("members").where("goal", "==", memberGoal);
+  let similarMembersQuery = db.collection(Collections.MEMBERS).where("goal", "==", memberGoal);
 
   // 성별 필터 (알 수 있는 경우)
   if (memberGender !== "unknown") {
@@ -1176,7 +1157,7 @@ async function generateBenchmarking(
 
     // 해당 회원의 출석률 계산
     const memberSchedules = await db
-      .collection("schedules")
+      .collection(Collections.SCHEDULES)
       .where("memberId", "==", doc.id)
       .where("scheduledAt", ">=", fourWeeksAgo)
       .get();
@@ -1189,7 +1170,7 @@ async function generateBenchmarking(
 
     // 해당 회원의 체지방 변화 계산
     const memberInbody = await db
-      .collection("inbody_records")
+      .collection(Collections.INBODY_RECORDS)
       .where("memberId", "==", doc.id)
       .orderBy("measuredAt", "desc")
       .limit(5)
@@ -1342,7 +1323,7 @@ export const generateMemberInsights = functions
       functions.logger.info("[generateMemberInsights] 시작", {memberId});
 
       // 2. 회원 정보 가져오기
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -1368,28 +1349,28 @@ export const generateMemberInsights = functions
         dietRecordsSnapshot,
       ] = await Promise.all([
         // body_records (최근 3개월)
-        db.collection("body_records")
+        db.collection(Collections.BODY_RECORDS)
           .where("memberId", "==", memberId)
           .orderBy("recordDate", "desc")
           .limit(100)
           .get(),
 
         // inbody_records (최근 3개월)
-        db.collection("inbody_records")
+        db.collection(Collections.INBODY_RECORDS)
           .where("memberId", "==", memberId)
           .orderBy("measuredAt", "desc")
           .limit(50)
           .get(),
 
         // schedules (최근 4주)
-        db.collection("schedules")
+        db.collection(Collections.SCHEDULES)
           .where("memberId", "==", memberId)
           .orderBy("scheduledAt", "desc")
           .limit(50)
           .get(),
 
         // diet_records (최근 1주)
-        db.collection("diet_records")
+        db.collection(Collections.DIETS)
           .where("memberId", "==", memberId)
           .orderBy("analyzedAt", "desc")
           .limit(50)
@@ -1566,7 +1547,7 @@ export const generateMemberInsightsScheduled = functions
     try {
       // 모든 회원 조회
       const membersSnapshot = await db
-        .collection("members")
+        .collection(Collections.MEMBERS)
         .get();
 
       functions.logger.info("[generateMemberInsightsScheduled] 회원 조회 완료", {
@@ -1599,22 +1580,22 @@ export const generateMemberInsightsScheduled = functions
             schedulesSnapshot,
             dietRecordsSnapshot,
           ] = await Promise.all([
-            db.collection("body_records")
+            db.collection(Collections.BODY_RECORDS)
               .where("memberId", "==", memberId)
               .orderBy("recordDate", "desc")
               .limit(100)
               .get(),
-            db.collection("inbody_records")
+            db.collection(Collections.INBODY_RECORDS)
               .where("memberId", "==", memberId)
               .orderBy("measuredAt", "desc")
               .limit(50)
               .get(),
-            db.collection("schedules")
+            db.collection(Collections.SCHEDULES)
               .where("memberId", "==", memberId)
               .orderBy("scheduledAt", "desc")
               .limit(50)
               .get(),
-            db.collection("diet_records")
+            db.collection(Collections.DIETS)
               .where("memberId", "==", memberId)
               .orderBy("analyzedAt", "desc")
               .limit(50)

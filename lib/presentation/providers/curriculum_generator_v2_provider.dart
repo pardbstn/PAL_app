@@ -24,21 +24,23 @@ class CurriculumGeneratorV2State {
   });
 
   /// 현재 회차의 운동 목록
-  List<Exercise> get currentExercises =>
-      currentSessionIndex < sessions.length ? sessions[currentSessionIndex] : [];
+  List<Exercise> get currentExercises => currentSessionIndex < sessions.length
+      ? sessions[currentSessionIndex]
+      : [];
 
   /// 현재 회차의 총 세트수
   int get totalSets => currentExercises.fold<int>(0, (sum, e) => sum + e.sets);
 
   /// 현재 회차의 예상 소요 시간 (분)
   int get estimatedDuration => currentExercises.fold<int>(0, (sum, e) {
-        final restPerSet = (e.restSeconds ?? 60);
-        return sum + (e.sets * (120 + restPerSet) ~/ 60);
-      });
+    final restPerSet = (e.restSeconds ?? 60);
+    return sum + (e.sets * (120 + restPerSet) ~/ 60);
+  });
 
   /// 현재 회차의 AI 노트
-  String get currentNotes =>
-      currentSessionIndex < sessionNotes.length ? sessionNotes[currentSessionIndex] : '';
+  String get currentNotes => currentSessionIndex < sessionNotes.length
+      ? sessionNotes[currentSessionIndex]
+      : '';
 
   /// 총 회차 수
   int get sessionCount => sessions.length;
@@ -73,7 +75,10 @@ class CurriculumGeneratorV2Notifier
     required CurriculumSettings settings,
     List<String> excludedExerciseIds = const [],
   }) async {
-    state = state.copyWith(status: CurriculumGeneratorStatus.loading, error: null);
+    state = state.copyWith(
+      status: CurriculumGeneratorStatus.loading,
+      error: null,
+    );
 
     try {
       final sessionCount = settings.sessionCount;
@@ -180,13 +185,17 @@ class CurriculumGeneratorV2Notifier
       final startSession = await repo.getNextSessionNumber(memberId);
 
       for (int i = 0; i < state.sessions.length; i++) {
-        final focusLabel = _getSessionFocusLabel(settings, i, state.sessions.length);
+        final focusLabel = _getSessionFocusLabel(
+          settings,
+          i,
+          state.sessions.length,
+        );
         final curriculum = CurriculumModel(
           id: '',
           memberId: memberId,
           trainerId: trainerId,
           sessionNumber: startSession + i,
-          title: '${i + 1}회차 $focusLabel',
+          title: '${startSession + i}회차 $focusLabel',
           exercises: state.sessions[i],
           isAiGenerated: true,
           settings: settings,
@@ -278,7 +287,9 @@ class CurriculumGeneratorV2Notifier
       if (settings.styles.contains('고중량') || settings.styles.contains('스트렝스')) {
         reps = 5;
         restSeconds = 120;
-      } else if (settings.styles.contains('저중량') || settings.styles.contains('고반복') || settings.styles.contains('근지구력')) {
+      } else if (settings.styles.contains('저중량') ||
+          settings.styles.contains('고반복') ||
+          settings.styles.contains('근지구력')) {
         reps = 15;
         restSeconds = 45;
       } else if (settings.styles.contains('근비대')) {
@@ -345,16 +356,28 @@ class CurriculumGeneratorV2Notifier
   }
 
   /// 회차의 집중 부위 라벨
-  String _getSessionFocusLabel(CurriculumSettings settings, int sessionIndex, int totalSessions) {
-    final parts = _getSessionFocusParts(settings.focusParts, sessionIndex, totalSessions);
+  String _getSessionFocusLabel(
+    CurriculumSettings settings,
+    int sessionIndex,
+    int totalSessions,
+  ) {
+    final parts = _getSessionFocusParts(
+      settings.focusParts,
+      sessionIndex,
+      totalSessions,
+    );
     if (parts.isEmpty) return '운동';
     return parts.join('/');
   }
 
   /// 회차별 AI 노트 생성
-  String _generateSessionNote(CurriculumSettings settings, List<Exercise> exercises, int sessionNum) {
+  String _generateSessionNote(
+    CurriculumSettings settings,
+    List<Exercise> exercises,
+    int sessionNum,
+  ) {
     final parts = <String>[];
-    parts.add('${sessionNum}회차');
+    parts.add('$sessionNum회차');
 
     final focusMuscles = exercises
         .map((e) {
@@ -398,7 +421,7 @@ class CurriculumGeneratorV2Notifier
 }
 
 /// Provider
-final curriculumGeneratorV2Provider = NotifierProvider<
-    CurriculumGeneratorV2Notifier, CurriculumGeneratorV2State>(
-  CurriculumGeneratorV2Notifier.new,
-);
+final curriculumGeneratorV2Provider =
+    NotifierProvider<CurriculumGeneratorV2Notifier, CurriculumGeneratorV2State>(
+      CurriculumGeneratorV2Notifier.new,
+    );

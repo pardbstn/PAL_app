@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 // 배지 조건 정의
 interface BadgeCondition {
@@ -98,7 +98,7 @@ export const calculateTrainerBadges = functions
     console.log("배지 계산 시작");
 
     try {
-      const trainersSnapshot = await db.collection("trainers").get();
+      const trainersSnapshot = await db.collection(Collections.TRAINERS).get();
       let updatedCount = 0;
       const badgeChanges: { trainerId: string; earned: string[]; revoked: string[]; atRisk: string[] }[] = [];
 
@@ -107,7 +107,7 @@ export const calculateTrainerBadges = functions
 
         // stats 조회
         const statsDoc = await db
-          .collection("trainers")
+          .collection(Collections.TRAINERS)
           .doc(trainerId)
           .collection("stats")
           .doc("current")
@@ -118,7 +118,7 @@ export const calculateTrainerBadges = functions
 
         // 기존 배지 조회
         const badgesDoc = await db
-          .collection("trainers")
+          .collection(Collections.TRAINERS)
           .doc(trainerId)
           .collection("badges")
           .doc("current")
@@ -178,7 +178,7 @@ export const calculateTrainerBadges = functions
         // 변경사항 있을 때만 업데이트
         if (earned.length > 0 || revoked.length > 0) {
           await db
-            .collection("trainers")
+            .collection(Collections.TRAINERS)
             .doc(trainerId)
             .collection("badges")
             .doc("current")
@@ -249,7 +249,7 @@ async function saveNotification(
   body: string,
   data?: Record<string, string>
 ) {
-  await db.collection("notifications").add({
+  await db.collection(Collections.NOTIFICATIONS).add({
     userId,
     type,
     title,
@@ -271,14 +271,14 @@ async function sendBadgeChangeNotification(
 ) {
   try {
     // 트레이너의 userId 조회
-    const trainerDoc = await db.collection("trainers").doc(trainerId).get();
+    const trainerDoc = await db.collection(Collections.TRAINERS).doc(trainerId).get();
     if (!trainerDoc.exists) return;
 
     const userId = trainerDoc.data()!.userId;
     if (!userId) return;
 
     // FCM 토큰 조회
-    const userDoc = await db.collection("users").doc(userId).get();
+    const userDoc = await db.collection(Collections.USERS).doc(userId).get();
     if (!userDoc.exists) return;
 
     const fcmToken = userDoc.data()!.fcmToken;

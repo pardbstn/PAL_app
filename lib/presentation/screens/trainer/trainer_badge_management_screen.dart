@@ -18,9 +18,7 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
     final trainerId = authState.trainerModel?.id ?? '';
 
     if (trainerId.isEmpty) {
-      return const Scaffold(
-        body: Center(child: Text('로그인이 필요합니다')),
-      );
+      return const Scaffold(body: Center(child: Text('로그인이 필요합니다')));
     }
 
     final badgesAsync = ref.watch(trainerBadgesProvider(trainerId));
@@ -85,7 +83,8 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
             ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
             const SizedBox(height: 12),
             statsAsync.when(
-              data: (stats) => _buildBadgeProgressList(context, isDark, ref, stats),
+              data: (stats) =>
+                  _buildBadgeProgressList(context, isDark, ref, stats),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, __) => const Text('통계 로딩 실패'),
             ),
@@ -127,7 +126,11 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
               // 큰 별점
               Column(
                 children: [
-                  Icon(Icons.star_rounded, color: const Color(0xFFF59E0B), size: 40),
+                  Icon(
+                    Icons.star_rounded,
+                    color: const Color(0xFFF59E0B),
+                    size: 40,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     overall > 0 ? overall.toStringAsFixed(1) : '-',
@@ -198,8 +201,12 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: value / 5.0,
-              backgroundColor: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF59E0B)),
+              backgroundColor: isDark
+                  ? const Color(0xFF2E3B5E)
+                  : Colors.grey.shade200,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFFF59E0B),
+              ),
               minHeight: 6,
             ),
           ),
@@ -273,49 +280,61 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         final badge = activeBadges[index];
         return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200,
-            ),
-            boxShadow: [
-              if (!isDark)
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF2E3B5E)
+                      : Colors.grey.shade200,
                 ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(badge.icon, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 8),
-              Text(
-                badge.name,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                boxShadow: [
+                  if (!isDark)
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
               ),
-            ],
-          ),
-        ).animate(delay: Duration(milliseconds: 100 + index * 50))
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(badge.icon, style: const TextStyle(fontSize: 28)),
+                  const SizedBox(height: 8),
+                  Text(
+                    badge.name,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            )
+            .animate(delay: Duration(milliseconds: 100 + index * 50))
             .fadeIn(duration: 300.ms)
-            .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1), duration: 300.ms);
+            .scale(
+              begin: const Offset(0.8, 0.8),
+              end: const Offset(1, 1),
+              duration: 300.ms,
+            );
       },
     );
   }
 
   /// 배지 진행률 리스트
-  Widget _buildBadgeProgressList(BuildContext context, bool isDark, WidgetRef ref, dynamic stats) {
+  Widget _buildBadgeProgressList(
+    BuildContext context,
+    bool isDark,
+    WidgetRef ref,
+    dynamic stats,
+  ) {
     final progressList = ref.watch(badgeProgressProvider(stats));
 
     return ListView.separated(
@@ -330,17 +349,23 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBadgeProgressItem(BuildContext context, bool isDark, BadgeProgress progress, int index) {
+  Widget _buildBadgeProgressItem(
+    BuildContext context,
+    bool isDark,
+    BadgeProgress progress,
+    int index,
+  ) {
     final badgeType = progress.badgeType;
     final isEarned = progress.isEarned;
 
     // 응답시간 배지는 "이하"이므로 진행률 역산
-    final isResponseBadge = badgeType == TrainerBadgeType.lightningResponse ||
+    final isResponseBadge =
+        badgeType == TrainerBadgeType.lightningResponse ||
         badgeType == TrainerBadgeType.fastResponse;
     final displayProgress = isResponseBadge
         ? (progress.currentValue > 0
-            ? (progress.targetValue / progress.currentValue).clamp(0.0, 1.0)
-            : 0.0)
+              ? (progress.targetValue / progress.currentValue).clamp(0.0, 1.0)
+              : 0.0)
         : progress.progress;
 
     String currentDisplay;
@@ -355,128 +380,146 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
       currentDisplay = '${progress.currentValue.toStringAsFixed(1)}%';
       targetDisplay = '0%';
     } else if (progress.targetValue >= 50) {
-      currentDisplay = '${progress.currentValue.toStringAsFixed(0)}';
-      targetDisplay = '${progress.targetValue.toStringAsFixed(0)}';
+      currentDisplay = progress.currentValue.toStringAsFixed(0);
+      targetDisplay = progress.targetValue.toStringAsFixed(0);
     } else if (progress.targetValue > 5) {
       currentDisplay = '${progress.currentValue.toStringAsFixed(0)}%';
       targetDisplay = '${progress.targetValue.toStringAsFixed(0)}%';
     } else {
-      currentDisplay = '${progress.currentValue.toStringAsFixed(0)}';
-      targetDisplay = '${progress.targetValue.toStringAsFixed(0)}';
+      currentDisplay = progress.currentValue.toStringAsFixed(0);
+      targetDisplay = progress.targetValue.toStringAsFixed(0);
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isEarned
-              ? const Color(0xFF10B981).withValues(alpha: 0.5)
-              : (isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200),
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isEarned
+                  ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                  : (isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200),
             ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(badgeType.icon, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                children: [
+                  Text(badgeType.icon, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          badgeType.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                        ),
-                        if (isEarned) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              '획득',
+                        Row(
+                          children: [
+                            Text(
+                              badgeType.displayName,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF10B981),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
                               ),
                             ),
+                            if (isEarned) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF10B981,
+                                  ).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '획득',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF10B981),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          badgeType.description,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? Colors.white60
+                                : const Color(0xFF94A3B8),
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      badgeType.description,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.white60 : const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 수치 표시
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    currentDisplay,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: isEarned
-                          ? const Color(0xFF10B981)
-                          : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                    ),
                   ),
-                  Text(
-                    '/ $targetDisplay',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : const Color(0xFF94A3B8),
-                    ),
+                  // 수치 표시
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        currentDisplay,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isEarned
+                              ? const Color(0xFF10B981)
+                              : (isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B)),
+                        ),
+                      ),
+                      Text(
+                        '/ $targetDisplay',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? Colors.white60
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              // 진행률 바
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: displayProgress,
+                  backgroundColor: isDark
+                      ? const Color(0xFF2E3B5E)
+                      : Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isEarned
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF2563EB),
+                  ),
+                  minHeight: 6,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
-          // 진행률 바
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: displayProgress,
-              backgroundColor: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isEarned ? const Color(0xFF10B981) : const Color(0xFF2563EB),
-              ),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: Duration(milliseconds: 200 + index * 40))
+        )
+        .animate(delay: Duration(milliseconds: 200 + index * 40))
         .fadeIn(duration: 300.ms)
         .slideX(begin: 0.05, end: 0, duration: 300.ms);
   }

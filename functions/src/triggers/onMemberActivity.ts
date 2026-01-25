@@ -5,8 +5,8 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 // 인사이트 생성 쿨다운 (같은 트레이너에 대해 너무 자주 생성하지 않도록)
 const INSIGHT_COOLDOWN_HOURS = 6;
@@ -19,7 +19,7 @@ async function shouldGenerateInsight(trainerId: string): Promise<boolean> {
   cooldownTime.setHours(cooldownTime.getHours() - INSIGHT_COOLDOWN_HOURS);
 
   const recentInsights = await db
-    .collection("insights")
+    .collection(Collections.INSIGHTS)
     .where("trainerId", "==", trainerId)
     .where("createdAt", ">", admin.firestore.Timestamp.fromDate(cooldownTime))
     .limit(1)
@@ -32,7 +32,7 @@ async function shouldGenerateInsight(trainerId: string): Promise<boolean> {
  * 회원 ID로 트레이너 ID 조회
  */
 async function getTrainerId(memberId: string): Promise<string | null> {
-  const memberDoc = await db.collection("members").doc(memberId).get();
+  const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
   if (!memberDoc.exists) {
     return null;
   }
@@ -83,10 +83,10 @@ export const onBodyRecordCreated = functions
 
     try {
       // 간단한 인사이트 알림 생성 (체성분 기록됨)
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       const memberName = memberDoc.data()?.name || "회원";
 
-      await db.collection("insights").add({
+      await db.collection(Collections.INSIGHTS).add({
         trainerId,
         memberId,
         memberName,
@@ -143,7 +143,7 @@ export const onDietRecordCreated = functions
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const todayRecords = await db
-      .collection("diet_records")
+      .collection(Collections.DIET_RECORDS)
       .where("memberId", "==", memberId)
       .where("recordedAt", ">=", admin.firestore.Timestamp.fromDate(today))
       .where("recordedAt", "<", admin.firestore.Timestamp.fromDate(tomorrow))
@@ -184,10 +184,10 @@ export const onDietRecordCreated = functions
     });
 
     try {
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       const memberName = memberDoc.data()?.name || "회원";
 
-      await db.collection("insights").add({
+      await db.collection(Collections.INSIGHTS).add({
         trainerId,
         memberId,
         memberName,
@@ -268,10 +268,10 @@ export const onCurriculumCompleted = functions
     });
 
     try {
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       const memberName = memberDoc.data()?.name || "회원";
 
-      await db.collection("insights").add({
+      await db.collection(Collections.INSIGHTS).add({
         trainerId,
         memberId,
         memberName,

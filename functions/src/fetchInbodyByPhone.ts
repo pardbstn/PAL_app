@@ -7,9 +7,9 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-// Firestore 인스턴스
-const db = admin.firestore();
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
 
 // LookinBody Korea API 설정
 const LOOKINBODY_API_BASE_URL = "https://apikr.lookinbody.com";
@@ -239,7 +239,7 @@ async function saveInbodyRecord(
     rawPayload: rawData,
   };
 
-  const docRef = await db.collection("inbody_records").add(inbodyRecord);
+  const docRef = await db.collection(Collections.INBODY_RECORDS).add(inbodyRecord);
   return docRef.id;
 }
 
@@ -282,13 +282,7 @@ export const fetchInbodyByPhone = functions
     });
 
     // 1. 인증 확인
-    if (!context.auth) {
-      functions.logger.warn("[fetchInbodyByPhone] 인증되지 않은 요청");
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
+    requireAuth(context);
 
     // 2. 필수 파라미터 검증
     const {phone, memberId, startDate, endDate, saveToFirestore = true} = data;
@@ -328,7 +322,7 @@ export const fetchInbodyByPhone = functions
       }
 
       // 4. 회원 정보 확인
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -429,7 +423,7 @@ export const fetchInbodyByPhone = functions
       if (saveToFirestore && transformedData.length > 0) {
         // 기존 데이터 중복 확인을 위해 최근 기록 조회
         const existingRecords = await db
-          .collection("inbody_records")
+          .collection(Collections.INBODY_RECORDS)
           .where("memberId", "==", memberId)
           .where("source", "==", "lookinbody_api")
           .orderBy("measuredAt", "desc")

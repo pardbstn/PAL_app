@@ -1,32 +1,19 @@
 // functions/src/analyzeDiet.ts
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import OpenAI from "openai";
-
-const db = admin.firestore();
+import {db} from "./utils/firestore";
+import {Collections} from "./constants/collections";
+import {requireAuth} from "./middleware/auth";
+import {getOpenAIClient} from "./services/ai-service";
 
 // MealType 타입
 type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-
-// OpenAI 클라이언트
-const getOpenAIClient = (): OpenAI => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-  return new OpenAI({apiKey});
-};
 
 export const analyzeDiet = functions
   .region("asia-northeast3")
   .https.onCall(async (data, context) => {
     // 1. 인증 확인
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "로그인이 필요합니다."
-      );
-    }
+    requireAuth(context);
 
     // 2. 입력 데이터 검증
     const {memberId, imageUrl, mealType} = data;
@@ -48,7 +35,7 @@ export const analyzeDiet = functions
 
     try {
       // 3. 회원 정보 확인
-      const memberDoc = await db.collection("members").doc(memberId).get();
+      const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
       if (!memberDoc.exists) {
         throw new functions.https.HttpsError(
           "not-found",
@@ -115,7 +102,7 @@ export const analyzeDiet = functions
         createdAt: admin.firestore.Timestamp.now(),
       };
 
-      const docRef = await db.collection("diet_records").add(dietRecord);
+      const docRef = await db.collection(Collections.DIET_RECORDS).add(dietRecord);
 
       // 6. 결과 반환
       return {

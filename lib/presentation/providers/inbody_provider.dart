@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_pal_app/core/constants/api_constants.dart';
 import '../../data/models/inbody_record_model.dart';
 import '../../data/repositories/inbody_repository.dart';
 import '../../data/services/inbody_service.dart';
@@ -159,7 +160,7 @@ class InbodyNotifier extends AsyncNotifier<void> {
     try {
       // Cloud Function 호출
       final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
-      final callable = functions.httpsCallable('fetchInbodyByPhone');
+      final callable = functions.httpsCallable(CloudFunctions.fetchInbodyByPhone);
 
       final result = await callable.call<Map<String, dynamic>>({
         'phone': phoneNumber, // Cloud Function은 'phone' 파라미터를 기대

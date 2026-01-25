@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 /**
  * 메시지 생성 시 트레이너 응답시간 및 능동 메시지 통계 업데이트
@@ -18,7 +18,7 @@ export const onMessageCreatedForStats = functions
 
     try {
       // 채팅방에서 트레이너 ID 확인
-      const chatRoomDoc = await db.collection("chat_rooms").doc(chatRoomId).get();
+      const chatRoomDoc = await db.collection(Collections.CHAT_ROOMS).doc(chatRoomId).get();
       if (!chatRoomDoc.exists) return null;
 
       const chatRoom = chatRoomDoc.data()!;
@@ -27,7 +27,7 @@ export const onMessageCreatedForStats = functions
 
       // 트레이너 문서 찾기
       const trainerSnapshot = await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .where("userId", "==", trainerId)
         .limit(1)
         .get();
@@ -37,7 +37,7 @@ export const onMessageCreatedForStats = functions
 
       // 마지막 회원 메시지 시간 조회 (응답시간 계산용)
       const lastMemberMessage = await db
-        .collection("messages")
+        .collection(Collections.MESSAGES)
         .where("chatRoomId", "==", chatRoomId)
         .where("senderRole", "==", "member")
         .orderBy("createdAt", "desc")
@@ -45,7 +45,7 @@ export const onMessageCreatedForStats = functions
         .get();
 
       const statsRef = db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .doc(trainerDocId)
         .collection("stats")
         .doc("current");
@@ -106,7 +106,7 @@ export const onScheduleCompletedForStats = functions
     try {
       // 트레이너의 전체 PT 스케줄 통계 계산
       const allSchedules = await db
-        .collection("schedules")
+        .collection(Collections.SCHEDULES)
         .where("trainerId", "==", trainerId)
         .where("type", "==", "pt")
         .get();
@@ -126,7 +126,7 @@ export const onScheduleCompletedForStats = functions
       const noShowRate = total > 0 ? (noShow / total) * 100 : 0;
 
       await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .doc(trainerId)
         .collection("stats")
         .doc("current")
@@ -160,7 +160,7 @@ export const onMemberUpdatedForStats = functions
     try {
       // 해당 트레이너의 전체 회원 조회
       const membersSnapshot = await db
-        .collection("members")
+        .collection(Collections.MEMBERS)
         .where("trainerId", "==", trainerId)
         .get();
 
@@ -191,7 +191,7 @@ export const onMemberUpdatedForStats = functions
         : 0;
 
       await db
-        .collection("trainers")
+        .collection(Collections.TRAINERS)
         .doc(trainerId)
         .collection("stats")
         .doc("current")

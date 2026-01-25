@@ -1397,7 +1397,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(sheetContext),
+                        onPressed: () => Navigator.of(builderContext).pop(),
                       ),
                     ],
                   ),
@@ -2173,7 +2173,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(sheetContext),
+                        onPressed: () => Navigator.of(builderContext).pop(),
                       ),
                     ],
                   ),

@@ -38,21 +38,27 @@ class MemberHomeScreen extends ConsumerWidget {
     if (member == null) {
       // 인증되지 않았거나 로딩 중이면 스켈레톤 표시
       if (!authState.isAuthenticated) {
-        return Scaffold(
-          body: _buildLoadingSkeleton(context),
-        );
+        return Scaffold(body: _buildLoadingSkeleton(context));
       }
       // 인증되었지만 회원 프로필이 없는 경우
       return Scaffold(
-        body: _buildNoMemberProfile(context, user?.name ?? '회원님', user?.memberCode),
+        body: _buildNoMemberProfile(
+          context,
+          user?.name ?? '회원님',
+          user?.memberCode,
+        ),
       );
     }
 
     final memberId = member.id;
     final weightChangeAsync = ref.watch(weightChangeProvider(memberId));
-    final nextPtScheduleAsync = ref.watch(nextMemberPtScheduleProvider(memberId));
+    final nextPtScheduleAsync = ref.watch(
+      nextMemberPtScheduleProvider(memberId),
+    );
     final weightHistoryAsync = ref.watch(weightHistoryProvider(memberId));
-    final memberInsightsAsync = ref.watch(memberInsightsStreamProvider(memberId));
+    final memberInsightsAsync = ref.watch(
+      memberInsightsStreamProvider(memberId),
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -68,123 +74,131 @@ class MemberHomeScreen extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. 상단 인사말 + 알림/설정 아이콘
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _GreetingSection(userName: user?.name ?? '회원님'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () => context.push('/notifications'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined),
-                    onPressed: () => context.push('/member/settings'),
-                  ),
-                ],
-              ).animateListItem(0),
-              const SizedBox(height: 16),
-
-              // 재등록 배너 (80% 이상 완료 시)
-              ReregistrationBanner(memberId: memberId),
-              const SizedBox(height: 16),
-
-              // 스트릭 카운터
-              Consumer(
-                builder: (context, ref, child) {
-                  final streakAsync = ref.watch(memberStreakProvider(memberId));
-                  return streakAsync.when(
-                    data: (streak) => Row(
-                      children: [
-                        Expanded(
-                          child: StreakCounterWidget(
-                            streak: streak,
-                            type: StreakType.weight,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StreakCounterWidget(
-                            streak: streak,
-                            type: StreakType.diet,
-                          ),
-                        ),
-                      ],
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 상단 인사말 + 알림/설정 아이콘
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _GreetingSection(userName: user?.name ?? '회원님'),
                     ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined),
+                      onPressed: () => context.push('/notifications'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => context.push('/member/settings'),
+                    ),
+                  ],
+                ).animateListItem(0),
+                const SizedBox(height: 16),
 
-              // 2. PT 진행 현황 카드 (index 1)
-              _PtProgressCard(
-                completed: member.ptInfo.completedSessions,
-                total: member.ptInfo.totalSessions,
-                progressRate: member.progressRate,
-              ).animateListItem(1),
-              const SizedBox(height: 16),
+                // 재등록 배너 (80% 이상 완료 시)
+                ReregistrationBanner(memberId: memberId),
+                const SizedBox(height: 16),
 
-              // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
-              nextPtScheduleAsync.when(
-                loading: () => _buildNextClassSkeleton(context),
-                error: (error, _) => _NextClassCard(schedule: null, error: error.toString())
-                    .animateListItem(2),
-                data: (schedule) => _NextClassCard(schedule: schedule)
-                    .animateListItem(2),
-              ),
-              const SizedBox(height: 16),
+                // 스트릭 카운터
+                Consumer(
+                  builder: (context, ref, child) {
+                    final streakAsync = ref.watch(
+                      memberStreakProvider(memberId),
+                    );
+                    return streakAsync.when(
+                      data: (streak) => Row(
+                        children: [
+                          Expanded(
+                            child: StreakCounterWidget(
+                              streak: streak,
+                              type: StreakType.weight,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: StreakCounterWidget(
+                              streak: streak,
+                              type: StreakType.diet,
+                            ),
+                          ),
+                        ],
+                      ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
 
-              // 4. 체중 변화 미니 차트 (index 3)
-              weightChangeAsync.when(
-                loading: () => _buildWeightChartSkeleton(context),
-                error: (error, _) => _WeightChangeCard(
-                  weightChange: null,
-                  weightHistory: const [],
-                  error: error.toString(),
-                ).animateListItem(3),
-                data: (weightChange) => weightHistoryAsync.when(
+                // 2. PT 진행 현황 카드 (index 1)
+                _PtProgressCard(
+                  completed: member.ptInfo.completedSessions,
+                  total: member.ptInfo.totalSessions,
+                  progressRate: member.progressRate,
+                ).animateListItem(1),
+                const SizedBox(height: 16),
+
+                // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
+                nextPtScheduleAsync.when(
+                  loading: () => _buildNextClassSkeleton(context),
+                  error: (error, _) => _NextClassCard(
+                    schedule: null,
+                    error: error.toString(),
+                  ).animateListItem(2),
+                  data: (schedule) =>
+                      _NextClassCard(schedule: schedule).animateListItem(2),
+                ),
+                const SizedBox(height: 16),
+
+                // 4. 체중 변화 미니 차트 (index 3)
+                weightChangeAsync.when(
                   loading: () => _buildWeightChartSkeleton(context),
                   error: (error, _) => _WeightChangeCard(
-                    weightChange: weightChange,
+                    weightChange: null,
                     weightHistory: const [],
                     error: error.toString(),
                   ).animateListItem(3),
-                  data: (history) => _WeightChangeCard(
-                    weightChange: weightChange,
-                    weightHistory: history,
-                  ).animateListItem(3),
+                  data: (weightChange) => weightHistoryAsync.when(
+                    loading: () => _buildWeightChartSkeleton(context),
+                    error: (error, _) => _WeightChangeCard(
+                      weightChange: weightChange,
+                      weightHistory: const [],
+                      error: error.toString(),
+                    ).animateListItem(3),
+                    data: (history) => _WeightChangeCard(
+                      weightChange: weightChange,
+                      weightHistory: history,
+                    ).animateListItem(3),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // 5. AI 인사이트 카드 (index 4)
-              memberInsightsAsync.when(
-                loading: () => _buildInsightSkeleton(context),
-                error: (e, s) => _EmptyInsightSection(memberId: memberId).animateListItem(4),
-                data: (insights) => insights.isEmpty
-                    ? _EmptyInsightSection(memberId: memberId).animateListItem(4)
-                    : _InsightCardsSection(
-                        insights: insights,
-                        memberId: memberId,
-                      ).animateListItem(4),
-              ),
-              const SizedBox(height: 24),
+                // 5. AI 인사이트 카드 (index 4)
+                memberInsightsAsync.when(
+                  loading: () => _buildInsightSkeleton(context),
+                  error: (e, s) => _EmptyInsightSection(
+                    memberId: memberId,
+                  ).animateListItem(4),
+                  data: (insights) => insights.isEmpty
+                      ? _EmptyInsightSection(
+                          memberId: memberId,
+                        ).animateListItem(4)
+                      : _InsightCardsSection(
+                          insights: insights,
+                          memberId: memberId,
+                        ).animateListItem(4),
+                ),
+                const SizedBox(height: 24),
 
-              // 6. 빠른 액션 버튼들 (index 5)
-              _QuickActionsSection(
-                trainerId: member.trainerId,
-                memberId: memberId,
-              ).animateListItem(5),
-              const SizedBox(height: 32),
-            ],
+                // 6. 빠른 액션 버튼들 (index 5)
+                _QuickActionsSection(
+                  trainerId: member.trainerId,
+                  memberId: memberId,
+                ).animateListItem(5),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -309,122 +323,136 @@ class MemberHomeScreen extends ConsumerWidget {
   }
 
   /// 회원 프로필이 없을 때 표시할 UI
-  Widget _buildNoMemberProfile(BuildContext context, String userName, String? memberCode) {
+  Widget _buildNoMemberProfile(
+    BuildContext context,
+    String userName,
+    String? memberCode,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final displayTag = memberCode != null ? '$userName#$memberCode' : userName;
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 48,
-                color: AppTheme.primary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              '안녕하세요, $userName님!',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '아직 트레이너와 연결되지 않았습니다.\n아래 회원 코드를 트레이너에게 알려주세요.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? Colors.white60 : Colors.black54,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // 회원 코드 표시
-            if (memberCode != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '내 회원 코드',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark ? Colors.white60 : Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      displayTag,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.info_outline,
+                  child: const Icon(
+                    Icons.person_outline,
+                    size: 48,
                     color: AppTheme.primary,
-                    size: 28,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '회원 등록 방법',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  '안녕하세요, $userName님!',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '아직 트레이너와 연결되지 않았습니다.\n아래 회원 코드를 트레이너에게 알려주세요.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white60 : Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // 회원 코드 표시
+                if (memberCode != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF2E3B5E)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '내 회원 코드',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          displayTag,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '1. 위의 회원 코드를 트레이너에게 알려주세요\n2. 트레이너가 회원으로 등록하면\n3. 이 화면이 자동으로 업데이트됩니다',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark ? Colors.white54 : Colors.black45,
-                      height: 1.6,
-                    ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
-              ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: AppTheme.primary,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '회원 등록 방법',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '1. 위의 회원 코드를 트레이너에게 알려주세요\n2. 트레이너가 회원으로 등록하면\n3. 이 화면이 자동으로 업데이트됩니다',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.white54 : Colors.black45,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1));
+          ),
+        )
+        .animate()
+        .fadeIn(duration: 400.ms)
+        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1));
   }
 }
 
@@ -499,13 +527,13 @@ class _PtProgressCardState extends State<_PtProgressCard>
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    _progressAnimation = Tween<double>(
-      begin: 0,
-      end: widget.progressRate,
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeOutCubic,
-    ));
+    _progressAnimation = Tween<double>(begin: 0, end: widget.progressRate)
+        .animate(
+          CurvedAnimation(
+            parent: _progressController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     // 위젯이 빌드된 후 애니메이션 시작
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
@@ -518,13 +546,16 @@ class _PtProgressCardState extends State<_PtProgressCard>
   void didUpdateWidget(covariant _PtProgressCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.progressRate != widget.progressRate) {
-      _progressAnimation = Tween<double>(
-        begin: _progressAnimation.value,
-        end: widget.progressRate,
-      ).animate(CurvedAnimation(
-        parent: _progressController,
-        curve: Curves.easeOutCubic,
-      ));
+      _progressAnimation =
+          Tween<double>(
+            begin: _progressAnimation.value,
+            end: widget.progressRate,
+          ).animate(
+            CurvedAnimation(
+              parent: _progressController,
+              curve: Curves.easeOutCubic,
+            ),
+          );
       _progressController.forward(from: 0);
     }
   }
@@ -547,14 +578,8 @@ class _PtProgressCardState extends State<_PtProgressCard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [
-                  const Color(0xFF1E40AF),
-                  const Color(0xFF3B82F6),
-                ]
-              : [
-                  AppTheme.primary,
-                  const Color(0xFF60A5FA),
-                ],
+              ? [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]
+              : [AppTheme.primary, const Color(0xFF60A5FA)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -594,8 +619,13 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 child: CircularProgressIndicator(
                                   value: _progressAnimation.value,
                                   strokeWidth: 8,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                   strokeCap: StrokeCap.round,
                                 ),
                               ),
@@ -708,10 +738,7 @@ class _NextClassCard extends StatelessWidget {
   final ScheduleModel? schedule;
   final String? error;
 
-  const _NextClassCard({
-    this.schedule,
-    this.error,
-  });
+  const _NextClassCard({this.schedule, this.error});
 
   @override
   Widget build(BuildContext context) {
@@ -735,7 +762,11 @@ class _NextClassCard extends StatelessWidget {
     // D-Day 계산
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final scheduleDay = DateTime(scheduledDate.year, scheduledDate.month, scheduledDate.day);
+    final scheduleDay = DateTime(
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+    );
     final daysUntil = scheduleDay.difference(today).inDays;
 
     String dDayText;
@@ -806,10 +837,15 @@ class _NextClassCard extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: daysUntil == 0
-                                      ? AppTheme.secondary.withValues(alpha: 0.15)
+                                      ? AppTheme.secondary.withValues(
+                                          alpha: 0.15,
+                                        )
                                       : theme.colorScheme.primaryContainer,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
@@ -847,7 +883,10 @@ class _NextClassCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
@@ -862,7 +901,7 @@ class _NextClassCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '$formattedDate $formattedTime (${duration}분)',
+                        '$formattedDate $formattedTime ($duration분)',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
@@ -925,10 +964,7 @@ class _NextClassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ErrorState.fromError(
-        error,
-        onRetry: null,
-      ),
+      child: ErrorState.fromError(error, onRetry: null),
     );
   }
 
@@ -1038,7 +1074,10 @@ class _WeightChangeCard extends StatelessWidget {
                 ),
                 // 체중 변화량 카운트업 애니메이션
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: changeColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -1097,10 +1136,7 @@ class _WeightChangeCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 80,
-              child: _buildMiniChart(context, changeColor),
-            ),
+            SizedBox(height: 80, child: _buildMiniChart(context, changeColor)),
           ],
         ),
       ),
@@ -1141,7 +1177,8 @@ class _WeightChangeCard extends StatelessWidget {
         lineTouchData: LineTouchData(
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => theme.colorScheme.surfaceContainerHighest,
+            getTooltipColor: (spot) =>
+                theme.colorScheme.surfaceContainerHighest,
             tooltipBorderRadius: BorderRadius.circular(8),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
@@ -1249,10 +1286,7 @@ class _WeightChangeCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ErrorState.fromError(
-        error,
-        onRetry: null,
-      ),
+      child: ErrorState.fromError(error, onRetry: null),
     );
   }
 }
@@ -1262,10 +1296,7 @@ class _QuickActionsSection extends StatelessWidget {
   final String trainerId;
   final String memberId;
 
-  const _QuickActionsSection({
-    required this.trainerId,
-    required this.memberId,
-  });
+  const _QuickActionsSection({required this.trainerId, required this.memberId});
 
   @override
   Widget build(BuildContext context) {
@@ -1372,11 +1403,7 @@ class _QuickActionButton extends StatelessWidget {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -1406,7 +1433,8 @@ class _EmptyInsightSection extends ConsumerWidget {
     final generationState = ref.watch(memberInsightsGenerationProvider);
 
     // 생성 완료 시 즉시 인사이트 카드 표시
-    if (generationState.insights != null && generationState.insights!.isNotEmpty) {
+    if (generationState.insights != null &&
+        generationState.insights!.isNotEmpty) {
       return _InsightCardsSection(
         insights: generationState.insights!,
         memberId: memberId,
@@ -1425,12 +1453,18 @@ class _EmptyInsightSection extends ConsumerWidget {
                   color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 20,
+                  color: AppTheme.primary,
+                ),
               ),
               const SizedBox(width: 10),
               Text(
                 'AI 인사이트',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -1454,15 +1488,22 @@ class _EmptyInsightSection extends ConsumerWidget {
             child: ElevatedButton.icon(
               onPressed: generationState.isGenerating
                   ? null
-                  : () => ref.read(memberInsightsGenerationProvider.notifier).generate(memberId),
+                  : () => ref
+                        .read(memberInsightsGenerationProvider.notifier)
+                        .generate(memberId),
               icon: generationState.isGenerating
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.auto_awesome, size: 18),
-              label: Text(generationState.isGenerating ? '분석 중...' : '인사이트 생성하기'),
+              label: Text(
+                generationState.isGenerating ? '분석 중...' : '인사이트 생성하기',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
@@ -1489,7 +1530,10 @@ class _EmptyInsightSection extends ConsumerWidget {
 }
 
 /// _MemberInsightCard에서 사용할 통일된 카드 데코레이션
-BoxDecoration _getUnifiedCardDecoration(BuildContext context, Color? accentColor) {
+BoxDecoration _getUnifiedCardDecoration(
+  BuildContext context,
+  Color? accentColor,
+) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   // 기본 그레이 보더, accentColor가 있으면 아주 미세하게만 적용
   final borderColor = accentColor != null
@@ -1503,10 +1547,7 @@ BoxDecoration _getUnifiedCardDecoration(BuildContext context, Color? accentColor
   return BoxDecoration(
     color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(
-      color: borderColor,
-      width: 1,
-    ),
+    border: Border.all(color: borderColor, width: 1),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withValues(alpha: 0.05),
@@ -1522,10 +1563,7 @@ class _InsightCardsSection extends ConsumerWidget {
   final List<MemberInsight> insights;
   final String memberId;
 
-  const _InsightCardsSection({
-    required this.insights,
-    required this.memberId,
-  });
+  const _InsightCardsSection({required this.insights, required this.memberId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1548,12 +1586,18 @@ class _InsightCardsSection extends ConsumerWidget {
                       color: AppTheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      size: 20,
+                      color: AppTheme.primary,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     'AI 인사이트',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -1663,14 +1707,13 @@ class _MemberInsightCard extends StatelessWidget {
             // 헤더: 아이콘 + 우선순위 배지
             Row(
               children: [
-                Icon(
-                  insight.typeIcon,
-                  size: 20,
-                  color: insight.priorityColor,
-                ),
+                Icon(insight.typeIcon, size: 20, color: insight.priorityColor),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: insight.priorityColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -1691,9 +1734,7 @@ class _MemberInsightCard extends StatelessWidget {
             const SizedBox(height: 8),
             // 미니 그래프 영역 (데이터가 있는 경우)
             if (insight.graphData != null && insight.graphType != null)
-              Expanded(
-                child: _buildChart(),
-              )
+              Expanded(child: _buildChart())
             else
               const Spacer(),
             const SizedBox(height: 8),
@@ -1719,7 +1760,8 @@ class _MemberInsightCard extends StatelessWidget {
     if (insight.type == 'benchmark' && insight.graphType == 'distribution') {
       final data = insight.graphData!;
       // graphData에서 필요한 정보 추출
-      final overallPercentile = data.isNotEmpty && data[0].containsKey('overallPercentile')
+      final overallPercentile =
+          data.isNotEmpty && data[0].containsKey('overallPercentile')
           ? (data[0]['overallPercentile'] as num).toInt()
           : 50;
       final goal = data.isNotEmpty && data[0].containsKey('goal')
@@ -1727,8 +1769,8 @@ class _MemberInsightCard extends StatelessWidget {
           : 'fitness';
       final categories = data.isNotEmpty && data[0].containsKey('categories')
           ? (data[0]['categories'] as List<dynamic>)
-              .map((c) => c as Map<String, dynamic>)
-              .toList()
+                .map((c) => c as Map<String, dynamic>)
+                .toList()
           : <Map<String, dynamic>>[];
 
       return BenchmarkDistributionChart.fromMaps(
@@ -1742,7 +1784,8 @@ class _MemberInsightCard extends StatelessWidget {
     if (insight.type == 'workoutVolume' && insight.graphType == 'donut') {
       final data = insight.graphData!;
       if (data.isNotEmpty && data[0].containsKey('muscleGroupBalance')) {
-        final muscleBalance = data[0]['muscleGroupBalance'] as Map<String, dynamic>;
+        final muscleBalance =
+            data[0]['muscleGroupBalance'] as Map<String, dynamic>;
         final isImbalanced = data[0]['isImbalanced'] as bool? ?? false;
         final imbalanceType = data[0]['imbalanceType'] as String?;
 
@@ -1764,4 +1807,3 @@ class _MemberInsightCard extends StatelessWidget {
     );
   }
 }
-

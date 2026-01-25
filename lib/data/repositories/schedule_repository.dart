@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/firestore_constants.dart';
 import '../models/schedule_model.dart';
 import 'base_repository.dart';
 
@@ -15,7 +16,7 @@ class ScheduleRepository {
   ScheduleRepository({required this.firestore});
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      firestore.collection('schedules');
+      firestore.collection(FirestoreCollections.schedules);
 
   /// 특정 날짜의 일정 조회
   Future<List<ScheduleModel>> getSchedulesForDay(

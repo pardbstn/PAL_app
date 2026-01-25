@@ -8,6 +8,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_pal_app/core/constants/api_constants.dart';
+import 'package:flutter_pal_app/core/constants/firestore_constants.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
 import 'package:flutter_pal_app/data/repositories/insight_repository.dart';
 import 'package:flutter_pal_app/data/services/ai_service.dart';
@@ -561,7 +563,7 @@ final memberInsightsStreamProvider =
   final now = DateTime.now();
 
   return firestore
-      .collection('member_insights')
+      .collection(FirestoreCollections.memberInsights)
       .where('memberId', isEqualTo: memberId)
       .orderBy('createdAt', descending: true)
       .snapshots()
@@ -581,7 +583,7 @@ final memberInsightsFutureProvider =
   final now = DateTime.now();
 
   final snapshot = await firestore
-      .collection('member_insights')
+      .collection(FirestoreCollections.memberInsights)
       .where('memberId', isEqualTo: memberId)
       .orderBy('createdAt', descending: true)
       .limit(10)
@@ -616,7 +618,7 @@ class MemberInsightsService {
   /// 회원 인사이트 생성 요청
   Future<List<MemberInsight>> generateInsights(String memberId) async {
     try {
-      final callable = _functions.httpsCallable('generateMemberInsights');
+      final callable = _functions.httpsCallable(CloudFunctions.generateMemberInsights);
       final response = await callable.call({'memberId': memberId});
 
       final data = _deepCast(response.data as Map);
@@ -652,7 +654,7 @@ class MemberInsightsService {
   /// 인사이트 읽음 처리
   Future<void> markAsRead(String insightId) async {
     await _firestore
-        .collection('member_insights')
+        .collection(FirestoreCollections.memberInsights)
         .doc(insightId)
         .update({'isRead': true});
   }

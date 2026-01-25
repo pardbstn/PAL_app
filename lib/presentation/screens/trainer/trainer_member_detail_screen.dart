@@ -2941,7 +2941,8 @@ class _CurriculumCard extends ConsumerWidget {
           ),
         ),
         title: Text(
-          curriculum.title,
+          // sessionNumber를 기반으로 타이틀 생성 (기존 title에서 부위만 추출)
+          '${curriculum.sessionNumber}회차${curriculum.title.replaceAll(RegExp(r'^\d+회차'), '')}',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             decoration: isCompleted ? TextDecoration.lineThrough : null,

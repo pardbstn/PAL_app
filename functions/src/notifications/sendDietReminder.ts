@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 /**
  * 매일 12시/18시 식단 기록 리마인더
@@ -42,7 +42,7 @@ async function sendDietReminder(mealType: "lunch" | "dinner"): Promise<void> {
 
   try {
     // 1. 활성 회원 조회 (endDate가 오늘 이후인 회원)
-    const membersSnapshot = await db.collection("members")
+    const membersSnapshot = await db.collection(Collections.MEMBERS)
       .where("endDate", ">=", new Date())
       .get();
 
@@ -55,7 +55,7 @@ async function sendDietReminder(mealType: "lunch" | "dinner"): Promise<void> {
       if (!memberId) continue;
 
       // 2. 오늘 해당 시간대 식단 기록 확인
-      const dietsSnapshot = await db.collection("diets")
+      const dietsSnapshot = await db.collection(Collections.DIETS)
         .where("memberId", "==", memberDoc.id)
         .where("date", "==", todayStr)
         .where("mealType", "==", mealType)
@@ -68,7 +68,7 @@ async function sendDietReminder(mealType: "lunch" | "dinner"): Promise<void> {
       }
 
       // 3. 회원의 FCM 토큰 가져오기
-      const userDoc = await db.collection("users").doc(memberId).get();
+      const userDoc = await db.collection(Collections.USERS).doc(memberId).get();
       if (!userDoc.exists) continue;
 
       const userData = userDoc.data()!;

@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_pal_app/core/constants/api_constants.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
 import 'package:flutter_pal_app/data/models/weight_prediction_model.dart';
 
@@ -229,7 +230,7 @@ class AIService {
     String? restrictions,
   }) async {
     try {
-      final callable = _functions.httpsCallable('generateCurriculum');
+      final callable = _functions.httpsCallable(CloudFunctions.generateCurriculum);
       final result = await callable.call({
         'memberId': memberId,
         'goal': goal,
@@ -260,7 +261,7 @@ class AIService {
   /// AI 사용량 조회
   Future<AIUsageInfo> getAIUsage() async {
     try {
-      final callable = _functions.httpsCallable('getAIUsage');
+      final callable = _functions.httpsCallable(CloudFunctions.getAIUsage);
       final result = await callable.call();
       return AIUsageInfo.fromMap(result.data as Map<dynamic, dynamic>);
     } on FirebaseFunctionsException catch (e) {
@@ -277,7 +278,7 @@ class AIService {
     int weeksAhead = 8,
   }) async {
     try {
-      final callable = _functions.httpsCallable('predictWeight');
+      final callable = _functions.httpsCallable(CloudFunctions.predictWeight);
       final result = await callable.call({
         'memberId': memberId,
         'weeksAhead': weeksAhead,

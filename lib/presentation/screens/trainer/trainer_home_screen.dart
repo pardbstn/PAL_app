@@ -22,7 +22,6 @@ import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_aler
 import 'package:flutter_pal_app/presentation/providers/reregistration_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_badge_provider.dart';
-import 'package:flutter_pal_app/data/models/trainer_badge_model.dart';
 
 /// 트레이너 홈 (대시보드) 화면
 /// 프리미엄 화이트 + 쉐도우 스타일의 깔끔한 UI 제공
@@ -37,71 +36,98 @@ class TrainerHomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // 앱바
-              _buildSliverAppBar(context),
+        child: CustomScrollView(
+          slivers: [
+            // 앱바
+            _buildSliverAppBar(context),
 
-              // 컨텐츠
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // 환영 메시지 (순차 등장 - 0ms)
-                    _buildWelcomeSection(context, displayName),
-                    const SizedBox(height: 28),
+            // 컨텐츠
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // 환영 메시지 (순차 등장 - 0ms)
+                  _buildWelcomeSection(context, displayName),
+                  const SizedBox(height: 28),
 
-                    // 오늘 일정 (순차 등장 - 100ms)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, '오늘 일정', Icons.calendar_today),
-                        const SizedBox(height: 16),
-                        _TodayScheduleSection(),
-                      ],
-                    ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
-                    const SizedBox(height: 28),
+                  // 오늘 일정 (순차 등장 - 100ms)
+                  Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            context,
+                            '오늘 일정',
+                            Icons.calendar_today,
+                          ),
+                          const SizedBox(height: 16),
+                          _TodayScheduleSection(),
+                        ],
+                      )
+                      .animate()
+                      .fadeIn(delay: 100.ms, duration: 400.ms)
+                      .slideY(begin: 0.05, duration: 400.ms),
+                  const SizedBox(height: 28),
 
-                    // 회원 현황 (순차 등장 - 200ms)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, '회원 현황', Icons.people_alt),
-                        const SizedBox(height: 16),
-                        _MemberStatsSection(),
-                      ],
-                    ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
-                    const SizedBox(height: 28),
+                  // 회원 현황 (순차 등장 - 200ms)
+                  Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            context,
+                            '회원 현황',
+                            Icons.people_alt,
+                          ),
+                          const SizedBox(height: 16),
+                          _MemberStatsSection(),
+                        ],
+                      )
+                      .animate()
+                      .fadeIn(delay: 200.ms, duration: 400.ms)
+                      .slideY(begin: 0.05, duration: 400.ms),
+                  const SizedBox(height: 28),
 
-                    // 내 평점 + 배지 (순차 등장 - 250ms)
-                    _TrainerRatingBadgeSection(trainerId: authState.trainerModel?.id ?? '')
-                        .animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
-                    const SizedBox(height: 28),
+                  // 내 평점 + 배지 (순차 등장 - 250ms)
+                  _TrainerRatingBadgeSection(
+                        trainerId: authState.trainerModel?.id ?? '',
+                      )
+                      .animate()
+                      .fadeIn(delay: 250.ms, duration: 400.ms)
+                      .slideY(begin: 0.05, duration: 400.ms),
+                  const SizedBox(height: 28),
 
-                    // 재등록 대기
-                    _ReregistrationAlertSection(),
-                    const SizedBox(height: 28),
+                  // 재등록 대기
+                  _ReregistrationAlertSection(),
+                  const SizedBox(height: 28),
 
-                    // PT 종료 임박 (순차 등장 - 300ms)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(context, 'PT 종료 임박', Icons.warning_amber_rounded),
-                        const SizedBox(height: 16),
-                        _EndingSoonSection(),
-                      ],
-                    ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
-                    const SizedBox(height: 28),
+                  // PT 종료 임박 (순차 등장 - 300ms)
+                  Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            context,
+                            'PT 종료 임박',
+                            Icons.warning_amber_rounded,
+                          ),
+                          const SizedBox(height: 16),
+                          _EndingSoonSection(),
+                        ],
+                      )
+                      .animate()
+                      .fadeIn(delay: 300.ms, duration: 400.ms)
+                      .slideY(begin: 0.05, duration: 400.ms),
+                  const SizedBox(height: 28),
 
-                    // AI 인사이트 (순차 등장 - 400ms)
-                    _AiInsightSection()
-                        .animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
-                    const SizedBox(height: 40),
-                  ]),
-                ),
+                  // AI 인사이트 (순차 등장 - 400ms)
+                  _AiInsightSection()
+                      .animate()
+                      .fadeIn(delay: 400.ms, duration: 400.ms)
+                      .slideY(begin: 0.05, duration: 400.ms),
+                  const SizedBox(height: 40),
+                ]),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -118,7 +144,10 @@ class TrainerHomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.8)],
+                colors: [
+                  AppTheme.primary,
+                  AppTheme.primary.withValues(alpha: 0.8),
+                ],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
@@ -139,7 +168,9 @@ class TrainerHomeScreen extends ConsumerWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -155,7 +186,9 @@ class TrainerHomeScreen extends ConsumerWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -189,27 +222,33 @@ class TrainerHomeScreen extends ConsumerWidget {
         Text(
           greeting,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
         const SizedBox(height: 4),
         Text(
           '$name님!',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideX(begin: -0.1),
       ],
     );
   }
 
   /// 섹션 헤더
-  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
     ).animate().fadeIn(duration: 400.ms);
   }
 }
@@ -242,7 +281,12 @@ class _TodayScheduleSection extends ConsumerWidget {
       error: (error, stack) {
         debugPrint('[TodaySchedule] 에러 발생: $error');
         debugPrint('[TodaySchedule] 스택: $stack');
-        return _buildErrorCard(context, '일정을 불러올 수 없습니다', ref, trainerId: trainerId);
+        return _buildErrorCard(
+          context,
+          '일정을 불러올 수 없습니다',
+          ref,
+          trainerId: trainerId,
+        );
       },
       data: (schedules) {
         debugPrint('[TodaySchedule] 일정 로드 완료: ${schedules.length}개');
@@ -250,9 +294,11 @@ class _TodayScheduleSection extends ConsumerWidget {
         final now = DateTime.now();
         final activeSchedules = schedules
             .where((s) => s.status == ScheduleStatus.scheduled)
-            .where((s) => s.endTime.isAfter(now))  // 시간 지난 일정 제외
+            .where((s) => s.endTime.isAfter(now)) // 시간 지난 일정 제외
             .toList();
-        debugPrint('[TodaySchedule] 활성 일정 수 (시간 필터 후): ${activeSchedules.length}개');
+        debugPrint(
+          '[TodaySchedule] 활성 일정 수 (시간 필터 후): ${activeSchedules.length}개',
+        );
 
         if (activeSchedules.isEmpty) {
           return _buildEmptyScheduleCard(context);
@@ -266,7 +312,9 @@ class _TodayScheduleSection extends ConsumerWidget {
                 _buildScheduleItem(context, activeSchedules[i], i),
                 if (i < activeSchedules.length - 1)
                   Divider(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.1),
                     height: 24,
                   ),
               ],
@@ -306,123 +354,143 @@ class _TodayScheduleSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildScheduleItem(BuildContext context, ScheduleModel schedule, int index) {
+  Widget _buildScheduleItem(
+    BuildContext context,
+    ScheduleModel schedule,
+    int index,
+  ) {
     // PT 일정과 개인 일정에 따른 색상 구분
     final isPt = schedule.isPtSchedule;
     final itemColor = isPt ? AppTheme.primary : AppTheme.secondary;
     final avatarColor = _getAvatarColor(index);
 
     return InkWell(
-      onTap: () => context.go('/trainer/calendar'),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            // 시간
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: itemColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                schedule.timeString,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: itemColor,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // 아이콘/아바타
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: avatarColor.withValues(alpha: 0.2),
-              child: isPt
-                  ? Text(
-                      schedule.displayTitle.isNotEmpty
-                          ? schedule.displayTitle[0]
-                          : '?',
-                      style: TextStyle(
-                        color: avatarColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : Icon(
-                      Icons.event_note,
-                      color: avatarColor,
-                      size: 20,
-                    ),
-            ),
-            const SizedBox(width: 12),
-            // 제목 & 상태
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    schedule.displayTitle,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          onTap: () => context.go('/trainer/calendar'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                // 시간
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isPt
-                              ? AppTheme.primary.withValues(alpha: 0.1)
-                              : AppTheme.secondary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          isPt ? 'PT' : '개인',
+                  decoration: BoxDecoration(
+                    color: itemColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    schedule.timeString,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: itemColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // 아이콘/아바타
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: avatarColor.withValues(alpha: 0.2),
+                  child: isPt
+                      ? Text(
+                          schedule.displayTitle.isNotEmpty
+                              ? schedule.displayTitle[0]
+                              : '?',
                           style: TextStyle(
-                            color: isPt ? AppTheme.primary : AppTheme.secondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            color: avatarColor,
+                            fontWeight: FontWeight.bold,
                           ),
+                        )
+                      : Icon(Icons.event_note, color: avatarColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                // 제목 & 상태
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        schedule.displayTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        schedule.status.label,
-                        style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                          fontSize: 13,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isPt
+                                  ? AppTheme.primary.withValues(alpha: 0.1)
+                                  : AppTheme.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isPt ? 'PT' : '개인',
+                              style: TextStyle(
+                                color: isPt
+                                    ? AppTheme.primary
+                                    : AppTheme.secondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            schedule.status.label,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                // 화살표
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
             ),
-            // 화살표
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate(delay: Duration(milliseconds: 100 * index)).fadeIn().slideX(begin: 0.05);
+          ),
+        )
+        .animate(delay: Duration(milliseconds: 100 * index))
+        .fadeIn()
+        .slideX(begin: 0.05);
   }
 
   Color _getAvatarColor(int index) {
-    final colors = [Colors.blue, Colors.purple, Colors.orange, Colors.teal, Colors.pink];
+    final colors = [
+      Colors.blue,
+      Colors.purple,
+      Colors.orange,
+      Colors.teal,
+      Colors.pink,
+    ];
     return colors[index % colors.length];
   }
 
@@ -433,8 +501,12 @@ class _TodayScheduleSection extends ConsumerWidget {
         return _buildPremiumCard(
           context,
           child: Shimmer.fromColors(
-            baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-            highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
+            baseColor: isDark
+                ? const Color(0xFF424242)
+                : const Color(0xFFE0E0E0),
+            highlightColor: isDark
+                ? const Color(0xFF616161)
+                : const Color(0xFFF5F5F5),
             child: Column(
               children: List.generate(
                 3,
@@ -451,7 +523,10 @@ class _TodayScheduleSection extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const CircleAvatar(radius: 20, backgroundColor: Colors.white),
+                      const CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.white,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -482,7 +557,12 @@ class _TodayScheduleSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorCard(BuildContext context, String message, WidgetRef ref, {String? trainerId}) {
+  Widget _buildErrorCard(
+    BuildContext context,
+    String message,
+    WidgetRef ref, {
+    String? trainerId,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return _buildPremiumCard(
       context,
@@ -562,34 +642,55 @@ class _MemberStatsSection extends ConsumerWidget {
       data: (stats) => Row(
         children: [
           Expanded(
-            child: _AnimatedStatCard(
-              label: '전체 회원',
-              value: stats.totalMembers,
-              suffix: '명',
-              icon: Icons.people,
-              iconColor: AppTheme.primary,
-              onTap: () => context.go('/trainer/members'),
-            ).animate().fadeIn(delay: const Duration(milliseconds: 0), duration: 400.ms).slideX(begin: 0.1),
+            child:
+                _AnimatedStatCard(
+                      label: '전체 회원',
+                      value: stats.totalMembers,
+                      suffix: '명',
+                      icon: Icons.people,
+                      iconColor: AppTheme.primary,
+                      onTap: () => context.go('/trainer/members'),
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: const Duration(milliseconds: 0),
+                      duration: 400.ms,
+                    )
+                    .slideX(begin: 0.1),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _AnimatedStatCard(
-              label: 'PT 진행중',
-              value: stats.activeMembers,
-              suffix: '명',
-              icon: Icons.people,
-              iconColor: AppTheme.secondary,
-            ).animate().fadeIn(delay: const Duration(milliseconds: 100), duration: 400.ms).slideX(begin: 0.1),
+            child:
+                _AnimatedStatCard(
+                      label: 'PT 진행중',
+                      value: stats.activeMembers,
+                      suffix: '명',
+                      icon: Icons.people,
+                      iconColor: AppTheme.secondary,
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: const Duration(milliseconds: 100),
+                      duration: 400.ms,
+                    )
+                    .slideX(begin: 0.1),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _AnimatedStatCard(
-              label: 'PT 완료',
-              value: stats.completedMembers,
-              suffix: '명',
-              icon: Icons.people,
-              iconColor: Colors.grey,
-            ).animate().fadeIn(delay: const Duration(milliseconds: 200), duration: 400.ms).slideX(begin: 0.1),
+            child:
+                _AnimatedStatCard(
+                      label: 'PT 완료',
+                      value: stats.completedMembers,
+                      suffix: '명',
+                      icon: Icons.people,
+                      iconColor: Colors.grey,
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: const Duration(milliseconds: 200),
+                      duration: 400.ms,
+                    )
+                    .slideX(begin: 0.1),
           ),
         ],
       ),
@@ -607,13 +708,21 @@ class _MemberStatsSection extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Builder(
                 builder: (context) {
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
                   return Shimmer.fromColors(
-                    baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-                    highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
+                    baseColor: isDark
+                        ? const Color(0xFF424242)
+                        : const Color(0xFFE0E0E0),
+                    highlightColor: isDark
+                        ? const Color(0xFF616161)
+                        : const Color(0xFFF5F5F5),
                     child: Column(
                       children: [
-                        const CircleAvatar(radius: 24, backgroundColor: Colors.white),
+                        const CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.white,
+                        ),
                         const SizedBox(height: 12),
                         Container(width: 50, height: 24, color: Colors.white),
                         const SizedBox(height: 6),
@@ -658,15 +767,17 @@ class _MemberStatsSection extends ConsumerWidget {
                   Text(
                     '-',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '-',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
                 ],
               ),
@@ -696,7 +807,9 @@ class _ReregistrationAlertSection extends ConsumerWidget {
     String getMemberName(String memberId) {
       return membersWithUserAsync.when(
         data: (members) {
-          final member = members.where((m) => m.member.id == memberId).firstOrNull;
+          final member = members
+              .where((m) => m.member.id == memberId)
+              .firstOrNull;
           return member?.name ?? '알 수 없는 회원';
         },
         loading: () => '로딩중...',
@@ -708,7 +821,9 @@ class _ReregistrationAlertSection extends ConsumerWidget {
     String? getMemberProfileUrl(String memberId) {
       return membersWithUserAsync.when(
         data: (members) {
-          final member = members.where((m) => m.member.id == memberId).firstOrNull;
+          final member = members
+              .where((m) => m.member.id == memberId)
+              .firstOrNull;
           return member?.user?.profileImageUrl;
         },
         loading: () => null,
@@ -727,7 +842,9 @@ class _ReregistrationAlertSection extends ConsumerWidget {
       },
       onMarkComplete: (memberId) {
         // 재등록 완료 처리
-        ref.read(reregistrationNotifierProvider.notifier).markReregistered(memberId);
+        ref
+            .read(reregistrationNotifierProvider.notifier)
+            .markReregistered(memberId);
       },
     );
   }
@@ -780,7 +897,9 @@ class _EndingSoonSection extends ConsumerWidget {
                 _buildEndingSoonItem(context, members[i], i),
                 if (i < members.length - 1)
                   Divider(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.1),
                     height: 24,
                   ),
               ],
@@ -791,71 +910,84 @@ class _EndingSoonSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildEndingSoonItem(BuildContext context, MemberWithUser mwu, int index) {
+  Widget _buildEndingSoonItem(
+    BuildContext context,
+    MemberWithUser mwu,
+    int index,
+  ) {
     final remaining = mwu.member.remainingSessions;
     final urgencyColor = remaining <= 2 ? AppTheme.error : AppTheme.tertiary;
 
     return InkWell(
-      onTap: () => context.go('/trainer/members/${mwu.member.id}'),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            // 아바타
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: urgencyColor.withValues(alpha: 0.2),
-              child: Text(
-                mwu.name.isNotEmpty ? mwu.name[0] : '?',
-                style: TextStyle(
-                  color: urgencyColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // 이름 & 남은 회차
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mwu.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '남은 회차: $remaining회',
+          onTap: () => context.go('/trainer/members/${mwu.member.id}'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                // 아바타
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: urgencyColor.withValues(alpha: 0.2),
+                  child: Text(
+                    mwu.name.isNotEmpty ? mwu.name[0] : '?',
                     style: TextStyle(
                       color: urgencyColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-            ),
-            // 연장 버튼
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '연장 안내',
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
+                const SizedBox(width: 14),
+                // 이름 & 남은 회차
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mwu.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '남은 회차: $remaining회',
+                        style: TextStyle(
+                          color: urgencyColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 연장 버튼
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '연장 안내',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    ).animate(delay: Duration(milliseconds: 100 * index)).fadeIn().slideX(begin: 0.05);
+          ),
+        )
+        .animate(delay: Duration(milliseconds: 100 * index))
+        .fadeIn()
+        .slideX(begin: 0.05);
   }
 
   Widget _buildEndingSoonShimmer() {
@@ -865,8 +997,12 @@ class _EndingSoonSection extends ConsumerWidget {
         return _buildEndingSoonPremiumCard(
           context,
           child: Shimmer.fromColors(
-            baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-            highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
+            baseColor: isDark
+                ? const Color(0xFF424242)
+                : const Color(0xFFE0E0E0),
+            highlightColor: isDark
+                ? const Color(0xFF616161)
+                : const Color(0xFFF5F5F5),
             child: Column(
               children: List.generate(
                 2,
@@ -874,15 +1010,26 @@ class _EndingSoonSection extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      const CircleAvatar(radius: 22, backgroundColor: Colors.white),
+                      const CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white,
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 80, height: 14, color: Colors.white),
+                            Container(
+                              width: 80,
+                              height: 14,
+                              color: Colors.white,
+                            ),
                             const SizedBox(height: 6),
-                            Container(width: 100, height: 12, color: Colors.white),
+                            Container(
+                              width: 100,
+                              height: 12,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -924,7 +1071,10 @@ class _EndingSoonSection extends ConsumerWidget {
   }
 
   /// PT 종료 임박 섹션용 프리미엄 화이트 카드
-  Widget _buildEndingSoonPremiumCard(BuildContext context, {required Widget child}) {
+  Widget _buildEndingSoonPremiumCard(
+    BuildContext context, {
+    required Widget child,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -956,6 +1106,7 @@ class _AiInsightSection extends ConsumerStatefulWidget {
 class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
   /// 이전 생성 성공 상태 (SnackBar 중복 방지)
   bool _previousSuccessState = false;
+
   /// 이전 에러 메시지 (SnackBar 중복 방지)
   String? _previousErrorMessage;
 
@@ -1108,9 +1259,9 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               onPressed: () {
                 final trainerId = ref.read(currentTrainerIdProvider);
                 if (trainerId != null) {
-                  ref.read(insightsGenerationProvider.notifier).generate(
-                        trainerId: trainerId,
-                      );
+                  ref
+                      .read(insightsGenerationProvider.notifier)
+                      .generate(trainerId: trainerId);
                 }
               },
             ),
@@ -1133,10 +1284,7 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
         // 타이틀
         const Text(
           'AI 인사이트',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         const SizedBox(width: 8),
         // 읽지 않은 개수 배지
@@ -1162,9 +1310,9 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
           onPressed: isLoading || trainerId == null
               ? null
               : () {
-                  ref.read(insightsGenerationProvider.notifier).generate(
-                        trainerId: trainerId,
-                      );
+                  ref
+                      .read(insightsGenerationProvider.notifier)
+                      .generate(trainerId: trainerId);
                 },
           icon: isLoading
               ? const SizedBox(
@@ -1207,17 +1355,16 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
           const SizedBox(height: 16),
           const Text(
             'Pro 플랜에서 AI 인사이트 사용',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
             'AI가 회원 데이터를 분석하여 맞춤 인사이트를 제공합니다',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -1270,10 +1417,7 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
           const SizedBox(height: 16),
           const Text(
             '새로운 인사이트가 없습니다',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1288,9 +1432,9 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
             onPressed: trainerId == null
                 ? null
                 : () {
-                    ref.read(insightsGenerationProvider.notifier).generate(
-                          trainerId: trainerId,
-                        );
+                    ref
+                        .read(insightsGenerationProvider.notifier)
+                        .generate(trainerId: trainerId);
                   },
             icon: const Icon(Icons.auto_awesome, size: 18),
             label: const Text('인사이트 생성하기'),
@@ -1317,143 +1461,158 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     final insightsService = ref.read(insightsServiceProvider);
 
     return GestureDetector(
-      onTap: () {
-        // 읽음 처리
-        if (!insight.isRead) {
-          insightsService.markAsRead(insight.id);
-        }
-        // 회원 상세로 이동 (memberId가 있을 경우)
-        if (insight.memberId != null && insight.memberId!.isNotEmpty) {
-          context.push('/trainer/members/${insight.memberId}');
-        }
-      },
-      child: GradientGlassCard(
-        gradientColors: [
-          insight.priorityColor.withValues(alpha: 0.8),
-          insight.priorityColor.withValues(alpha: 0.6),
-        ],
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          onTap: () {
+            // 읽음 처리
+            if (!insight.isRead) {
+              insightsService.markAsRead(insight.id);
+            }
+            // 회원 상세로 이동 (memberId가 있을 경우)
+            if (insight.memberId != null && insight.memberId!.isNotEmpty) {
+              context.push('/trainer/members/${insight.memberId}');
+            }
+          },
+          child: GradientGlassCard(
+            gradientColors: [
+              insight.priorityColor.withValues(alpha: 0.8),
+              insight.priorityColor.withValues(alpha: 0.6),
+            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(insight.typeIcon, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        insight.typeIcon,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              insight.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  insight.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'AI',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              if (!insight.isRead)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
                           ),
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'AI',
+                          // 회원 이름 표시
+                          if (insight.memberName != null &&
+                              insight.memberName!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              insight.memberName!,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                          if (!insight.isRead)
-                            Container(
-                              margin: const EdgeInsets.only(left: 6),
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                          ],
                         ],
                       ),
-                      // 회원 이름 표시
-                      if (insight.memberName != null && insight.memberName!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          insight.memberName!,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  insight.message,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                // 이탈 위험도 게이지 차트 (churnRisk 타입일 때)
+                if (insight.type == InsightType.churnRisk &&
+                    insight.data != null)
+                  _buildChurnGaugeSection(insight.data!),
+                // 운동 볼륨 바 차트 (workoutVolume 타입일 때)
+                if (insight.type == InsightType.workoutVolume &&
+                    insight.data != null)
+                  _buildVolumeBarSection(insight.data!),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      insight.isRead ? '확인하기' : '새 알림',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              insight.message,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            // 이탈 위험도 게이지 차트 (churnRisk 타입일 때)
-            if (insight.type == InsightType.churnRisk && insight.data != null)
-              _buildChurnGaugeSection(insight.data!),
-            // 운동 볼륨 바 차트 (workoutVolume 타입일 때)
-            if (insight.type == InsightType.workoutVolume && insight.data != null)
-              _buildVolumeBarSection(insight.data!),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  insight.isRead ? '확인하기' : '새 알림',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(
-      delay: Duration(milliseconds: 600 + (100 * index)),
-      duration: 500.ms,
-    ).slideY(begin: 0.1);
+          ),
+        )
+        .animate()
+        .fadeIn(
+          delay: Duration(milliseconds: 600 + (100 * index)),
+          duration: 500.ms,
+        )
+        .slideY(begin: 0.1);
   }
 
   /// 이탈 위험도 게이지 차트 섹션 빌드
@@ -1490,14 +1649,18 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
   /// 운동 볼륨 바 차트 섹션 빌드
   Widget _buildVolumeBarSection(Map<String, dynamic> data) {
     // 데이터에서 필요한 필드 추출
-    final weeklyVolumes = (data['weeklyVolumes'] as List<dynamic>?)
-        ?.map((e) => (e as num).toInt())
-        .toList() ?? [];
+    final weeklyVolumes =
+        (data['weeklyVolumes'] as List<dynamic>?)
+            ?.map((e) => (e as num).toInt())
+            .toList() ??
+        [];
     final fourWeekAverage = (data['fourWeekAverage'] as num?)?.toDouble() ?? 0;
     final volumeTrend = (data['volumeTrend'] as String?) ?? 'normal';
-    final weeklyChanges = (data['weeklyChanges'] as List<dynamic>?)
-        ?.map((e) => (e as num).toDouble())
-        .toList() ?? [];
+    final weeklyChanges =
+        (data['weeklyChanges'] as List<dynamic>?)
+            ?.map((e) => (e as num).toDouble())
+            .toList() ??
+        [];
 
     // 데이터가 유효하지 않으면 빈 위젯 반환
     if (weeklyVolumes.isEmpty) {
@@ -1533,21 +1696,23 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
 
     // PT 종료 임박 인사이트
     if (endingSoon.isNotEmpty) {
-      final urgentCount =
-          endingSoon.where((m) => m.member.remainingSessions <= 2).length;
+      final urgentCount = endingSoon
+          .where((m) => m.member.remainingSessions <= 2)
+          .length;
       if (urgentCount > 0) {
-        insights.add(_InsightItem(
-          icon: Icons.warning_amber_rounded,
-          iconColor: AppTheme.error,
-          title: 'PT 연장 필요',
-          description:
-              '$urgentCount명의 회원이 2회 이하로 남았습니다. 연장 상담이 필요합니다.',
-          actionLabel: '확인하기',
-          gradientColors: [
-            AppTheme.error.withValues(alpha: 0.8),
-            AppTheme.error.withValues(alpha: 0.6),
-          ],
-        ));
+        insights.add(
+          _InsightItem(
+            icon: Icons.warning_amber_rounded,
+            iconColor: AppTheme.error,
+            title: 'PT 연장 필요',
+            description: '$urgentCount명의 회원이 2회 이하로 남았습니다. 연장 상담이 필요합니다.',
+            actionLabel: '확인하기',
+            gradientColors: [
+              AppTheme.error.withValues(alpha: 0.8),
+              AppTheme.error.withValues(alpha: 0.6),
+            ],
+          ),
+        );
       }
     }
 
@@ -1555,61 +1720,68 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     if (stats.activeMembers > 0) {
       final avgProgress = (stats.averageProgress * 100).round();
       if (avgProgress >= 70) {
-        insights.add(_InsightItem(
-          icon: Icons.emoji_events,
-          iconColor: AppTheme.secondary,
-          title: '우수한 진행률',
-          description: '회원들의 평균 진행률이 $avgProgress%입니다. 훌륭합니다!',
-          actionLabel: '상세보기',
-          gradientColors: [
-            AppTheme.secondary.withValues(alpha: 0.8),
-            AppTheme.secondary.withValues(alpha: 0.6),
-          ],
-        ));
+        insights.add(
+          _InsightItem(
+            icon: Icons.emoji_events,
+            iconColor: AppTheme.secondary,
+            title: '우수한 진행률',
+            description: '회원들의 평균 진행률이 $avgProgress%입니다. 훌륭합니다!',
+            actionLabel: '상세보기',
+            gradientColors: [
+              AppTheme.secondary.withValues(alpha: 0.8),
+              AppTheme.secondary.withValues(alpha: 0.6),
+            ],
+          ),
+        );
       } else if (avgProgress < 50) {
-        insights.add(_InsightItem(
-          icon: Icons.trending_up,
-          iconColor: AppTheme.primary,
-          title: '진행률 향상 필요',
-          description:
-              '회원들의 평균 진행률이 $avgProgress%입니다. 동기부여가 필요할 수 있습니다.',
-          actionLabel: '확인하기',
-          gradientColors: [
-            AppTheme.primary.withValues(alpha: 0.8),
-            AppTheme.primary.withValues(alpha: 0.6),
-          ],
-        ));
+        insights.add(
+          _InsightItem(
+            icon: Icons.trending_up,
+            iconColor: AppTheme.primary,
+            title: '진행률 향상 필요',
+            description: '회원들의 평균 진행률이 $avgProgress%입니다. 동기부여가 필요할 수 있습니다.',
+            actionLabel: '확인하기',
+            gradientColors: [
+              AppTheme.primary.withValues(alpha: 0.8),
+              AppTheme.primary.withValues(alpha: 0.6),
+            ],
+          ),
+        );
       }
     }
 
     // 신규 회원 인사이트
     if (stats.totalMembers == 0) {
-      insights.add(_InsightItem(
-        icon: Icons.person_add,
-        iconColor: AppTheme.primary,
-        title: '첫 회원을 등록하세요',
-        description: 'PAL과 함께 회원 관리를 시작해보세요!',
-        actionLabel: '회원 추가',
-        gradientColors: [
-          AppTheme.primary.withValues(alpha: 0.8),
-          AppTheme.primary.withValues(alpha: 0.6),
-        ],
-      ));
+      insights.add(
+        _InsightItem(
+          icon: Icons.person_add,
+          iconColor: AppTheme.primary,
+          title: '첫 회원을 등록하세요',
+          description: 'PAL과 함께 회원 관리를 시작해보세요!',
+          actionLabel: '회원 추가',
+          gradientColors: [
+            AppTheme.primary.withValues(alpha: 0.8),
+            AppTheme.primary.withValues(alpha: 0.6),
+          ],
+        ),
+      );
     }
 
     // 기본 인사이트 (아무것도 없을 때)
     if (insights.isEmpty) {
-      insights.add(_InsightItem(
-        icon: Icons.check_circle,
-        iconColor: AppTheme.secondary,
-        title: '모든 것이 순조롭습니다',
-        description: '${stats.activeMembers}명의 회원이 열심히 운동 중입니다.',
-        actionLabel: '확인하기',
-        gradientColors: [
-          AppTheme.secondary.withValues(alpha: 0.8),
-          AppTheme.secondary.withValues(alpha: 0.6),
-        ],
-      ));
+      insights.add(
+        _InsightItem(
+          icon: Icons.check_circle,
+          iconColor: AppTheme.secondary,
+          title: '모든 것이 순조롭습니다',
+          description: '${stats.activeMembers}명의 회원이 열심히 운동 중입니다.',
+          actionLabel: '확인하기',
+          gradientColors: [
+            AppTheme.secondary.withValues(alpha: 0.8),
+            AppTheme.secondary.withValues(alpha: 0.6),
+          ],
+        ),
+      );
     }
 
     return [
@@ -1623,92 +1795,99 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
   /// 로컬 인사이트 카드 (기존 스타일 유지)
   Widget _buildLocalInsightCard(_InsightItem insight, int index) {
     return GradientGlassCard(
-      gradientColors: insight.gradientColors,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          gradientColors: insight.gradientColors,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(insight.icon, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  insight.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(insight.icon, color: Colors.white, size: 24),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      insight.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                insight.description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    insight.actionLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            insight.description,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                insight.actionLabel,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(
-      delay: Duration(milliseconds: 700 + (100 * index)),
-      duration: 500.ms,
-    ).slideY(begin: 0.1);
+        )
+        .animate()
+        .fadeIn(
+          delay: Duration(milliseconds: 700 + (100 * index)),
+          duration: 500.ms,
+        )
+        .slideY(begin: 0.1);
   }
 
-  Widget _buildSeeMoreButton(BuildContext context, AsyncValue<int> unreadCount) {
+  Widget _buildSeeMoreButton(
+    BuildContext context,
+    AsyncValue<int> unreadCount,
+  ) {
     return GestureDetector(
       onTap: () => context.push('/trainer/insights'),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.primary.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 18,
-              color: AppTheme.primary,
-            ),
+            Icon(Icons.auto_awesome, size: 18, color: AppTheme.primary),
             const SizedBox(width: 8),
             Text(
               '모든 AI 인사이트 보기',
@@ -1722,7 +1901,10 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               data: (count) => count > 0
                   ? Container(
                       margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.error,
                         borderRadius: BorderRadius.circular(10),
@@ -1741,11 +1923,7 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               error: (_, _) => const SizedBox.shrink(),
             ),
             const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: AppTheme.primary,
-            ),
+            Icon(Icons.chevron_right, size: 20, color: AppTheme.primary),
           ],
         ),
       ),
@@ -1763,19 +1941,34 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               builder: (context) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Shimmer.fromColors(
-                  baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-                  highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
+                  baseColor: isDark
+                      ? const Color(0xFF424242)
+                      : const Color(0xFFE0E0E0),
+                  highlightColor: isDark
+                      ? const Color(0xFF616161)
+                      : const Color(0xFFF5F5F5),
                   child: Row(
                     children: [
-                      const CircleAvatar(radius: 24, backgroundColor: Colors.white),
+                      const CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.white,
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 120, height: 16, color: Colors.white),
+                            Container(
+                              width: 120,
+                              height: 16,
+                              color: Colors.white,
+                            ),
                             const SizedBox(height: 8),
-                            Container(width: double.infinity, height: 12, color: Colors.white),
+                            Container(
+                              width: double.infinity,
+                              height: 12,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -1863,11 +2056,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 color: effectiveIconColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: effectiveIconColor,
-                size: 24,
-              ),
+              child: Icon(icon, color: effectiveIconColor, size: 24),
             ),
             const SizedBox(height: 12),
             // 카운트업 애니메이션 적용
@@ -1875,16 +2064,16 @@ class _AnimatedStatCard extends StatelessWidget {
               value: value,
               suffix: suffix,
               duration: const Duration(milliseconds: 1000),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -1961,7 +2150,11 @@ class _TrainerRatingBadgeSection extends ConsumerWidget {
               return Row(
                 children: [
                   // 별점
-                  Icon(Icons.star_rounded, color: const Color(0xFFF59E0B), size: 28),
+                  Icon(
+                    Icons.star_rounded,
+                    color: const Color(0xFFF59E0B),
+                    size: 28,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     overall > 0 ? overall.toStringAsFixed(1) : '-',
@@ -2006,23 +2199,32 @@ class _TrainerRatingBadgeSection extends ConsumerWidget {
               return Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: displayBadges.map((badge) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF2E3B5E)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${badge.icon} ${badge.name}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : const Color(0xFF475569),
-                    ),
-                  ),
-                )).toList(),
+                children: displayBadges
+                    .map(
+                      (badge) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF2E3B5E)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${badge.icon} ${badge.name}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
               );
             },
             loading: () => const SizedBox(height: 24),

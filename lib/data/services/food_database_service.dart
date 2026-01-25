@@ -31,7 +31,6 @@ class FoodDatabaseService {
 
       _isInitialized = true;
     } catch (e) {
-      print('Failed to load food database: $e');
       rethrow;
     }
   }

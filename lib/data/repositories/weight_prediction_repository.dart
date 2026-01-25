@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/firestore_constants.dart';
 import '../models/weight_prediction_model.dart';
 import 'base_repository.dart';
 
@@ -20,7 +21,7 @@ class WeightPredictionRepository {
 
   /// 컬렉션 참조
   CollectionReference<Map<String, dynamic>> get _collection =>
-      _firestore.collection('predictions');
+      _firestore.collection(FirestoreCollections.predictions);
 
   /// 해당 회원의 가장 최근 예측 결과 조회
   ///

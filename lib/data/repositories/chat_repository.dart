@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/firestore_constants.dart';
 import '../models/message_model.dart';
 import '../models/chat_room_model.dart';
 import 'base_repository.dart';
@@ -16,10 +17,10 @@ class ChatRepository {
   ChatRepository({required FirebaseFirestore firestore}) : _firestore = firestore;
 
   CollectionReference<Map<String, dynamic>> get _chatRooms =>
-      _firestore.collection('chat_rooms');
+      _firestore.collection(FirestoreCollections.chatRooms);
 
   CollectionReference<Map<String, dynamic>> get _messages =>
-      _firestore.collection('messages');
+      _firestore.collection(FirestoreCollections.messages);
 
   /// 채팅방 생성 또는 가져오기
   Future<ChatRoomModel> getOrCreateChatRoom({

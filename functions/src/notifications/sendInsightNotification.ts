@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-
-const db = admin.firestore();
+import {db} from "../utils/firestore";
+import {Collections} from "../constants/collections";
 
 /**
  * 인사이트 생성 시 트레이너에게 푸시 알림 전송
@@ -23,7 +23,7 @@ export const sendInsightNotification = functions
 
     try {
       // 1. 트레이너의 FCM 토큰 가져오기
-      const trainerDoc = await db.collection("users").doc(trainerId).get();
+      const trainerDoc = await db.collection(Collections.USERS).doc(trainerId).get();
       if (!trainerDoc.exists) {
         console.log("트레이너를 찾을 수 없음:", trainerId);
         return null;
@@ -40,7 +40,7 @@ export const sendInsightNotification = functions
       // 2. 회원 이름 가져오기
       let memberName = "회원";
       if (memberId) {
-        const memberDoc = await db.collection("members").doc(memberId).get();
+        const memberDoc = await db.collection(Collections.MEMBERS).doc(memberId).get();
         if (memberDoc.exists) {
           const memberData = memberDoc.data()!;
           memberName = memberData.name || "회원";

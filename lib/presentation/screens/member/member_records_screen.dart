@@ -255,6 +255,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                         (context, index) => _BodyRecordCard(
                           record: records[index],
                           index: index,
+                          memberId: memberId,
                         ),
                         childCount: records.length,
                       ),
@@ -1055,6 +1056,25 @@ class _BodyCompositionChart extends ConsumerWidget {
             ),
         ],
         lineTouchData: LineTouchData(
+          // 세로 점선 인디케이터 숨기기
+          getTouchedSpotIndicator: (barData, spotIndexes) {
+            return spotIndexes.map((index) {
+              return TouchedSpotIndicatorData(
+                const FlLine(color: Colors.transparent), // 세로선 숨김
+                FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, bar, idx) {
+                    return FlDotCirclePainter(
+                      radius: 6,
+                      color: colorScheme.surface,
+                      strokeWidth: 2,
+                      strokeColor: color,
+                    );
+                  },
+                ),
+              );
+            }).toList();
+          },
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => colorScheme.inverseSurface,
             tooltipBorderRadius: BorderRadius.circular(8),
@@ -1217,6 +1237,25 @@ class _BodyCompositionChart extends ConsumerWidget {
             _buildPredictionLineBarData(bodyFatPredSpots, Colors.orange),
         ],
         lineTouchData: LineTouchData(
+          // 세로 점선 인디케이터 숨기기
+          getTouchedSpotIndicator: (barData, spotIndexes) {
+            return spotIndexes.map((index) {
+              return TouchedSpotIndicatorData(
+                const FlLine(color: Colors.transparent), // 세로선 숨김
+                FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, bar, idx) {
+                    return FlDotCirclePainter(
+                      radius: 6,
+                      color: colorScheme.surface,
+                      strokeWidth: 2,
+                      strokeColor: barData.color ?? AppTheme.primary,
+                    );
+                  },
+                ),
+              );
+            }).toList();
+          },
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => colorScheme.inverseSurface,
             tooltipBorderRadius: BorderRadius.circular(8),
@@ -1373,17 +1412,19 @@ class _BodyCompositionChart extends ConsumerWidget {
 }
 
 /// 체성분 기록 카드
-class _BodyRecordCard extends StatelessWidget {
+class _BodyRecordCard extends ConsumerWidget {
   const _BodyRecordCard({
     required this.record,
     required this.index,
+    required this.memberId,
   });
 
   final BodyRecordModel record;
   final int index;
+  final String memberId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -1454,9 +1495,25 @@ class _BodyRecordCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: colorScheme.onSurfaceVariant,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: colorScheme.error,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showDeleteDialog(context, ref),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1501,6 +1558,53 @@ class _BodyRecordCard extends StatelessWidget {
         .animate()
         .fadeIn(duration: 300.ms, delay: (50 * index).ms)
         .slideX(begin: 0.1, end: 0, duration: 300.ms, delay: (50 * index).ms);
+  }
+
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('기록 삭제'),
+        content: const Text('이 체성분 기록을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final repository = ref.read(bodyRecordRepositoryProvider);
+                await repository.delete(record.id);
+                ref.invalidate(bodyRecordsProvider(memberId));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('기록이 삭제되었습니다'),
+                      backgroundColor: AppTheme.secondary,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('삭제 실패: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              '삭제',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

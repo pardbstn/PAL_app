@@ -9,6 +9,7 @@ import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 // Screens
 import 'package:flutter_pal_app/presentation/screens/auth/login_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/auth/role_selection_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_shell.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_home_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_members_screen.dart';
@@ -103,6 +104,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // 리다이렉트 가드
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
+      final isPendingRoleSelection = authState.isPendingRoleSelection;
       final currentPath = state.matchedLocation;
       final userRole = authState.userRole;
 
@@ -112,6 +114,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final isLoginPage = currentPath == AppRoutes.login;
+      final isRoleSelectionPage = currentPath == AppRoutes.roleSelection;
+
+      // 역할 선택 대기 중이면 역할 선택 페이지로
+      if (isLoggedIn && isPendingRoleSelection && !isRoleSelectionPage) {
+        return AppRoutes.roleSelection;
+      }
+
+      // 역할 선택 완료 후 역할 선택 페이지 접근 시 홈으로
+      if (isLoggedIn && !isPendingRoleSelection && isRoleSelectionPage) {
+        if (userRole == UserRole.trainer) {
+          return AppRoutes.trainerHome;
+        } else if (userRole == UserRole.member) {
+          return AppRoutes.memberHome;
+        }
+      }
 
       // 로그인 안 했으면 로그인 페이지로
       if (!isLoggedIn && !isLoginPage) {
@@ -119,7 +136,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 로그인 했는데 로그인 페이지면 역할에 따라 홈으로
-      if (isLoggedIn && isLoginPage) {
+      if (isLoggedIn && !isPendingRoleSelection && isLoginPage) {
         if (userRole == UserRole.trainer) {
           return AppRoutes.trainerHome;
         } else if (userRole == UserRole.member) {
@@ -129,6 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 트레이너가 회원 경로 접근 시도시 트레이너 홈으로
       if (isLoggedIn &&
+          !isPendingRoleSelection &&
           userRole == UserRole.trainer &&
           currentPath.startsWith('/member')) {
         return AppRoutes.trainerHome;
@@ -136,6 +154,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 회원이 트레이너 경로 접근 시도시 회원 홈으로
       if (isLoggedIn &&
+          !isPendingRoleSelection &&
           userRole == UserRole.member &&
           currentPath.startsWith('/trainer')) {
         return AppRoutes.memberHome;
@@ -173,6 +192,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => buildFadeTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
+        ),
+      ),
+
+      // 역할 선택 (소셜 로그인 후 신규 사용자)
+      GoRoute(
+        path: AppRoutes.roleSelection,
+        name: RouteNames.roleSelection,
+        pageBuilder: (context, state) => buildFadeTransitionPage(
+          key: state.pageKey,
+          child: const RoleSelectionScreen(),
         ),
       ),
 

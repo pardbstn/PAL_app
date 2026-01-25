@@ -22,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _selectedRole = UserRole.trainer;
+  UserRole _selectedRole = UserRole.member; // 기본값: 회원
   bool _isPasswordVisible = false;
   bool _isSignUp = false; // 회원가입 모드 토글
 
@@ -111,8 +111,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     _buildDivider(context),
                     const SizedBox(height: 16),
 
-                    // 구글 로그인 버튼
-                    _buildGoogleSignInButton(context, isLoading),
+                    // 소셜 로그인 버튼들
+                    // Google 로그인 임시 비활성화
+                    // _buildGoogleSignInButton(context, isLoading),
+                    // const SizedBox(height: 12),
+                    _buildKakaoSignInButton(context, isLoading),
+                    const SizedBox(height: 12),
+                    _buildNaverSignInButton(context, isLoading),
                     const SizedBox(height: 24),
 
                     // 모드 전환 (로그인 <-> 회원가입)
@@ -420,6 +425,65 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animateSlideUp(delay: const Duration(milliseconds: 700));
   }
 
+  /// 카카오 로그인 버튼
+  Widget _buildKakaoSignInButton(BuildContext context, bool isLoading) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : _handleKakaoSignIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFEE500),
+          foregroundColor: const Color(0xFF191919),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        icon: const Icon(
+          Icons.chat_bubble,
+          size: 22,
+          color: Color(0xFF191919),
+        ),
+        label: const Text(
+          '카카오로 계속하기',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    ).animateSlideUp(delay: const Duration(milliseconds: 750));
+  }
+
+  /// 네이버 로그인 버튼
+  Widget _buildNaverSignInButton(BuildContext context, bool isLoading) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : _handleNaverSignIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF03C75A),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        icon: const Text(
+          'N',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        label: const Text(
+          '네이버로 계속하기',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    ).animateSlideUp(delay: const Duration(milliseconds: 800));
+  }
+
   /// 로그인/회원가입 모드 전환
   Widget _buildModeSwitch(BuildContext context) {
     return Row(
@@ -485,6 +549,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     try {
       await ref.read(authProvider.notifier).signInWithGoogle(_selectedRole);
+    } catch (e) {
+      // 에러는 authState.errorMessage로 표시됨
+    }
+  }
+
+  /// 카카오 로그인 처리
+  Future<void> _handleKakaoSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithKakao(_selectedRole);
+    } catch (e) {
+      // 에러는 authState.errorMessage로 표시됨
+    }
+  }
+
+  /// 네이버 로그인 처리
+  Future<void> _handleNaverSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithNaver(_selectedRole);
     } catch (e) {
       // 에러는 authState.errorMessage로 표시됨
     }

@@ -36,7 +36,7 @@ export const getAlternativeExercises = functions
         .limit(20)
         .get();
 
-      let candidates = snapshot.docs
+      const candidates = snapshot.docs
         .filter(doc => !allExcluded.includes(doc.id))
         .map(doc => ({id: doc.id, ...doc.data() as Record<string, unknown>}));
 

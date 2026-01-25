@@ -39,28 +39,8 @@ class PremiumFeatureGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final userId = authState.userId;
-
-    // 로그인되지 않은 경우 잠금 상태로 표시
-    if (userId == null) {
-      return _buildLockedOverlay(context, ref);
-    }
-
-    final hasAccessAsync = ref.watch(
-      hasFeatureAccessProvider((userId: userId, feature: featureKey)),
-    );
-
-    return hasAccessAsync.when(
-      loading: () => child, // 로딩 중에는 일단 보여줌
-      error: (_, __) => _buildLockedOverlay(context, ref),
-      data: (hasAccess) {
-        if (hasAccess) {
-          return child;
-        }
-        return _buildLockedOverlay(context, ref);
-      },
-    );
+    // 모든 기능 무료 개방 - 프리미엄 제한 없음
+    return child;
   }
 
   Widget _buildLockedOverlay(BuildContext context, WidgetRef ref) {

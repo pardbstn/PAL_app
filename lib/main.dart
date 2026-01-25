@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_pal_app/firebase_options.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/core/router/app_router.dart';
@@ -56,6 +57,11 @@ void main() async {
       // Firebase 초기화
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Kakao SDK 초기화
+      KakaoSdk.init(
+        nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa',
       );
 
       // FCM 초기화 (웹에서는 지원하지 않음)

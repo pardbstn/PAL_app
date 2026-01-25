@@ -29,6 +29,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 네이버 로그인 설정
+        manifestPlaceholders["naverClientId"] = "ktZbEwCNkVPseqZX5BPx"
+        manifestPlaceholders["naverClientSecret"] = "fXyZfD0djW"
+        manifestPlaceholders["naverClientName"] = "PAL"
     }
 
     buildTypes {

@@ -521,3 +521,10 @@ export {
   onScheduleCompletedForStats,
   onMemberUpdatedForStats,
 } from "./badges";
+
+// ============================================
+// 소셜 로그인 Custom Token Functions
+// ============================================
+
+// Kakao, Naver 소셜 로그인을 위한 Custom Token 생성
+export {createCustomToken} from "./auth/createCustomToken";

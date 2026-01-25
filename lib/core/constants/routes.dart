@@ -6,6 +6,7 @@ abstract class AppRoutes {
 
   // 인증
   static const String login = '/login';
+  static const String roleSelection = '/role-selection';
 
   // 트레이너 경로
   static const String trainerHome = '/trainer/home';
@@ -50,6 +51,7 @@ abstract class RouteNames {
   static const String onboarding = 'onboarding';
 
   static const String login = 'login';
+  static const String roleSelection = 'role-selection';
 
   // 트레이너
   static const String trainerHome = 'trainer-home';

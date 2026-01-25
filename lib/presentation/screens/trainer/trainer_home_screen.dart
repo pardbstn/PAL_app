@@ -1158,8 +1158,8 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
         ),
         const SizedBox(height: 16),
 
-        // Pro 플랜 체크
-        if (trainer?.isFreeTier == true) ...[
+        // Pro 플랜 체크 - 모든 기능 무료 개방
+        if (false) ...[
           _buildUpgradeCard(context),
         ] else if (generationState.isLoading) ...[
           // 로딩 상태

@@ -30,7 +30,7 @@ export const searchExercises = functions
         .limit(limit)
         .get();
 
-      const results: any[] = [];
+      const results: Array<Record<string, unknown> & {id: string}> = [];
       const seenIds = new Set<string>();
 
       prefixSnapshot.docs.forEach(doc => {

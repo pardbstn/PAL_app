@@ -171,10 +171,9 @@ class SubscriptionRepository extends BaseRepository<SubscriptionModel> {
     await batch.commit();
   }
 
-  /// 기능 접근 권한 확인
+  /// 기능 접근 권한 확인 - 모든 기능 무료 개방
   Future<bool> hasFeatureAccess(String userId, String feature) async {
-    final subscription = await getByUserId(userId);
-    if (subscription == null) return false;
-    return subscription.hasFeature(feature);
+    // 모든 기능 무료 개방 - 제한 없음
+    return true;
   }
 }

@@ -29,7 +29,7 @@ export const generateCurriculumV2 = functions
 
     try {
       // 3. Load exercises from Firestore based on focus parts
-      let exercisesQuery: FirebaseFirestore.Query = db.collection(Collections.EXERCISES);
+      const exercisesQuery: FirebaseFirestore.Query = db.collection(Collections.EXERCISES);
 
       // If focusParts specified, filter by primary muscle
       let allExercises: Array<Record<string, unknown> & {id: string}> = [];

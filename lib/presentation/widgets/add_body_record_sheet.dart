@@ -435,6 +435,21 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     try {
       final repository = ref.read(bodyRecordRepositoryProvider);
 
+      // 같은 날짜에 기록이 이미 있는지 확인
+      final existingRecord = await repository.getByDate(widget.memberId, _selectedDate);
+      if (existingRecord != null) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('같은 날짜에 이미 기록이 있습니다. 기존 기록을 삭제한 후 다시 시도해주세요.'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+        return;
+      }
+
       final weight = double.parse(_weightController.text);
       final bodyFatPercent = _bodyFatController.text.isNotEmpty
           ? double.parse(_bodyFatController.text)

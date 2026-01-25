@@ -1,9 +1,14 @@
 import * as admin from "firebase-admin";
 
 /**
- * 공유 Firestore 인스턴스
+ * 공유 Firestore 인스턴스 (Proxy를 통한 lazy initialization)
+ * admin.initializeApp()이 호출된 후에만 실제 firestore가 접근됨
  */
-export const db = admin.firestore();
+export const db = new Proxy({} as FirebaseFirestore.Firestore, {
+  get(_target, prop) {
+    return Reflect.get(admin.firestore(), prop);
+  },
+});
 
 /**
  * 단일 문서 조회

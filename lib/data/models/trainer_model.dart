@@ -118,13 +118,9 @@ extension TrainerModelX on TrainerModel {
   /// Pro 티어 여부
   bool get isProTier => subscriptionTier == SubscriptionTier.pro;
 
-  /// 이번 달 AI 사용량 초과 여부 (무료: 5회, 베이직: 30회, 프로: 무제한)
+  /// 이번 달 AI 사용량 초과 여부 - 모든 티어 무제한
   bool get isAiLimitExceeded {
-    final limit = switch (subscriptionTier) {
-      SubscriptionTier.free => 5,
-      SubscriptionTier.basic => 30,
-      SubscriptionTier.pro => 999999,
-    };
-    return aiUsage.curriculumCount >= limit;
+    // 모든 기능 무료 개방 - 제한 없음
+    return false;
   }
 }

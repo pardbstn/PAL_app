@@ -1,9 +1,12 @@
 import 'dart:math';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
+import 'package:flutter_naver_login/flutter_naver_login.dart';
 import 'package:flutter_pal_app/data/models/models.dart';
 import 'package:flutter_pal_app/data/repositories/repositories.dart';
 import 'package:flutter_pal_app/data/services/fcm_service.dart';
@@ -15,6 +18,7 @@ enum UserRole { trainer, member }
 class AuthState {
   final bool isAuthenticated;
   final bool isLoading;
+  final bool isPendingRoleSelection; // 신규 사용자 역할 선택 대기 중
   final UserRole? userRole;
   final String? userId;
   final String? email;
@@ -28,6 +32,7 @@ class AuthState {
   const AuthState({
     this.isAuthenticated = false,
     this.isLoading = false,
+    this.isPendingRoleSelection = false,
     this.userRole,
     this.userId,
     this.email,
@@ -42,6 +47,7 @@ class AuthState {
   AuthState copyWith({
     bool? isAuthenticated,
     bool? isLoading,
+    bool? isPendingRoleSelection,
     UserRole? userRole,
     String? userId,
     String? email,
@@ -55,6 +61,7 @@ class AuthState {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
+      isPendingRoleSelection: isPendingRoleSelection ?? this.isPendingRoleSelection,
       userRole: userRole ?? this.userRole,
       userId: userId ?? this.userId,
       email: email ?? this.email,
@@ -230,14 +237,7 @@ class AuthNotifier extends Notifier<AuthState> {
       await _userRepository.update(user.uid, {
         'updatedAt': now,
       });
-
-      // 역할이 다른 경우 에러 (보안: 기존 사용자의 역할 변경 불가)
-      if (existingUser.role != roleType) {
-        final errorMsg = existingUser.role == UserRoleType.trainer
-            ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
-            : '회원 계정은 트레이너로 로그인할 수 없습니다.';
-        throw Exception(errorMsg);
-      }
+      // 기존 사용자의 역할은 변경하지 않음 (이미 호출 전에 역할이 결정됨)
       return;
     }
 
@@ -379,9 +379,6 @@ class AuthNotifier extends Notifier<AuthState> {
 
       if (credential.user != null) {
         final user = credential.user!;
-        final selectedRoleType = role == UserRole.trainer
-            ? UserRoleType.trainer
-            : UserRoleType.member;
 
         // 1. Firestore에서 사용자 존재 여부 확인 (UID로 검색)
         var existingUser = await _userRepository.get(user.uid);
@@ -401,21 +398,14 @@ class AuthNotifier extends Notifier<AuthState> {
           throw Exception('가입되지 않은 계정입니다. 회원가입을 먼저 해주세요.');
         }
 
-        // 4. 역할이 일치하지 않으면 로그아웃 후 에러
-        if (existingUser.role != selectedRoleType) {
-          await _auth.signOut();
-          final errorMsg = existingUser.role == UserRoleType.trainer
-              ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
-              : '회원 계정은 트레이너로 로그인할 수 없습니다.';
-          state = state.copyWith(
-            isLoading: false,
-            errorMessage: errorMsg,
-          );
-          throw Exception(errorMsg);
-        }
+        // 4. 기존 사용자는 저장된 역할 사용 (선택된 역할 무시)
+        final finalRole = existingUser.role == UserRoleType.trainer
+            ? UserRole.trainer
+            : UserRole.member;
+        debugPrint('[Auth] 이메일 로그인 - 저장된 역할 사용: $finalRole');
 
-        // 5. 검증 통과 - Firestore에 사용자 업데이트 (마이그레이션 등)
-        await _saveUserToFirestore(user, role);
+        // 5. Firestore에 사용자 업데이트 (마이그레이션 등)
+        await _saveUserToFirestore(user, finalRole);
 
         // 사용자 데이터 로드
         await _loadUserData(user.uid);
@@ -425,7 +415,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
         state = state.copyWith(
           isLoading: false,
-          userRole: role,
+          userRole: finalRole,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -496,32 +486,63 @@ class AuthNotifier extends Notifier<AuthState> {
 
     try {
       // 구글 로그인 플로우 시작
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        // 사용자가 로그인 취소
-        state = state.copyWith(isLoading: false);
+      debugPrint('[Auth] 구글 로그인 시작...');
+      GoogleSignInAccount? googleUser;
+      try {
+        // 기존 로그인 세션 클리어 후 다시 시도
+        await _googleSignIn.signOut();
+        googleUser = await _googleSignIn.signIn();
+      } catch (e) {
+        debugPrint('[Auth] 구글 SDK 오류: $e');
+        // 사용자가 취소한 경우 에러 메시지 없이 로딩만 해제
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('canceled') || errorStr.contains('cancelled') || errorStr.contains('user canceled') || errorStr.contains('sign_in_canceled')) {
+          state = state.copyWith(isLoading: false);
+          return;
+        }
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '구글 로그인에 실패했습니다. 다시 시도해주세요.',
+        );
         return;
       }
 
+      if (googleUser == null) {
+        // 사용자가 로그인 취소
+        debugPrint('[Auth] 구글 로그인 취소됨');
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      debugPrint('[Auth] 구글 사용자: ${googleUser.email}');
+
       // 구글 인증 정보 가져오기
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      debugPrint('[Auth] 구글 인증 정보 가져오는 중...');
+      final GoogleSignInAuthentication googleAuth;
+      try {
+        googleAuth = await googleUser.authentication;
+      } catch (e) {
+        debugPrint('[Auth] 구글 인증 정보 오류: $e');
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '구글 인증 정보를 가져올 수 없습니다.',
+        );
+        return;
+      }
 
       // Firebase 인증 자격 증명 생성
+      debugPrint('[Auth] Firebase 자격 증명 생성 중...');
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       // Firebase에 로그인
+      debugPrint('[Auth] Firebase 로그인 중...');
       final userCredential = await _auth.signInWithCredential(credential);
 
       if (userCredential.user != null) {
         final user = userCredential.user!;
-        final selectedRoleType = role == UserRole.trainer
-            ? UserRoleType.trainer
-            : UserRoleType.member;
+        debugPrint('[Auth] Firebase 로그인 성공: ${user.uid}');
 
         // 1. Firestore에서 기존 사용자 존재 여부 확인 (UID로 검색)
         var existingUser = await _userRepository.get(user.uid);
@@ -531,53 +552,336 @@ class AuthNotifier extends Notifier<AuthState> {
           existingUser = await _userRepository.getByEmail(user.email!);
         }
 
-        // 3. 기존 사용자인 경우 역할 검증
+        // 3. 기존 사용자인 경우 저장된 역할 사용, 신규면 역할 선택 화면으로
         if (existingUser != null) {
-          // 역할이 일치하지 않으면 로그아웃 후 에러
-          if (existingUser.role != selectedRoleType) {
-            // Firebase와 Google 모두 로그아웃
-            await _auth.signOut();
-            await _googleSignIn.signOut();
-            final errorMsg = existingUser.role == UserRoleType.trainer
-                ? '트레이너 계정은 회원으로 로그인할 수 없습니다.'
-                : '회원 계정은 트레이너로 로그인할 수 없습니다.';
-            state = state.copyWith(
-              isLoading: false,
-              errorMessage: errorMsg,
-            );
-            throw Exception(errorMsg);
-          }
+          // 기존 사용자는 저장된 역할 사용
+          final finalRole = existingUser.role == UserRoleType.trainer
+              ? UserRole.trainer
+              : UserRole.member;
+          debugPrint('[Auth] 기존 사용자 - 저장된 역할 사용: $finalRole');
+
+          // Firestore에 사용자 저장/업데이트
+          await _saveUserToFirestore(user, finalRole);
+
+          // 사용자 데이터 로드
+          await _loadUserData(user.uid);
+
+          // FCM 토큰 저장
+          await _saveFcmToken(user.uid);
+
+          state = state.copyWith(
+            isLoading: false,
+            userRole: finalRole,
+          );
+        } else {
+          // 신규 사용자 - 역할 선택 화면으로 이동
+          debugPrint('[Auth] 신규 사용자 - 역할 선택 대기');
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            isPendingRoleSelection: true,
+            userId: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoUrl: user.photoURL,
+          );
         }
-        // 4. 기존 사용자가 아니면 새 사용자 - 계속 진행 (Google 회원가입 허용)
-
-        // Firestore에 사용자 저장/업데이트
-        await _saveUserToFirestore(user, role);
-
-        // 사용자 데이터 로드
-        await _loadUserData(user.uid);
-
-        // FCM 토큰 저장
-        await _saveFcmToken(user.uid);
-
-        state = state.copyWith(
-          isLoading: false,
-          userRole: role,
-        );
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('[Auth] Firebase 인증 오류: ${e.code}');
       state = state.copyWith(
         isLoading: false,
         errorMessage: _getErrorMessage(e.code),
       );
-      rethrow;
     } catch (e) {
-      // 이미 상태가 설정된 경우 (역할 검증 실패) 그대로 유지
+      debugPrint('[Auth] 구글 로그인 최종 오류: $e');
+      // 이미 상태가 설정된 경우 그대로 유지
       if (state.errorMessage == null) {
         state = state.copyWith(
           isLoading: false,
           errorMessage: '구글 로그인 중 오류가 발생했습니다.',
         );
       }
+    }
+  }
+
+  /// 카카오 소셜 로그인
+  Future<void> signInWithKakao(UserRole role) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // 1단계: 카카오 로그인 플로우
+      debugPrint('[Auth] 카카오 로그인 시작...');
+      try {
+        if (await kakao.isKakaoTalkInstalled()) {
+          await kakao.UserApi.instance.loginWithKakaoTalk();
+        } else {
+          await kakao.UserApi.instance.loginWithKakaoAccount();
+        }
+        debugPrint('[Auth] 카카오 로그인 성공');
+      } catch (e) {
+        debugPrint('[Auth] 카카오 SDK 오류: $e');
+        // 사용자가 취소한 경우 에러 메시지 없이 로딩만 해제
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('canceled') || errorStr.contains('cancelled') || errorStr.contains('user canceled')) {
+          state = state.copyWith(isLoading: false);
+          return;
+        }
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '카카오 로그인에 실패했습니다.',
+        );
+        return;
+      }
+
+      // 2단계: 카카오 사용자 정보 가져오기
+      debugPrint('[Auth] 카카오 사용자 정보 조회 중...');
+      final kakao.User kakaoUser;
+      try {
+        kakaoUser = await kakao.UserApi.instance.me();
+        debugPrint('[Auth] 카카오 사용자 ID: ${kakaoUser.id}');
+      } catch (e) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '카카오 사용자 정보 오류: $e',
+        );
+        return;
+      }
+
+      final userId = kakaoUser.id.toString();
+      final email = kakaoUser.kakaoAccount?.email;
+      final name = kakaoUser.kakaoAccount?.profile?.nickname;
+      final profileImage = kakaoUser.kakaoAccount?.profile?.profileImageUrl;
+
+      // 3단계: Firebase Custom Token 발급
+      debugPrint('[Auth] Custom Token 발급 중...');
+      final String customToken;
+      try {
+        customToken = await _getCustomToken(
+          provider: 'kakao',
+          userId: userId,
+          email: email,
+          name: name,
+          profileImage: profileImage,
+        );
+        debugPrint('[Auth] Custom Token 발급 성공');
+      } catch (e) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Custom Token 오류: $e',
+        );
+        return;
+      }
+
+      // 4단계: Firebase에 Custom Token으로 로그인
+      debugPrint('[Auth] Firebase 로그인 중...');
+      final userCredential = await _auth.signInWithCustomToken(customToken);
+
+      if (userCredential.user != null) {
+        await _handleSocialLoginSuccess(userCredential.user!, role);
+      }
+    } catch (e) {
+      debugPrint('[Auth] 카카오 로그인 최종 에러: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '로그인 오류: $e',
+      );
+    }
+  }
+
+  /// 네이버 소셜 로그인
+  Future<void> signInWithNaver(UserRole role) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // 1단계: 네이버 로그인 플로우
+      debugPrint('[Auth] 네이버 로그인 시작...');
+      final NaverLoginResult result;
+      try {
+        result = await FlutterNaverLogin.logIn();
+        debugPrint('[Auth] 네이버 로그인 결과: ${result.status}');
+      } catch (e) {
+        debugPrint('[Auth] 네이버 SDK 오류: $e');
+        // 사용자가 취소한 경우 에러 메시지 없이 로딩만 해제
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('canceled') || errorStr.contains('cancelled') || errorStr.contains('user canceled')) {
+          state = state.copyWith(isLoading: false);
+          return;
+        }
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '네이버 로그인에 실패했습니다.',
+        );
+        return;
+      }
+
+      // 사용자가 취소한 경우 (cancelledByUser 또는 error)
+      if (result.status == NaverLoginStatus.cancelledByUser || result.status == NaverLoginStatus.error) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+
+      if (result.status != NaverLoginStatus.loggedIn) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+
+      // 2단계: 네이버 사용자 정보 가져오기
+      debugPrint('[Auth] 네이버 사용자 정보 조회 중...');
+      final NaverAccountResult accountResult;
+      try {
+        accountResult = await FlutterNaverLogin.currentAccount();
+        debugPrint('[Auth] 네이버 사용자 ID: ${accountResult.id}');
+      } catch (e) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '네이버 사용자 정보 오류: $e',
+        );
+        return;
+      }
+
+      final userId = accountResult.id;
+      final email = accountResult.email;
+      final name = accountResult.name;
+      final profileImage = accountResult.profileImage;
+
+      // 3단계: Firebase Custom Token 발급
+      debugPrint('[Auth] Custom Token 발급 중...');
+      final String customToken;
+      try {
+        customToken = await _getCustomToken(
+          provider: 'naver',
+          userId: userId,
+          email: email,
+          name: name,
+          profileImage: profileImage,
+        );
+        debugPrint('[Auth] Custom Token 발급 성공');
+      } catch (e) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Custom Token 오류: $e',
+        );
+        return;
+      }
+
+      // 4단계: Firebase에 Custom Token으로 로그인
+      debugPrint('[Auth] Firebase 로그인 중...');
+      final userCredential = await _auth.signInWithCustomToken(customToken);
+
+      if (userCredential.user != null) {
+        await _handleSocialLoginSuccess(userCredential.user!, role);
+      }
+    } catch (e) {
+      debugPrint('[Auth] 네이버 로그인 최종 에러: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '로그인 오류: $e',
+      );
+    }
+  }
+
+  /// Cloud Function에서 Custom Token 발급
+  Future<String> _getCustomToken({
+    required String provider,
+    required String userId,
+    String? email,
+    String? name,
+    String? profileImage,
+  }) async {
+    final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+    final callable = functions.httpsCallable('createCustomToken');
+
+    final result = await callable.call({
+      'provider': provider,
+      'userId': userId,
+      'email': email,
+      'name': name,
+      'profileImage': profileImage,
+    });
+
+    final data = result.data as Map<String, dynamic>;
+    if (data['success'] != true) {
+      throw Exception('Custom token 생성 실패');
+    }
+
+    return data['customToken'] as String;
+  }
+
+  /// 소셜 로그인 성공 후 공통 처리
+  Future<void> _handleSocialLoginSuccess(User user, UserRole role) async {
+    // 기존 사용자 확인
+    var existingUser = await _userRepository.get(user.uid);
+
+    if (existingUser == null && user.email != null) {
+      existingUser = await _userRepository.getByEmail(user.email!);
+    }
+
+    if (existingUser != null) {
+      // 기존 사용자는 저장된 역할 사용
+      final finalRole = existingUser.role == UserRoleType.trainer
+          ? UserRole.trainer
+          : UserRole.member;
+      debugPrint('[Auth] 기존 사용자 - 저장된 역할 사용: $finalRole');
+
+      // Firestore 업데이트 (마지막 로그인 시간 등)
+      await _saveUserToFirestore(user, finalRole);
+
+      // 사용자 데이터 로드
+      await _loadUserData(user.uid);
+
+      // FCM 토큰 저장
+      await _saveFcmToken(user.uid);
+
+      state = state.copyWith(
+        isLoading: false,
+        userRole: finalRole,
+      );
+    } else {
+      // 신규 사용자 - 역할 선택 화면으로 이동
+      debugPrint('[Auth] 신규 사용자 - 역할 선택 대기');
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        isPendingRoleSelection: true,
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoUrl: user.photoURL,
+      );
+    }
+  }
+
+  /// 역할 선택 후 회원가입 완료 (신규 소셜 로그인 사용자용)
+  Future<void> completeSignupWithRole(UserRole role) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('로그인된 사용자가 없습니다.');
+    }
+
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // Firestore에 사용자 저장
+      await _saveUserToFirestore(user, role);
+
+      // 사용자 데이터 로드
+      await _loadUserData(user.uid);
+
+      // FCM 토큰 저장
+      await _saveFcmToken(user.uid);
+
+      state = state.copyWith(
+        isLoading: false,
+        isPendingRoleSelection: false,
+        userRole: role,
+      );
+    } catch (e) {
+      debugPrint('[Auth] 회원가입 완료 오류: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '회원가입 중 오류가 발생했습니다.',
+      );
       rethrow;
     }
   }
@@ -587,11 +891,35 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
+      // 소셜 로그인 로그아웃
+      await Future.wait([
+        _auth.signOut(),
+        _googleSignIn.signOut(),
+        _tryKakaoLogout(),
+        _tryNaverLogout(),
+      ]);
       state = const AuthState();
     } catch (e) {
       state = state.copyWith(isLoading: false);
       rethrow;
+    }
+  }
+
+  /// 카카오 로그아웃 (예외 무시)
+  Future<void> _tryKakaoLogout() async {
+    try {
+      await kakao.UserApi.instance.logout();
+    } catch (_) {
+      // 카카오 로그인이 아닌 경우 무시
+    }
+  }
+
+  /// 네이버 로그아웃 (예외 무시)
+  Future<void> _tryNaverLogout() async {
+    try {
+      await FlutterNaverLogin.logOut();
+    } catch (_) {
+      // 네이버 로그인이 아닌 경우 무시
     }
   }
 

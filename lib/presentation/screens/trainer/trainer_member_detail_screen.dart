@@ -30,6 +30,7 @@ import 'package:flutter_pal_app/data/models/inbody_record_model.dart';
 import 'package:flutter_pal_app/presentation/providers/body_composition_prediction_provider.dart';
 import 'package:flutter_pal_app/data/models/body_composition_prediction_model.dart';
 import 'package:flutter_pal_app/data/models/body_record_model.dart';
+import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -2250,7 +2251,6 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   /// 기록 히스토리 빌드
   Widget _buildRecordHistory(BuildContext context, WidgetRef ref, List<BodyRecordModel> records) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return _buildSectionCard(
       context,
@@ -2264,25 +2264,75 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             ),
           ),
           const SizedBox(height: 12),
-          ...records.take(10).map((record) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? theme.colorScheme.surfaceContainerHighest
-                      : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF2E3B5E)
-                        : const Color(0xFFE5E7EB),
-                  ),
+          ...records.asMap().entries.take(10).map((entry) {
+            final index = entry.key;
+            final record = entry.value;
+            return _BodyRecordCard(
+              record: record,
+              index: index,
+              memberId: widget.memberId,
+            );
+          }),
+          if (records.length > 10)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '... 외 ${records.length - 10}개',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
-                child: Row(
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 체성분 기록 카드 (회원앱과 동일한 UI)
+class _BodyRecordCard extends ConsumerWidget {
+  const _BodyRecordCard({
+    required this.record,
+    required this.index,
+    required this.memberId,
+  });
+
+  final BodyRecordModel record;
+  final int index;
+  final String memberId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    // 날짜/시간 배지
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -2293,7 +2343,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        DateFormat('yyyy.MM.dd HH:mm').format(record.recordDate),
+                        DateFormat('yyyy.MM.dd HH:mm').format(record.createdAt),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.w600,
@@ -2320,28 +2370,143 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                         ),
                       ),
                     ],
-                    const Spacer(),
-                    // 체중
-                    Text(
-                      '${record.weight.toStringAsFixed(1)}kg',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            );
-          }),
-          if (records.length > 10)
-            Text(
-              '... 외 ${records.length - 10}개',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: colorScheme.error,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _showDeleteDialog(context, ref),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _RecordItem(
+                  label: '체중',
+                  value: '${record.weight.toStringAsFixed(1)} kg',
+                ),
+                const SizedBox(width: 24),
+                _RecordItem(
+                  label: '체지방률',
+                  value: record.bodyFatPercent != null
+                      ? '${record.bodyFatPercent!.toStringAsFixed(1)} %'
+                      : '-',
+                ),
+                const SizedBox(width: 24),
+                _RecordItem(
+                  label: '골격근량',
+                  value: record.muscleMass != null
+                      ? '${record.muscleMass!.toStringAsFixed(1)} kg'
+                      : '-',
+                ),
+              ],
+            ),
+            if (record.note != null && record.note!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                record.note!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: (50 * index).ms)
+        .slideX(begin: 0.1, end: 0, duration: 300.ms, delay: (50 * index).ms);
+  }
+
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('기록 삭제'),
+        content: const Text('이 체성분 기록을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final repository = ref.read(bodyRecordRepositoryProvider);
+                await repository.delete(record.id);
+                ref.invalidate(bodyRecordsProvider(memberId));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('기록이 삭제되었습니다'),
+                      backgroundColor: AppTheme.secondary,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('삭제 실패: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              '삭제',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// 기록 항목
+class _RecordItem extends StatelessWidget {
+  const _RecordItem({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

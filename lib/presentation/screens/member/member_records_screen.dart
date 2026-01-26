@@ -1468,7 +1468,7 @@ class _BodyRecordCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        DateFormat('yyyy.MM.dd HH:mm').format(record.recordDate),
+                        DateFormat('yyyy.MM.dd HH:mm').format(record.createdAt),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.w600,

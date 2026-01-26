@@ -138,7 +138,15 @@ export function calculateLinearRegression(
     denominator += (p.x - meanX) ** 2;
   }
 
-  const slope = denominator !== 0 ? numerator / denominator : 0;
+  let slope = denominator !== 0 ? numerator / denominator : 0;
+
+  // 비정상적인 slope 제한 (일당 ±1kg 이상은 비현실적)
+  // 날짜 차이가 너무 작을 때 slope가 폭등하는 것을 방지
+  const MAX_DAILY_CHANGE = 1;
+  if (Math.abs(slope) > MAX_DAILY_CHANGE) {
+    slope = slope > 0 ? MAX_DAILY_CHANGE : -MAX_DAILY_CHANGE;
+  }
+
   const intercept = meanY - slope * meanX;
 
   // R² (결정계수) 계산

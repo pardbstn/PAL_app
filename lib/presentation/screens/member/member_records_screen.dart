@@ -218,9 +218,11 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                               history: history,
                               selectedMetric: _selectedMetric,
                             )
-                          : const _ChartPlaceholder(
-                              message: '2개 이상의 기록이 필요합니다',
-                            ),
+                          : history.length == 1
+                              ? _SingleRecordDisplay(record: history.first)
+                              : const _ChartPlaceholder(
+                                  message: '기록을 추가하면 변화 그래프가 표시됩니다',
+                                ),
                       loading: () => const _ChartShimmer(),
                       error: (e, st) => const _ChartPlaceholder(
                         message: '차트를 불러오는데 실패했습니다',
@@ -1466,7 +1468,7 @@ class _BodyRecordCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        DateFormat('yyyy.MM.dd').format(record.recordDate),
+                        DateFormat('yyyy.MM.dd HH:mm').format(record.recordDate),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.w600,
@@ -2985,6 +2987,146 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
           SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
         ],
       ),
+    );
+  }
+}
+
+/// 기록 1개일 때 현재 데이터 표시
+class _SingleRecordDisplay extends StatelessWidget {
+  const _SingleRecordDisplay({required this.record});
+
+  final WeightHistoryData record;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.monitor_weight_rounded,
+                  color: AppTheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '현재 체성분',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${record.date.month}/${record.date.day}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMetricItem(
+                  context,
+                  '체중',
+                  '${record.weight.toStringAsFixed(1)}kg',
+                  AppTheme.primary,
+                ),
+                if (record.bodyFatPercent != null)
+                  _buildMetricItem(
+                    context,
+                    '체지방률',
+                    '${record.bodyFatPercent!.toStringAsFixed(1)}%',
+                    Colors.orange,
+                  ),
+                if (record.muscleMass != null)
+                  _buildMetricItem(
+                    context,
+                    '골격근량',
+                    '${record.muscleMass!.toStringAsFixed(1)}kg',
+                    Colors.green,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '기록을 추가하면 변화 그래프가 표시됩니다',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricItem(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

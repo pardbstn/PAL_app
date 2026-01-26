@@ -29,6 +29,7 @@ import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
 import 'package:flutter_pal_app/data/models/inbody_record_model.dart';
 import 'package:flutter_pal_app/presentation/providers/body_composition_prediction_provider.dart';
 import 'package:flutter_pal_app/data/models/body_composition_prediction_model.dart';
+import 'package:flutter_pal_app/data/models/body_record_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -232,15 +233,14 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
   void _showEditMemberDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('회원 정보 수정'),
-        content: const Text('회원 정보 수정 기능은 준비 중입니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
-          ),
-        ],
+      builder: (context) => _EditMemberDialog(
+        memberId: widget.memberId,
+        member: widget.member,
+        user: widget.user,
+        onSaved: () {
+          ref.invalidate(memberDetailProvider(widget.memberId));
+          ref.invalidate(membersProvider);
+        },
       ),
     );
   }
@@ -690,7 +690,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   Widget _buildGraphContent(
     BuildContext context,
     WidgetRef ref,
-    List records,
+    List<BodyRecordModel> records,
     AsyncValue<List<WeightHistoryData>> weightHistoryAsync,
     AsyncValue<dynamic> latestRecordAsync,
     AsyncValue<dynamic> predictionAsync,
@@ -801,6 +801,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             );
           }).value ??
               const SizedBox.shrink(),
+          const SizedBox(height: 24),
+
+          // 기록 히스토리
+          _buildRecordHistory(context, ref, records),
         ],
       ),
     );
@@ -2242,6 +2246,104 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       ),
     );
   }
+
+  /// 기록 히스토리 빌드
+  Widget _buildRecordHistory(BuildContext context, WidgetRef ref, List<BodyRecordModel> records) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return _buildSectionCard(
+      context,
+      '기록 히스토리',
+      Column(
+        children: [
+          Text(
+            '총 ${records.length}개',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...records.take(10).map((record) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF2E3B5E)
+                        : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // 날짜/시간 배지
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        DateFormat('yyyy.MM.dd HH:mm').format(record.recordDate),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (record.isInbodyData) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'InBody',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppTheme.secondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    // 체중
+                    Text(
+                      '${record.weight.toStringAsFixed(1)}kg',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          if (records.length > 10)
+            Text(
+              '... 외 ${records.length - 10}개',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // ============================================================================
@@ -3448,6 +3550,32 @@ class _InbodyTab extends ConsumerWidget {
                 ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.construction,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '인바디 연동 기능 추가 예정',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
         ],
       ).animate().fadeIn(duration: 300.ms),
     );
@@ -4170,4 +4298,298 @@ class _ChartDataPoint {
     required this.value,
     required this.label,
   });
+}
+
+// ============================================================================
+// 회원 정보 수정 다이얼로그
+// ============================================================================
+
+class _EditMemberDialog extends ConsumerStatefulWidget {
+  final String memberId;
+  final MemberModel member;
+  final UserModel? user;
+  final VoidCallback onSaved;
+
+  const _EditMemberDialog({
+    required this.memberId,
+    required this.member,
+    this.user,
+    required this.onSaved,
+  });
+
+  @override
+  ConsumerState<_EditMemberDialog> createState() => _EditMemberDialogState();
+}
+
+class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
+  late TextEditingController _phoneController;
+  late TextEditingController _totalSessionsController;
+  late TextEditingController _completedSessionsController;
+  late TextEditingController _targetWeightController;
+  late String _selectedGoal;
+  late String _selectedExperience;
+  bool _isSaving = false;
+
+  final _goals = ['체력 향상', '다이어트', '근력 증가', '재활', '기타'];
+  final _experiences = ['입문', '초급', '중급', '고급'];
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.user?.phone ?? '');
+    _totalSessionsController = TextEditingController(
+      text: widget.member.ptInfo.totalSessions.toString(),
+    );
+    _completedSessionsController = TextEditingController(
+      text: widget.member.ptInfo.completedSessions.toString(),
+    );
+    _targetWeightController = TextEditingController(
+      text: widget.member.targetWeight?.toString() ?? '',
+    );
+    _selectedGoal = widget.member.goalLabel;
+    _selectedExperience = widget.member.experienceLabel;
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _totalSessionsController.dispose();
+    _completedSessionsController.dispose();
+    _targetWeightController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.edit_outlined, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          const Text('회원 정보 수정'),
+        ],
+      ),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 기본 정보 섹션
+              _buildSectionTitle('기본 정보'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: '연락처',
+                  hintText: '010-0000-0000',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 24),
+
+              // PT 정보 섹션
+              _buildSectionTitle('PT 정보'),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _goals.contains(_selectedGoal) ? _selectedGoal : _goals.first,
+                decoration: const InputDecoration(
+                  labelText: '운동 목표',
+                  prefixIcon: Icon(Icons.flag_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: _goals.map((goal) {
+                  return DropdownMenuItem(value: goal, child: Text(goal));
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _selectedGoal = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _experiences.contains(_selectedExperience)
+                    ? _selectedExperience
+                    : _experiences.first,
+                decoration: const InputDecoration(
+                  labelText: '운동 경력',
+                  prefixIcon: Icon(Icons.fitness_center),
+                  border: OutlineInputBorder(),
+                ),
+                items: _experiences.map((exp) {
+                  return DropdownMenuItem(value: exp, child: Text(exp));
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _selectedExperience = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _totalSessionsController,
+                      decoration: const InputDecoration(
+                        labelText: '총 회차',
+                        suffixText: '회',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _completedSessionsController,
+                      decoration: const InputDecoration(
+                        labelText: '완료 회차',
+                        suffixText: '회',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _targetWeightController,
+                decoration: const InputDecoration(
+                  labelText: '목표 체중 (선택)',
+                  suffixText: 'kg',
+                  prefixIcon: Icon(Icons.monitor_weight_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: _isSaving ? null : _saveChanges,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('저장'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final totalSessions = int.tryParse(_totalSessionsController.text) ??
+          widget.member.ptInfo.totalSessions;
+      final completedSessions = int.tryParse(_completedSessionsController.text) ??
+          widget.member.ptInfo.completedSessions;
+      final targetWeight = double.tryParse(_targetWeightController.text);
+
+      // goal 문자열을 enum으로 변환
+      String goalValue;
+      switch (_selectedGoal) {
+        case '다이어트':
+          goalValue = 'diet';
+          break;
+        case '근력 증가':
+          goalValue = 'bulk';
+          break;
+        case '재활':
+          goalValue = 'rehab';
+          break;
+        case '체력 향상':
+        default:
+          goalValue = 'fitness';
+      }
+
+      // experience 문자열을 enum으로 변환
+      String experienceValue;
+      switch (_selectedExperience) {
+        case '중급':
+          experienceValue = 'intermediate';
+          break;
+        case '고급':
+          experienceValue = 'advanced';
+          break;
+        case '입문':
+        case '초급':
+        default:
+          experienceValue = 'beginner';
+      }
+
+      // 회원 정보 업데이트 (Map으로 변환)
+      final updates = <String, dynamic>{
+        'goal': goalValue,
+        'experience': experienceValue,
+        'ptInfo': {
+          'totalSessions': totalSessions,
+          'completedSessions': completedSessions,
+          'startDate': widget.member.ptInfo.startDate,
+        },
+      };
+      if (targetWeight != null) {
+        updates['targetWeight'] = targetWeight;
+      }
+
+      await ref
+          .read(membersNotifierProvider.notifier)
+          .updateMember(widget.memberId, updates);
+
+      // 연락처 업데이트 (User 모델)
+      if (widget.user != null && _phoneController.text != widget.user!.phone) {
+        final userRepository = ref.read(userRepositoryProvider);
+        await userRepository.update(
+          widget.user!.uid,
+          {'phone': _phoneController.text},
+        );
+      }
+
+      widget.onSaved();
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('회원 정보가 수정되었습니다'),
+            backgroundColor: AppTheme.secondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('수정 실패: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
 }

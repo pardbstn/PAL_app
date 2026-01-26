@@ -115,9 +115,16 @@ function calculateMetricPrediction(
   const regression = calculateLinearRegression(dataForRegression);
 
   // 최종 주간 추세: 선형 회귀와 가중 추세의 평균
-  const weeklyTrend = Math.round(
+  let weeklyTrend = Math.round(
     ((linearWeeklyTrend + weightedTrend) / 2) * 100
   ) / 100;
+
+  // 비정상적인 추세 값 제한 (주당 -5kg ~ +5kg 범위)
+  // 날짜가 너무 가깝거나 데이터 이상으로 slope가 폭등하는 것을 방지
+  const MAX_WEEKLY_CHANGE = 5;
+  if (Math.abs(weeklyTrend) > MAX_WEEKLY_CHANGE) {
+    weeklyTrend = weeklyTrend > 0 ? MAX_WEEKLY_CHANGE : -MAX_WEEKLY_CHANGE;
+  }
 
   // 현재 값 및 표준편차 계산
   const currentValue = data[data.length - 1].weight;

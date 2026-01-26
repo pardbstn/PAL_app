@@ -42,6 +42,16 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
   DateTime _selectedDate = DateTime.now();
   RecordSource _recordSource = RecordSource.manual;
   bool _isLoading = false;
+  String? _dateWarning; // 같은 날짜 경고 메시지
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기 날짜(오늘)에 기록이 있는지 확인
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkExistingRecord(_selectedDate);
+    });
+  }
 
   @override
   void dispose() {
@@ -146,12 +156,17 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(
+                color: _dateWarning != null ? AppTheme.error : Colors.grey[300]!,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: AppTheme.primary),
+                Icon(
+                  Icons.calendar_today,
+                  color: _dateWarning != null ? AppTheme.error : AppTheme.primary,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   DateFormat('yyyy년 M월 d일').format(_selectedDate),
@@ -163,6 +178,33 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
             ),
           ),
         ),
+        // 같은 날짜 경고 메시지
+        if (_dateWarning != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _dateWarning!,
+                    style: const TextStyle(
+                      color: AppTheme.error,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -186,7 +228,19 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+      _checkExistingRecord(picked);
     }
+  }
+
+  /// 같은 날짜에 기록이 있는지 확인
+  Future<void> _checkExistingRecord(DateTime date) async {
+    final repository = ref.read(bodyRecordRepositoryProvider);
+    final existingRecord = await repository.getByDate(widget.memberId, date);
+    setState(() {
+      _dateWarning = existingRecord != null
+          ? '이 날짜에 이미 기록이 있습니다. 저장 시 기존 기록을 삭제한 후 다시 시도해주세요.'
+          : null;
+    });
   }
 
   Widget _buildWeightField(ColorScheme colorScheme) {
@@ -430,22 +484,24 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
   Future<void> _saveRecord() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // 같은 날짜 경고가 있으면 저장 불가
+    if (_dateWarning != null) {
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final repository = ref.read(bodyRecordRepositoryProvider);
 
-      // 같은 날짜에 기록이 이미 있는지 확인
+      // 같은 날짜에 기록이 이미 있는지 다시 확인 (동시성 방지)
       final existingRecord = await repository.getByDate(widget.memberId, _selectedDate);
       if (existingRecord != null) {
         if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('같은 날짜에 이미 기록이 있습니다. 기존 기록을 삭제한 후 다시 시도해주세요.'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
+          setState(() {
+            _isLoading = false;
+            _dateWarning = '이 날짜에 이미 기록이 있습니다. 다른 날짜를 선택해주세요.';
+          });
         }
         return;
       }

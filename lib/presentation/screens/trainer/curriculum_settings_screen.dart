@@ -192,18 +192,23 @@ class _CurriculumSettingsScreenState
             ),
             const SizedBox(height: 16),
 
-            // 집중 부위
+            // 부위 사이클
             _buildSectionCard(
               theme: theme,
               icon: Icons.sports_martial_arts,
-              title: '집중 부위',
+              title: '부위 사이클',
+              subtitle: _focusParts.isNotEmpty
+                  ? '선택 순서대로 회차별로 사이클됩니다'
+                  : null,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: _focusPartOptions.map((part) {
+                  final index = _focusParts.indexOf(part);
                   return ChipButtonWidget(
                     label: part,
-                    isSelected: _focusParts.contains(part),
+                    isSelected: index >= 0,
+                    orderNumber: index >= 0 ? index + 1 : null,
                     onTap: () => _toggleItem(_focusParts, part),
                   );
                 }).toList(),
@@ -341,6 +346,7 @@ class _CurriculumSettingsScreenState
     required ThemeData theme,
     required IconData icon,
     required String title,
+    String? subtitle,
     required Widget child,
   }) {
     return Container(
@@ -359,10 +365,25 @@ class _CurriculumSettingsScreenState
             children: [
               Icon(icon, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.6)),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],

@@ -9,6 +9,7 @@ class ChipButtonWidget extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final ChipButtonVariant variant;
+  final int? orderNumber; // 순서 번호 (사이클용)
 
   const ChipButtonWidget({
     super.key,
@@ -16,6 +17,7 @@ class ChipButtonWidget extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.variant = ChipButtonVariant.defaultVariant,
+    this.orderNumber,
   });
 
   @override
@@ -60,12 +62,38 @@ class ChipButtonWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderColor),
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: textColor,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (orderNumber != null && isSelected) ...[
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '$orderNumber',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: textColor,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );

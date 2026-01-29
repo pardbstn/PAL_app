@@ -332,25 +332,44 @@ class MemberHomeScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final displayTag = memberCode != null ? '$userName#$memberCode' : userName;
 
-    return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return SafeArea(
+      child: Column(
+        children: [
+          // 상단 설정 버튼
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person_outline,
-                    size: 48,
-                    color: AppTheme.primary,
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push('/member/settings'),
+                  tooltip: '설정',
                 ),
+              ],
+            ),
+          ),
+          // 메인 콘텐츠
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_outline,
+                        size: 48,
+                        color: AppTheme.primary,
+                      ),
+                    ),
                 const SizedBox(height: 24),
                 Text(
                   '안녕하세요, $userName님!',
@@ -445,11 +464,15 @@ class MemberHomeScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        )
+        ],
+      ),
+    )
         .animate()
         .fadeIn(duration: 400.ms)
         .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1));

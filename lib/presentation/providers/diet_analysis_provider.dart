@@ -4,7 +4,7 @@
 /// 회원의 영양 섭취 추적 및 분석 결과 제공
 library;
 
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/core/constants/api_constants.dart';
@@ -131,21 +131,22 @@ class DietAnalysisService {
   /// 이미지로 음식 분석
   ///
   /// [memberId] 회원 ID
-  /// [imageFile] 분석할 이미지 파일
+  /// [imageBytes] 분석할 이미지 바이트 (iPad 호환성을 위해 바이트 사용)
   /// [mealType] 식사 유형
   Future<DietAnalysisResult> analyzeFood({
     required String memberId,
-    required File imageFile,
+    required Uint8List imageBytes,
     required MealType mealType,
   }) async {
     try {
       // 1. Supabase Storage에 이미지 업로드
+      // iPad 호환성을 위해 uploadBinary 사용
       final fileName =
           'diet/$memberId/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       await _supabase.storage
           .from('images')
-          .upload(fileName, imageFile);
+          .uploadBinary(fileName, imageBytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
 
       final imageUrl = _supabase.storage
           .from('images')
@@ -224,10 +225,11 @@ class DietAnalysisService {
         return DietAnalysisResult.failure('이미지를 선택하지 않았습니다.');
       }
 
-      final imageFile = File(pickedFile.path);
+      // iPad 호환성을 위해 XFile에서 바이트로 직접 읽기
+      final imageBytes = await pickedFile.readAsBytes();
       return analyzeFood(
         memberId: memberId,
-        imageFile: imageFile,
+        imageBytes: imageBytes,
         mealType: mealType,
       );
     } catch (e) {

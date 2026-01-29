@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PAL</string>
+    <!-- 네이버 로그인 설정 -->
+    <string name="naver_client_id">ktZbEwCNkVPseqZX5BPx</string>
+    <string name="naver_client_secret">fXyZfD0djW</string>
+    <string name="naver_client_name">PAL</string>
+</resources>

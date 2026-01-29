@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 /// 역할 선택 화면 (소셜 로그인 후 신규 사용자용)

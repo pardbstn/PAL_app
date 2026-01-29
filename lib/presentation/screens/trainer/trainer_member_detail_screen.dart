@@ -40,19 +40,21 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 /// 회원 상세 정보 Provider (Member + User)
 final memberDetailProvider =
-    FutureProvider.family<({MemberModel member, UserModel? user}), String>(
-        (ref, memberId) async {
-  final memberRepository = ref.watch(memberRepositoryProvider);
-  final userRepository = ref.watch(userRepositoryProvider);
+    FutureProvider.family<({MemberModel member, UserModel? user}), String>((
+      ref,
+      memberId,
+    ) async {
+      final memberRepository = ref.watch(memberRepositoryProvider);
+      final userRepository = ref.watch(userRepositoryProvider);
 
-  final member = await memberRepository.get(memberId);
-  if (member == null) {
-    throw Exception('회원을 찾을 수 없습니다.');
-  }
+      final member = await memberRepository.get(memberId);
+      if (member == null) {
+        throw Exception('회원을 찾을 수 없습니다.');
+      }
 
-  final user = await userRepository.get(member.userId);
-  return (member: member, user: user);
-});
+      final user = await userRepository.get(member.userId);
+      return (member: member, user: user);
+    });
 
 // ============================================================================
 // Main Screen
@@ -75,7 +77,8 @@ class TrainerMemberDetailScreen extends ConsumerWidget {
 
     return memberDetailAsync.when(
       loading: () => _buildLoadingScaffold(context),
-      error: (error, stack) => _buildErrorScaffold(context, ref, error, memberId),
+      error: (error, stack) =>
+          _buildErrorScaffold(context, ref, error, memberId),
       data: (data) => _MemberDetailContent(
         memberId: memberId,
         member: data.member,
@@ -197,12 +200,18 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.edit_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              icon: Icon(
+                Icons.edit_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               tooltip: '정보 수정',
               onPressed: () => _showEditMemberDialog(),
             ),
             IconButton(
-              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              icon: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               tooltip: '회원 삭제',
               onPressed: () => _showDeleteMemberDialog(),
             ),
@@ -324,7 +333,11 @@ class _InfoTab extends StatelessWidget {
             _buildInfoRow(context, '운동 목표', member.goalLabel),
             _buildInfoRow(context, '운동 경력', member.experienceLabel),
             _buildInfoRow(context, '총 회차', '${member.ptInfo.totalSessions}회'),
-            _buildInfoRow(context, '완료 회차', '${member.ptInfo.completedSessions}회'),
+            _buildInfoRow(
+              context,
+              '완료 회차',
+              '${member.ptInfo.completedSessions}회',
+            ),
             _buildInfoRow(context, '잔여 회차', '${member.remainingSessions}회'),
             _buildInfoRow(
               context,
@@ -423,7 +436,9 @@ class _InfoTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isActive ? AppTheme.secondary : Theme.of(context).colorScheme.outline,
+        color: isActive
+            ? AppTheme.secondary
+            : Theme.of(context).colorScheme.outline,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -464,7 +479,11 @@ class _InfoTab extends StatelessWidget {
     };
   }
 
-  Widget _buildInfoSection(BuildContext context, String title, List<Widget> children) {
+  Widget _buildInfoSection(
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -503,9 +522,17 @@ class _InfoTab extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -544,10 +571,18 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   @override
   Widget build(BuildContext context) {
     final bodyRecordsAsync = ref.watch(bodyRecordsProvider(widget.memberId));
-    final weightHistoryAsync = ref.watch(weightHistoryProvider(widget.memberId));
-    final latestRecordAsync = ref.watch(latestBodyRecordProvider(widget.memberId));
-    final predictionAsync = ref.watch(latestPredictionProvider(widget.memberId));
-    final bodyCompPredictionState = ref.watch(bodyCompositionPredictionProvider);
+    final weightHistoryAsync = ref.watch(
+      weightHistoryProvider(widget.memberId),
+    );
+    final latestRecordAsync = ref.watch(
+      latestBodyRecordProvider(widget.memberId),
+    );
+    final predictionAsync = ref.watch(
+      latestPredictionProvider(widget.memberId),
+    );
+    final bodyCompPredictionState = ref.watch(
+      bodyCompositionPredictionProvider,
+    );
 
     return Stack(
       children: [
@@ -625,7 +660,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     color: isSelected
                         ? colorScheme.onPrimary
                         : colorScheme.onSurfaceVariant,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                     fontSize: 13,
                   ),
                 ),
@@ -728,36 +765,35 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           // 목표 달성률
           if (widget.member.targetWeight != null)
             latestRecordAsync.whenData((record) {
-              if (record == null) return const SizedBox.shrink();
-              return _buildSectionCard(
-                context,
-                '목표 달성률',
-                weightHistoryAsync.when(
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
+                  if (record == null) return const SizedBox.shrink();
+                  return _buildSectionCard(
+                    context,
+                    '목표 달성률',
+                    weightHistoryAsync.when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (e, st) => const Center(child: Text('데이터 로드 실패')),
+                      data: (history) {
+                        if (history.isEmpty) {
+                          return const Center(child: Text('데이터가 없습니다'));
+                        }
+                        return GoalProgressIndicator(
+                          currentValue: record.weight,
+                          targetValue: widget.member.targetWeight!,
+                          startValue: history.first.weight,
+                          label: widget.member.goalLabel,
+                          unit: 'kg',
+                          isDecreaseGoal:
+                              widget.member.goal == FitnessGoal.diet,
+                        );
+                      },
                     ),
-                  ),
-                  error: (e, st) => const Center(
-                    child: Text('데이터 로드 실패'),
-                  ),
-                  data: (history) {
-                    if (history.isEmpty) {
-                      return const Center(child: Text('데이터가 없습니다'));
-                    }
-                    return GoalProgressIndicator(
-                      currentValue: record.weight,
-                      targetValue: widget.member.targetWeight!,
-                      startValue: history.first.weight,
-                      label: widget.member.goalLabel,
-                      unit: 'kg',
-                      isDecreaseGoal: widget.member.goal == FitnessGoal.diet,
-                    );
-                  },
-                ),
-              );
-            }).value ??
+                  );
+                }).value ??
                 const SizedBox.shrink(),
           const SizedBox(height: 24),
 
@@ -786,21 +822,21 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
 
           // 체성분 비율
           latestRecordAsync.whenData((record) {
-            if (record == null ||
-                record.muscleMass == null ||
-                record.fatMass == null) {
-              return const SizedBox.shrink();
-            }
-            return _buildSectionCard(
-              context,
-              '체성분 분석',
-              BodyCompositionPieChart(
-                muscleMass: record.muscleMass!,
-                fatMass: record.fatMass!,
-                totalWeight: record.weight,
-              ),
-            );
-          }).value ??
+                if (record == null ||
+                    record.muscleMass == null ||
+                    record.fatMass == null) {
+                  return const SizedBox.shrink();
+                }
+                return _buildSectionCard(
+                  context,
+                  '체성분 분석',
+                  BodyCompositionPieChart(
+                    muscleMass: record.muscleMass!,
+                    fatMass: record.fatMass!,
+                    totalWeight: record.weight,
+                  ),
+                );
+              }).value ??
               const SizedBox.shrink(),
           const SizedBox(height: 24),
 
@@ -831,9 +867,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             child: CircularProgressIndicator(),
           ),
         ),
-        error: (error, _) => Center(
-          child: Text('로드 실패: $error'),
-        ),
+        error: (error, _) => Center(child: Text('로드 실패: $error')),
         data: (history) {
           if (history.length < 2) {
             return const Center(
@@ -846,7 +880,12 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
 
           // 선택된 지표에 따라 차트 빌드
           if (_selectedMetric == GraphMetricType.all) {
-            return _buildMultiMetricChart(context, history, records, bodyCompPrediction);
+            return _buildMultiMetricChart(
+              context,
+              history,
+              records,
+              bodyCompPrediction,
+            );
           } else {
             return _buildSingleMetricChart(
               context,
@@ -904,11 +943,13 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       }
 
       if (value != null) {
-        dataPoints.add(_ChartDataPoint(
-          date: date,
-          value: value,
-          label: DateFormat('M/d').format(date),
-        ));
+        dataPoints.add(
+          _ChartDataPoint(
+            date: date,
+            value: value,
+            label: DateFormat('M/d').format(date),
+          ),
+        );
       }
     }
 
@@ -929,11 +970,13 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         // 1주 후 예측만 표시
         final predDate = lastDate.add(const Duration(days: 7));
         final predValue = metricPred.current + metricPred.weeklyTrend;
-        predictionPoints.add(_ChartDataPoint(
-          date: predDate,
-          value: predValue,
-          label: DateFormat('M/d').format(predDate),
-        ));
+        predictionPoints.add(
+          _ChartDataPoint(
+            date: predDate,
+            value: predValue,
+            label: DateFormat('M/d').format(predDate),
+          ),
+        );
       }
     }
 
@@ -1011,8 +1054,12 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                 },
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
           borderData: FlBorderData(show: false),
           lineTouchData: LineTouchData(
@@ -1031,7 +1078,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     TextSpan(
                       text: '\n${isActual ? "실제" : "예측"}',
                       style: TextStyle(
-                        color: colorScheme.onInverseSurface.withValues(alpha: 0.7),
+                        color: colorScheme.onInverseSurface.withValues(
+                          alpha: 0.7,
+                        ),
                         fontSize: 11,
                         fontWeight: FontWeight.normal,
                       ),
@@ -1128,25 +1177,31 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       final label = DateFormat('M/d').format(date);
 
       if (record.weight != null) {
-        weightData.add(_ChartDataPoint(
-          date: date,
-          value: record.weight as double,
-          label: label,
-        ));
+        weightData.add(
+          _ChartDataPoint(
+            date: date,
+            value: record.weight as double,
+            label: label,
+          ),
+        );
       }
       if (record.muscleMass != null) {
-        muscleData.add(_ChartDataPoint(
-          date: date,
-          value: record.muscleMass as double,
-          label: label,
-        ));
+        muscleData.add(
+          _ChartDataPoint(
+            date: date,
+            value: record.muscleMass as double,
+            label: label,
+          ),
+        );
       }
       if (record.bodyFatPercent != null) {
-        bodyFatData.add(_ChartDataPoint(
-          date: date,
-          value: record.bodyFatPercent as double,
-          label: label,
-        ));
+        bodyFatData.add(
+          _ChartDataPoint(
+            date: date,
+            value: record.bodyFatPercent as double,
+            label: label,
+          ),
+        );
       }
     }
 
@@ -1169,8 +1224,11 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     }
 
     // 최대 길이 계산
-    final maxLength = [weightData.length, muscleData.length, bodyFatData.length]
-        .reduce((a, b) => a > b ? a : b);
+    final maxLength = [
+      weightData.length,
+      muscleData.length,
+      bodyFatData.length,
+    ].reduce((a, b) => a > b ? a : b);
 
     // Y 범위 계산
     List<double> allValues = [];
@@ -1234,8 +1292,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     reservedSize: 30,
                     getTitlesWidget: (value, meta) {
                       final index = value.toInt();
-                      if (index < 0 || index >= maxLength) return const SizedBox();
-                      if (index % 2 != 0 && maxLength > 6) return const SizedBox();
+                      if (index < 0 || index >= maxLength)
+                        return const SizedBox();
+                      if (index % 2 != 0 && maxLength > 6)
+                        return const SizedBox();
 
                       // weightData 기준으로 라벨 표시
                       String label = '';
@@ -1260,17 +1320,29 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     },
                   ),
                 ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
                 if (hasWeight)
                   _buildLineBarData(weightData, AppTheme.primary, colorScheme),
                 if (hasMuscle)
-                  _buildLineBarData(muscleData, AppTheme.secondary, colorScheme),
+                  _buildLineBarData(
+                    muscleData,
+                    AppTheme.secondary,
+                    colorScheme,
+                  ),
                 if (hasBodyFat)
-                  _buildLineBarData(bodyFatData, AppTheme.tertiary, colorScheme),
+                  _buildLineBarData(
+                    bodyFatData,
+                    AppTheme.tertiary,
+                    colorScheme,
+                  ),
               ],
             ),
           ),
@@ -1286,19 +1358,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -1358,11 +1421,14 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               ),
             )
           : predictionState.error != null
-              ? _buildBodyCompPredictionError(context, ref, predictionState.error!)
-              : predictionState.prediction != null
-                  ? _buildBodyCompPredictionResult(
-                      context, ref, predictionState.prediction!)
-                  : _buildBodyCompPredictionEmpty(context, ref, recordCount),
+          ? _buildBodyCompPredictionError(context, ref, predictionState.error!)
+          : predictionState.prediction != null
+          ? _buildBodyCompPredictionResult(
+              context,
+              ref,
+              predictionState.prediction!,
+            )
+          : _buildBodyCompPredictionEmpty(context, ref, recordCount),
       trailing: _buildBodyCompPredictionButton(context, ref, recordCount),
     );
   }
@@ -1386,9 +1452,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       ),
       label: Text(
         '예측하기',
-        style: TextStyle(
-          color: canPredict ? AppTheme.primary : Colors.grey,
-        ),
+        style: TextStyle(color: canPredict ? AppTheme.primary : Colors.grey),
       ),
     );
   }
@@ -1457,20 +1521,13 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(
-            Icons.auto_graph,
-            size: 48,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.auto_graph, size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(
             canPredict
                 ? '체성분 예측을 실행해보세요\n체중, 골격근량, 체지방률 변화를 예측합니다'
                 : '예측을 위해 최소 4개의 기록이 필요합니다',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           if (canPredict) ...[
@@ -1488,10 +1545,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             const SizedBox(height: 8),
             Text(
               '현재 $recordCount개 기록',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
           ],
         ],
@@ -1509,18 +1563,11 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
           const SizedBox(height: 12),
           Text(
             error.replaceAll('Exception: ', ''),
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -1591,8 +1638,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _getConfidenceColor(prediction.overallConfidence)
-                  .withValues(alpha: 0.1),
+              color: _getConfidenceColor(
+                prediction.overallConfidence,
+              ).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -1628,7 +1676,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -1658,10 +1708,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           const SizedBox(height: 12),
           Text(
             '데이터 기반: ${prediction.dataPointsUsed.entries.map((e) => '${_getMetricLabel(e.key)} ${e.value}개').join(', ')} | ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 11,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
           ),
         ],
       ),
@@ -1707,10 +1754,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
               Text(
@@ -1809,301 +1853,6 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     };
   }
 
-  /// 예측 버튼
-  Widget _buildPredictionButton(BuildContext context, WidgetRef ref, int recordCount) {
-    final canPredict = recordCount >= 4;
-
-    return TextButton.icon(
-      onPressed: canPredict
-          ? () => _runPrediction(context, ref)
-          : null,
-      icon: Icon(
-        Icons.auto_graph,
-        size: 18,
-        color: canPredict ? AppTheme.primary : Colors.grey,
-      ),
-      label: Text(
-        '예측하기',
-        style: TextStyle(
-          color: canPredict ? AppTheme.primary : Colors.grey,
-        ),
-      ),
-    );
-  }
-
-  /// 예측 실행
-  Future<void> _runPrediction(BuildContext context, WidgetRef ref) async {
-    // 로딩 다이얼로그 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('AI가 체중 변화를 분석 중입니다...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      final service = ref.read(weightPredictionServiceProvider);
-      await service.predict(memberId: widget.memberId, weeksAhead: 8);
-
-      // 예측 데이터 갱신
-      ref.invalidate(latestPredictionProvider(widget.memberId));
-
-      if (context.mounted) {
-        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('체중 예측이 완료되었습니다!'),
-            backgroundColor: AppTheme.secondary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 예측 결과 없음 상태
-  Widget _buildPredictionEmpty(BuildContext context, WidgetRef ref, int recordCount) {
-    final canPredict = recordCount >= 4;
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Icon(
-            Icons.auto_graph,
-            size: 48,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            canPredict
-                ? 'AI 체중 예측을 실행해보세요'
-                : '예측을 위해 최소 4개의 기록이 필요합니다',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (canPredict) ...[
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => _runPrediction(context, ref),
-              icon: const Icon(Icons.auto_graph),
-              label: const Text('예측 시작'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            Text(
-              '현재 $recordCount개 기록',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// 예측 에러 상태
-  Widget _buildPredictionError(BuildContext context, WidgetRef ref, String error) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Colors.red.shade400,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            error.replaceAll('Exception: ', ''),
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: () => _runPrediction(context, ref),
-            icon: const Icon(Icons.refresh),
-            label: const Text('다시 시도'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 예측 결과 표시
-  Widget _buildPredictionResult(BuildContext context, WidgetRef ref, dynamic prediction) {
-    final isLosing = prediction.weeklyTrend < 0;
-    final isMaintaining = prediction.weeklyTrend.abs() < 0.1;
-    final trendColor = isLosing
-        ? AppTheme.secondary
-        : (isMaintaining ? Colors.blue : AppTheme.tertiary);
-    final trendIcon = isLosing
-        ? Icons.trending_down
-        : (isMaintaining ? Icons.trending_flat : Icons.trending_up);
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 주간 변화 트렌드
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: trendColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(trendIcon, color: trendColor, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '주간 변화',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '${prediction.change >= 0 ? "▲" : "▼"}${prediction.change.abs().toStringAsFixed(1)} kg/월',
-                    style: TextStyle(
-                      color: trendColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              // 신뢰도
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '신뢰도',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '${(prediction.confidence * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // 목표 도달 예상
-          if (prediction.estimatedWeeksToTarget != null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.flag, color: AppTheme.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '목표 도달 예상: 약 ${prediction.estimatedWeeksToTarget}주 후',
-                      style: const TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-
-          // 분석 메시지
-          if (prediction.analysisMessage.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.lightbulb_outline, color: Colors.amber.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      prediction.analysisMessage,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // 예측 정보
-          const SizedBox(height: 12),
-          Text(
-            '데이터 ${prediction.dataPointsUsed}개 기반 예측 • ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCurrentStatusShimmer(BuildContext context) {
     return Shimmer.fromColors(
       baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -2188,8 +1937,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
         const SizedBox(height: 4),
         AnimatedDoubleCounter(
           value: value,
@@ -2236,7 +1987,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (trailing != null) trailing,
             ],
@@ -2249,7 +2003,11 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   }
 
   /// 기록 히스토리 빌드
-  Widget _buildRecordHistory(BuildContext context, WidgetRef ref, List<BodyRecordModel> records) {
+  Widget _buildRecordHistory(
+    BuildContext context,
+    WidgetRef ref,
+    List<BodyRecordModel> records,
+  ) {
     final theme = Theme.of(context);
 
     return _buildSectionCard(
@@ -2308,120 +2066,124 @@ class _BodyRecordCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF2E3B5E)
+                    : const Color(0xFFE5E7EB),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        DateFormat('yyyy.MM.dd HH:mm').format(record.createdAt),
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (record.isInbodyData) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'InBody',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.secondary,
-                            fontWeight: FontWeight.w500,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            DateFormat(
+                              'yyyy.MM.dd HH:mm',
+                            ).format(record.createdAt),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
+                        if (record.isInbodyData) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'InBody',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: AppTheme.secondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: colorScheme.error,
+                        size: 20,
                       ),
-                    ],
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showDeleteDialog(context, ref),
+                    ),
                   ],
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    color: colorScheme.error,
-                    size: 20,
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _RecordItem(
+                      label: '체중',
+                      value: '${record.weight.toStringAsFixed(1)} kg',
+                    ),
+                    const SizedBox(width: 24),
+                    _RecordItem(
+                      label: '체지방률',
+                      value: record.bodyFatPercent != null
+                          ? '${record.bodyFatPercent!.toStringAsFixed(1)} %'
+                          : '-',
+                    ),
+                    const SizedBox(width: 24),
+                    _RecordItem(
+                      label: '골격근량',
+                      value: record.muscleMass != null
+                          ? '${record.muscleMass!.toStringAsFixed(1)} kg'
+                          : '-',
+                    ),
+                  ],
+                ),
+                if (record.note != null && record.note!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    record.note!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => _showDeleteDialog(context, ref),
-                ),
+                ],
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _RecordItem(
-                  label: '체중',
-                  value: '${record.weight.toStringAsFixed(1)} kg',
-                ),
-                const SizedBox(width: 24),
-                _RecordItem(
-                  label: '체지방률',
-                  value: record.bodyFatPercent != null
-                      ? '${record.bodyFatPercent!.toStringAsFixed(1)} %'
-                      : '-',
-                ),
-                const SizedBox(width: 24),
-                _RecordItem(
-                  label: '골격근량',
-                  value: record.muscleMass != null
-                      ? '${record.muscleMass!.toStringAsFixed(1)} kg'
-                      : '-',
-                ),
-              ],
-            ),
-            if (record.note != null && record.note!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                record.note!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
-      ),
-    )
+          ),
+        )
         .animate()
         .fadeIn(duration: 300.ms, delay: (50 * index).ms)
         .slideX(begin: 0.1, end: 0, duration: 300.ms, delay: (50 * index).ms);
@@ -2477,10 +2239,7 @@ class _BodyRecordCard extends ConsumerWidget {
 
 /// 기록 항목
 class _RecordItem extends StatelessWidget {
-  const _RecordItem({
-    required this.label,
-    required this.value,
-  });
+  const _RecordItem({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -2518,9 +2277,9 @@ class _RecordItem extends StatelessWidget {
 /// 서명 Provider - 특정 커리큘럼의 서명 조회
 final signatureByCurriculumProvider =
     StreamProvider.family<SessionSignatureModel?, String>((ref, curriculumId) {
-  final repo = ref.watch(sessionSignatureRepositoryProvider);
-  return repo.watchByCurriculumId(curriculumId);
-});
+      final repo = ref.watch(sessionSignatureRepositoryProvider);
+      return repo.watchByCurriculumId(curriculumId);
+    });
 
 class _CurriculumTab extends ConsumerWidget {
   final String memberId;
@@ -2575,7 +2334,8 @@ class _CurriculumTab extends ConsumerWidget {
   Widget _buildEmptyView(BuildContext context) {
     return EmptyState(
       type: EmptyStateType.curriculums,
-      onAction: () => context.go('/trainer/curriculum/create?memberId=$memberId'),
+      onAction: () =>
+          context.go('/trainer/curriculum/create?memberId=$memberId'),
     );
   }
 
@@ -2605,20 +2365,26 @@ class _CurriculumTab extends ConsumerWidget {
             itemBuilder: (context, index) {
               final curriculum = curriculums[index];
               return _CurriculumCard(
-                curriculum: curriculum,
-                memberId: memberId,
-                trainerId: trainerId,
-                onToggleComplete: () async {
-                  final notifier = ref.read(curriculumsNotifierProvider.notifier);
-                  if (curriculum.isCompleted) {
-                    await notifier.markAsIncomplete(curriculum.id);
-                  } else {
-                    await notifier.markAsCompleted(curriculum.id);
-                  }
-                },
-              ).animate()
-                .fadeIn(delay: Duration(milliseconds: index * 80), duration: 300.ms)
-                .slideY(begin: 0.03, duration: 300.ms);
+                    curriculum: curriculum,
+                    memberId: memberId,
+                    trainerId: trainerId,
+                    onToggleComplete: () async {
+                      final notifier = ref.read(
+                        curriculumsNotifierProvider.notifier,
+                      );
+                      if (curriculum.isCompleted) {
+                        await notifier.markAsIncomplete(curriculum.id);
+                      } else {
+                        await notifier.markAsCompleted(curriculum.id);
+                      }
+                    },
+                  )
+                  .animate()
+                  .fadeIn(
+                    delay: Duration(milliseconds: index * 80),
+                    duration: 300.ms,
+                  )
+                  .slideY(begin: 0.03, duration: 300.ms);
             },
           ),
         ),
@@ -2632,7 +2398,10 @@ class _CurriculumTab extends ConsumerWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.secondary, AppTheme.secondary.withValues(alpha: 0.8)],
+          colors: [
+            AppTheme.secondary,
+            AppTheme.secondary.withValues(alpha: 0.8),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -2644,10 +2413,7 @@ class _CurriculumTab extends ConsumerWidget {
               children: [
                 const Text(
                   '커리큘럼 진행률',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 // AnimatedCounter로 숫자 애니메이션 적용
@@ -2692,7 +2458,9 @@ class _CurriculumTab extends ConsumerWidget {
                       value: animatedProgress,
                       strokeWidth: 6,
                       backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ),
                   Text(
@@ -2759,9 +2527,9 @@ class _CurriculumCard extends ConsumerWidget {
       await repo.update(curriculum.id, {'title': result});
       ref.invalidate(curriculumsProvider(memberId));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('제목이 수정되었습니다')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('제목이 수정되었습니다')));
       }
     }
   }
@@ -2774,10 +2542,15 @@ class _CurriculumCard extends ConsumerWidget {
     int index,
   ) async {
     final nameController = TextEditingController(text: exercise.name);
-    final setsController = TextEditingController(text: exercise.sets.toString());
-    final repsController = TextEditingController(text: exercise.reps.toString());
-    final weightController =
-        TextEditingController(text: exercise.weight?.toString() ?? '');
+    final setsController = TextEditingController(
+      text: exercise.sets.toString(),
+    );
+    final repsController = TextEditingController(
+      text: exercise.reps.toString(),
+    );
+    final weightController = TextEditingController(
+      text: exercise.weight?.toString() ?? '',
+    );
     final noteController = TextEditingController(text: exercise.note ?? '');
 
     final result = await showDialog<Exercise?>(
@@ -2828,7 +2601,9 @@ class _CurriculumCard extends ConsumerWidget {
                   labelText: '중량 (kg, 선택)',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -2851,9 +2626,9 @@ class _CurriculumCard extends ConsumerWidget {
             onPressed: () {
               final name = nameController.text.trim();
               if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('운동명을 입력해주세요')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('운동명을 입력해주세요')));
                 return;
               }
               Navigator.pop(
@@ -2882,15 +2657,18 @@ class _CurriculumCard extends ConsumerWidget {
       await repo.updateExercises(curriculum.id, exercises);
       ref.invalidate(curriculumsProvider(memberId));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('운동이 수정되었습니다')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('운동이 수정되었습니다')));
       }
     }
   }
 
   /// 운동 추가 다이얼로그
-  Future<void> _showAddExerciseDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showAddExerciseDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final nameController = TextEditingController();
     final setsController = TextEditingController(text: '3');
     final repsController = TextEditingController(text: '10');
@@ -2947,7 +2725,9 @@ class _CurriculumCard extends ConsumerWidget {
                   labelText: '중량 (kg, 선택)',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -2970,9 +2750,9 @@ class _CurriculumCard extends ConsumerWidget {
             onPressed: () {
               final name = nameController.text.trim();
               if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('운동명을 입력해주세요')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('운동명을 입력해주세요')));
                 return;
               }
               Navigator.pop(
@@ -3000,9 +2780,9 @@ class _CurriculumCard extends ConsumerWidget {
       await repo.updateExercises(curriculum.id, exercises);
       ref.invalidate(curriculumsProvider(memberId));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('운동이 추가되었습니다')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('운동이 추가되었습니다')));
       }
     }
   }
@@ -3034,14 +2814,15 @@ class _CurriculumCard extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      final exercises = List<Exercise>.from(curriculum.exercises)..removeAt(index);
+      final exercises = List<Exercise>.from(curriculum.exercises)
+        ..removeAt(index);
       final repo = ref.read(curriculumRepositoryProvider);
       await repo.updateExercises(curriculum.id, exercises);
       ref.invalidate(curriculumsProvider(memberId));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('운동이 삭제되었습니다')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('운동이 삭제되었습니다')));
       }
     }
   }
@@ -3086,7 +2867,10 @@ class _CurriculumCard extends ConsumerWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.add_circle_outline, color: AppTheme.secondary),
+                leading: const Icon(
+                  Icons.add_circle_outline,
+                  color: AppTheme.secondary,
+                ),
                 title: const Text('운동 추가'),
                 subtitle: const Text('새로운 운동을 추가합니다'),
                 onTap: () {
@@ -3096,7 +2880,10 @@ class _CurriculumCard extends ConsumerWidget {
               ),
               if (curriculum.exercises.isNotEmpty)
                 ListTile(
-                  leading: const Icon(Icons.fitness_center, color: AppTheme.tertiary),
+                  leading: const Icon(
+                    Icons.fitness_center,
+                    color: AppTheme.tertiary,
+                  ),
                   title: const Text('운동 수정/삭제'),
                   subtitle: Text('${curriculum.exercises.length}개 운동'),
                   onTap: () {
@@ -3138,7 +2925,11 @@ class _CurriculumCard extends ConsumerWidget {
                       },
                     ),
                     IconButton(
-                      icon: Icon(Icons.delete, size: 20, color: Colors.grey[500]),
+                      icon: Icon(
+                        Icons.delete,
+                        size: 20,
+                        color: Colors.grey[500],
+                      ),
                       onPressed: () {
                         Navigator.pop(context);
                         _showDeleteExerciseDialog(context, ref, index);
@@ -3163,7 +2954,9 @@ class _CurriculumCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isCompleted = curriculum.isCompleted;
-    final signatureAsync = ref.watch(signatureByCurriculumProvider(curriculum.id));
+    final signatureAsync = ref.watch(
+      signatureByCurriculumProvider(curriculum.id),
+    );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -3220,7 +3013,10 @@ class _CurriculumCard extends ConsumerWidget {
           children: [
             Text(
               '${curriculum.sessionNumber}회차',
-              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(width: 8),
             Container(
@@ -3261,7 +3057,10 @@ class _CurriculumCard extends ConsumerWidget {
           ],
         ),
         trailing: IconButton(
-          icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.outline),
+          icon: Icon(
+            Icons.more_vert,
+            color: Theme.of(context).colorScheme.outline,
+          ),
           onPressed: () => _showEditOptions(context, ref),
           tooltip: '수정',
         ),
@@ -3276,8 +3075,11 @@ class _CurriculumCard extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        const Icon(Icons.fitness_center,
-                            size: 16, color: AppTheme.primary),
+                        const Icon(
+                          Icons.fitness_center,
+                          size: 16,
+                          color: AppTheme.primary,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -3366,7 +3168,9 @@ class _CurriculumCard extends ConsumerWidget {
                         child: OutlinedButton(
                           onPressed: onToggleComplete,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -3434,7 +3238,9 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+                color: isDark
+                    ? const Color(0xFF2E3B5E)
+                    : const Color(0xFFE5E7EB),
                 width: 1,
               ),
               boxShadow: [
@@ -3466,7 +3272,10 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
                     ),
                     if (!_isEditing)
                       IconButton(
-                        icon: Icon(Icons.edit_outlined, color: Colors.grey[500]),
+                        icon: Icon(
+                          Icons.edit_outlined,
+                          color: Colors.grey[500],
+                        ),
                         onPressed: () => setState(() => _isEditing = true),
                       ),
                   ],
@@ -3490,7 +3299,9 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
                       : AppTheme.primary.withValues(alpha: 0.02),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+                    color: isDark
+                        ? const Color(0xFF2E3B5E)
+                        : const Color(0xFFE5E7EB),
                     width: 1,
                   ),
                   boxShadow: [
@@ -3503,12 +3314,19 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+                    Icon(
+                      Icons.info_outline,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         '회원의 부상 이력, 주의사항, 운동 제한 등을 기록해두세요.',
-                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -3529,11 +3347,17 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           children: [
-            Icon(Icons.note_add_outlined, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
+            Icon(
+              Icons.note_add_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             const SizedBox(height: 12),
             Text(
               '메모가 없습니다',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
@@ -3546,10 +3370,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
       );
     }
 
-    return Text(
-      memo,
-      style: const TextStyle(fontSize: 15, height: 1.6),
-    );
+    return Text(memo, style: const TextStyle(fontSize: 15, height: 1.6));
   }
 
   Widget _buildEditMode() {
@@ -3560,9 +3381,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
           maxLines: 8,
           decoration: InputDecoration(
             hintText: '회원에 대한 메모를 입력하세요...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 16),
@@ -3630,10 +3449,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('저장 실패: $e'),
-            backgroundColor: AppTheme.error,
-          ),
+          SnackBar(content: Text('저장 실패: $e'), backgroundColor: AppTheme.error),
         );
       }
     }
@@ -3690,7 +3506,10 @@ class _InbodyTab extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(
-      BuildContext context, WidgetRef ref, ColorScheme colorScheme) {
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme colorScheme,
+  ) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -3704,15 +3523,15 @@ class _InbodyTab extends ConsumerWidget {
           Text(
             '인바디 기록이 없습니다',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             '회원이 인바디 결과지를 촬영하면 여기에 표시됩니다',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -3725,18 +3544,14 @@ class _InbodyTab extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.construction,
-                  size: 16,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.construction, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   '인바디 연동 기능 추가 예정',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -3760,10 +3575,9 @@ class _InbodyTab extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 최신 인바디 결과 카드
-          _InbodyResultCardCompact(record: latest)
-              .animate()
-              .fadeIn(duration: 300.ms)
-              .slideY(begin: 0.1, end: 0),
+          _InbodyResultCardCompact(
+            record: latest,
+          ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
 
           const SizedBox(height: 16),
 
@@ -3838,9 +3652,9 @@ class _InbodyTab extends ConsumerWidget {
                   colorScheme: colorScheme,
                   onDelete: () => _deleteRecord(context, ref, record),
                 ).animate().fadeIn(
-                      duration: 200.ms,
-                      delay: Duration(milliseconds: 50 * index),
-                    );
+                  duration: 200.ms,
+                  delay: Duration(milliseconds: 50 * index),
+                );
               },
             );
           },
@@ -3903,9 +3717,7 @@ class _InbodyResultCardCompact extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -3922,8 +3734,10 @@ class _InbodyResultCardCompact extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
@@ -3943,12 +3757,24 @@ class _InbodyResultCardCompact extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildMetric(context, '체중', '${record.weight.toStringAsFixed(1)}kg',
-                    colorScheme.primary),
-                _buildMetric(context, '골격근량',
-                    '${record.skeletalMuscleMass.toStringAsFixed(1)}kg', Colors.green),
-                _buildMetric(context, '체지방률',
-                    '${record.bodyFatPercent.toStringAsFixed(1)}%', Colors.orange),
+                _buildMetric(
+                  context,
+                  '체중',
+                  '${record.weight.toStringAsFixed(1)}kg',
+                  colorScheme.primary,
+                ),
+                _buildMetric(
+                  context,
+                  '골격근량',
+                  '${record.skeletalMuscleMass.toStringAsFixed(1)}kg',
+                  Colors.green,
+                ),
+                _buildMetric(
+                  context,
+                  '체지방률',
+                  '${record.bodyFatPercent.toStringAsFixed(1)}%',
+                  Colors.orange,
+                ),
               ],
             ),
             if (record.inbodyScore != null) ...[
@@ -3976,23 +3802,28 @@ class _InbodyResultCardCompact extends StatelessWidget {
   }
 
   Widget _buildMetric(
-      BuildContext context, String label, String value, Color color) {
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Column(
       children: [
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color:
-                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
@@ -4024,9 +3855,7 @@ class _InbodyPieChartCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -4077,14 +3906,23 @@ class _InbodyPieChartCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLegend('골격근량', '${muscleMass.toStringAsFixed(1)}kg',
-                          Colors.green),
+                      _buildLegend(
+                        '골격근량',
+                        '${muscleMass.toStringAsFixed(1)}kg',
+                        Colors.green,
+                      ),
                       const SizedBox(height: 8),
                       _buildLegend(
-                          '체지방량', '${fatMass.toStringAsFixed(1)}kg', Colors.orange),
+                        '체지방량',
+                        '${fatMass.toStringAsFixed(1)}kg',
+                        Colors.orange,
+                      ),
                       const SizedBox(height: 8),
                       _buildLegend(
-                          '기타', '${otherMass.toStringAsFixed(1)}kg', Colors.blue),
+                        '기타',
+                        '${otherMass.toStringAsFixed(1)}kg',
+                        Colors.blue,
+                      ),
                     ],
                   ),
                 ],
@@ -4108,9 +3946,14 @@ class _InbodyPieChartCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            Text(value,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ],
@@ -4140,9 +3983,7 @@ class _InbodyLineChartCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -4182,12 +4023,15 @@ class _InbodyLineChartCard extends StatelessWidget {
                     },
                   ),
                   titlesData: FlTitlesData(
-                    leftTitles:
-                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles:
-                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles:
-                        const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -4199,8 +4043,9 @@ class _InbodyLineChartCard extends StatelessWidget {
                               '${date.month}/${date.day}',
                               style: TextStyle(
                                 fontSize: 9,
-                                color:
-                                    colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             );
                           }
@@ -4225,7 +4070,9 @@ class _InbodyLineChartCard extends StatelessWidget {
                     LineChartBarData(
                       spots: displayRecords.asMap().entries.map((e) {
                         return FlSpot(
-                            e.key.toDouble(), e.value.skeletalMuscleMass);
+                          e.key.toDouble(),
+                          e.value.skeletalMuscleMass,
+                        );
                       }).toList(),
                       isCurved: true,
                       color: Colors.green,
@@ -4287,13 +4134,10 @@ class _InbodyHistoryListTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.1),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         leading: Container(
           width: 44,
           height: 44,
@@ -4345,7 +4189,11 @@ class _InbodyHistoryListTile extends StatelessWidget {
                 tooltip: '인바디 결과지 보기',
               ),
             IconButton(
-              icon: Icon(Icons.delete_outline, size: 18, color: Colors.grey[500]),
+              icon: Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: Colors.grey[500],
+              ),
               onPressed: onDelete,
             ),
           ],
@@ -4385,7 +4233,7 @@ class _InbodyHistoryListTile extends StatelessWidget {
                       child: CircularProgressIndicator(
                         value: loadingProgress.expectedTotalBytes != null
                             ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
+                                  loadingProgress.expectedTotalBytes!
                             : null,
                       ),
                     ),
@@ -4562,7 +4410,9 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
               _buildSectionTitle('PT 정보'),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _goals.contains(_selectedGoal) ? _selectedGoal : _goals.first,
+                initialValue: _goals.contains(_selectedGoal)
+                    ? _selectedGoal
+                    : _goals.first,
                 decoration: const InputDecoration(
                   labelText: '운동 목표',
                   prefixIcon: Icon(Icons.flag_outlined),
@@ -4577,7 +4427,7 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _experiences.contains(_selectedExperience)
+                initialValue: _experiences.contains(_selectedExperience)
                     ? _selectedExperience
                     : _experiences.first,
                 decoration: const InputDecoration(
@@ -4589,7 +4439,8 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
                   return DropdownMenuItem(value: exp, child: Text(exp));
                 }).toList(),
                 onChanged: (value) {
-                  if (value != null) setState(() => _selectedExperience = value);
+                  if (value != null)
+                    setState(() => _selectedExperience = value);
                 },
               ),
               const SizedBox(height: 12),
@@ -4629,7 +4480,9 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
                   prefixIcon: Icon(Icons.monitor_weight_outlined),
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
             ],
           ),
@@ -4669,9 +4522,11 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
     setState(() => _isSaving = true);
 
     try {
-      final totalSessions = int.tryParse(_totalSessionsController.text) ??
+      final totalSessions =
+          int.tryParse(_totalSessionsController.text) ??
           widget.member.ptInfo.totalSessions;
-      final completedSessions = int.tryParse(_completedSessionsController.text) ??
+      final completedSessions =
+          int.tryParse(_completedSessionsController.text) ??
           widget.member.ptInfo.completedSessions;
       final targetWeight = double.tryParse(_targetWeightController.text);
 
@@ -4728,10 +4583,9 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
       // 연락처 업데이트 (User 모델)
       if (widget.user != null && _phoneController.text != widget.user!.phone) {
         final userRepository = ref.read(userRepositoryProvider);
-        await userRepository.update(
-          widget.user!.uid,
-          {'phone': _phoneController.text},
-        );
+        await userRepository.update(widget.user!.uid, {
+          'phone': _phoneController.text,
+        });
       }
 
       widget.onSaved();
@@ -4749,10 +4603,7 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('수정 실패: $e'),
-            backgroundColor: AppTheme.error,
-          ),
+          SnackBar(content: Text('수정 실패: $e'), backgroundColor: AppTheme.error),
         );
       }
     }

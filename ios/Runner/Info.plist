@@ -80,15 +80,21 @@
 			<string>naversearchapp</string>
 			<string>naversearchthirdlogin</string>
 		</array>
-		<key>naverServiceAppUrlScheme</key>
+		<key>NidUrlScheme</key>
 		<string>palapp</string>
-		<key>naverConsumerKey</key>
+		<key>NidClientID</key>
 		<string>ktZbEwCNkVPseqZX5BPx</string>
-		<key>naverConsumerSecret</key>
+		<key>NidClientSecret</key>
 		<string>fXyZfD0djW</string>
-		<key>naverServiceAppName</key>
+		<key>NidAppName</key>
 		<string>PAL</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>PAL 앱에서 프로필 사진 및 운동 기록 사진을 저장하고 불러오기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>PAL 앱에서 운동 기록 사진을 저장하기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>PAL 앱에서 프로필 사진 및 운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
 	</dict>
 </plist>

@@ -73,11 +73,4 @@ class FoodDatabaseService {
   String _normalize(String text) {
     return text.toLowerCase().replaceAll(' ', '').replaceAll('/', '');
   }
-
-  /// 초성 검색 지원 (미래 확장용)
-  /// TODO: 한글 초성 검색 구현
-  bool _matchesChosung(String text, String keyword) {
-    // 추후 구현
-    return false;
-  }
 }

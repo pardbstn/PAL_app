@@ -1116,7 +1116,6 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     final aiInsightsAsync = ref.watch(trainerInsightsProvider);
     final unreadCountAsync = ref.watch(unreadInsightCountProvider);
     final generationState = ref.watch(insightsGenerationProvider);
-    final trainer = ref.watch(currentTrainerProvider);
     final trainerId = ref.watch(currentTrainerIdProvider);
 
     // 생성 성공/실패 시 SnackBar 표시
@@ -1157,10 +1156,8 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
         ),
         const SizedBox(height: 16),
 
-        // Pro 플랜 체크 - 모든 기능 무료 개방
-        if (false) ...[
-          _buildUpgradeCard(context),
-        ] else if (generationState.isLoading) ...[
+        // 로딩 상태 체크
+        if (generationState.isLoading) ...[
           // 로딩 상태
           _buildInsightShimmer(),
         ] else if (aiInsights.isEmpty) ...[
@@ -1324,71 +1321,6 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
         ),
       ],
     ).animate().fadeIn(delay: 500.ms, duration: 300.ms);
-  }
-
-  /// Pro 업그레이드 카드
-  Widget _buildUpgradeCard(BuildContext context) {
-    return GlassCard(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          AppTheme.primary.withValues(alpha: 0.3),
-          AppTheme.secondary.withValues(alpha: 0.2),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.secondary.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.workspace_premium,
-              color: AppTheme.secondary,
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Pro 플랜에서 AI 인사이트 사용',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'AI가 회원 데이터를 분석하여 맞춤 인사이트를 제공합니다',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => context.push('/trainer/settings'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.secondary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Pro 업그레이드',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 600.ms, duration: 500.ms).slideY(begin: 0.1);
   }
 
   /// 빈 상태 카드

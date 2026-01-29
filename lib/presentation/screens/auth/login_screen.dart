@@ -85,9 +85,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                     const SizedBox(height: 40),
 
-                    // 역할 선택 카드
-                    _buildRoleSelector(context),
-                    const SizedBox(height: 24),
+                    // 역할 선택 카드 (로그인 모드일 때만 표시)
+                    if (!_isSignUp) ...[
+                      _buildRoleSelector(context),
+                      const SizedBox(height: 24),
+                    ],
 
                     // 이메일 입력
                     _buildEmailField(context),
@@ -115,6 +117,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     // Google 로그인 임시 비활성화
                     // _buildGoogleSignInButton(context, isLoading),
                     // const SizedBox(height: 12),
+                    _buildAppleSignInButton(context, isLoading),
+                    const SizedBox(height: 12),
                     _buildKakaoSignInButton(context, isLoading),
                     const SizedBox(height: 12),
                     _buildNaverSignInButton(context, isLoading),
@@ -393,38 +397,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  /// 구글 로그인 버튼
-  Widget _buildGoogleSignInButton(BuildContext context, bool isLoading) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton.icon(
-        onPressed: isLoading ? null : _handleGoogleSignIn,
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-        ),
-        icon: Image.network(
-          'https://www.google.com/favicon.ico',
-          width: 24,
-          height: 24,
-          errorBuilder: (context, error, stackTrace) => const Icon(
-            Icons.g_mobiledata,
-            size: 24,
-          ),
-        ),
-        label: const Text(
-          'Google로 계속하기',
-          style: TextStyle(fontSize: 16),
-        ),
-      ),
-    ).animateSlideUp(delay: const Duration(milliseconds: 700));
-  }
-
   /// 카카오 로그인 버튼
   Widget _buildKakaoSignInButton(BuildContext context, bool isLoading) {
     return SizedBox(
@@ -482,6 +454,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
     ).animateSlideUp(delay: const Duration(milliseconds: 800));
+  }
+
+  /// Apple 로그인 버튼
+  Widget _buildAppleSignInButton(BuildContext context, bool isLoading) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : _handleAppleSignIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? Colors.white : Colors.black,
+          foregroundColor: isDark ? Colors.black : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        icon: Icon(
+          Icons.apple,
+          size: 24,
+          color: isDark ? Colors.black : Colors.white,
+        ),
+        label: Text(
+          'Apple로 계속하기',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.black : Colors.white,
+          ),
+        ),
+      ),
+    ).animateSlideUp(delay: const Duration(milliseconds: 700));
   }
 
   /// 로그인/회원가입 모드 전환
@@ -545,15 +551,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
-  /// 구글 로그인 처리
-  Future<void> _handleGoogleSignIn() async {
-    try {
-      await ref.read(authProvider.notifier).signInWithGoogle(_selectedRole);
-    } catch (e) {
-      // 에러는 authState.errorMessage로 표시됨
-    }
-  }
-
   /// 카카오 로그인 처리
   Future<void> _handleKakaoSignIn() async {
     try {
@@ -567,6 +564,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleNaverSignIn() async {
     try {
       await ref.read(authProvider.notifier).signInWithNaver(_selectedRole);
+    } catch (e) {
+      // 에러는 authState.errorMessage로 표시됨
+    }
+  }
+
+  /// Apple 로그인 처리
+  Future<void> _handleAppleSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithApple(_selectedRole);
     } catch (e) {
       // 에러는 authState.errorMessage로 표시됨
     }

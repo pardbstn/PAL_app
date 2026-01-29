@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -372,14 +372,15 @@ class MemberInbodyScreen extends ConsumerWidget {
 
     try {
       // 1. Supabase Storage에 업로드
+      // iPad 호환성을 위해 XFile에서 바이트로 직접 읽어서 업로드
       final supabase = Supabase.instance.client;
-      final file = File(image.path);
+      final Uint8List imageBytes = await image.readAsBytes();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '$memberId/$timestamp.jpg';
 
-      await supabase.storage.from('inbody-images').upload(
+      await supabase.storage.from('inbody-images').uploadBinary(
             fileName,
-            file,
+            imageBytes,
             fileOptions: const FileOptions(contentType: 'image/jpeg'),
           );
 

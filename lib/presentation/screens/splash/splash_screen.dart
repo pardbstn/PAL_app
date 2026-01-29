@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/onboarding_provider.dart';
 
 /// 스플래시 화면
 class SplashScreen extends ConsumerStatefulWidget {
@@ -29,18 +28,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (!mounted) return;
 
-    // 웹에서는 온보딩 건너뛰기
-    if (!kIsWeb) {
-      // 첫 실행 여부 확인
-      final isFirstRun = await ref.read(isFirstRunProvider.future);
-
-      if (!mounted) return;
-
-      if (isFirstRun) {
-        context.go(AppRoutes.onboarding);
-        return;
-      }
-    }
+    // 온보딩 비활성화 - 바로 로그인 화면으로 이동
 
     // 로그인 상태 확인
     final authState = ref.read(authProvider);

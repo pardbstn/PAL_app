@@ -1,12 +1,18 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:flutter_naver_login/flutter_naver_login.dart';
+import 'package:flutter_naver_login/interface/types/naver_login_result.dart';
+import 'package:flutter_naver_login/interface/types/naver_account_result.dart';
+import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_pal_app/data/models/models.dart';
 import 'package:flutter_pal_app/data/repositories/repositories.dart';
 import 'package:flutter_pal_app/data/services/fcm_service.dart';
@@ -451,18 +457,18 @@ class AuthNotifier extends Notifier<AuthState> {
       );
 
       if (credential.user != null) {
-        // Firestore에 사용자 저장
-        await _saveUserToFirestore(credential.user!, role);
+        final user = credential.user!;
 
-        // 사용자 데이터 로드
-        await _loadUserData(credential.user!.uid);
-
-        // FCM 토큰 저장
-        await _saveFcmToken(credential.user!.uid);
-
+        // 신규 사용자 - 역할 선택 화면으로 이동
+        debugPrint('[Auth] 이메일 회원가입 - 역할 선택 대기');
         state = state.copyWith(
           isLoading: false,
-          userRole: role,
+          isAuthenticated: true,
+          isPendingRoleSelection: true,
+          userId: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoURL,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -715,8 +721,8 @@ class AuthNotifier extends Notifier<AuthState> {
         return;
       }
 
-      // 사용자가 취소한 경우 (cancelledByUser 또는 error)
-      if (result.status == NaverLoginStatus.cancelledByUser || result.status == NaverLoginStatus.error) {
+      // 에러인 경우 (2.x에서는 cancelledByUser가 error로 통합됨)
+      if (result.status == NaverLoginStatus.error) {
         state = state.copyWith(isLoading: false);
         return;
       }
@@ -730,7 +736,7 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint('[Auth] 네이버 사용자 정보 조회 중...');
       final NaverAccountResult accountResult;
       try {
-        accountResult = await FlutterNaverLogin.currentAccount();
+        accountResult = await FlutterNaverLogin.getCurrentAccount();
         debugPrint('[Auth] 네이버 사용자 ID: ${accountResult.id}');
       } catch (e) {
         state = state.copyWith(
@@ -744,6 +750,15 @@ class AuthNotifier extends Notifier<AuthState> {
       final email = accountResult.email;
       final name = accountResult.name;
       final profileImage = accountResult.profileImage;
+
+      // userId가 null인 경우 로그인 실패 처리
+      if (userId == null || userId.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '네이버 사용자 ID를 가져올 수 없습니다.',
+        );
+        return;
+      }
 
       // 3단계: Firebase Custom Token 발급
       debugPrint('[Auth] Custom Token 발급 중...');
@@ -779,6 +794,133 @@ class AuthNotifier extends Notifier<AuthState> {
         errorMessage: '로그인 오류: $e',
       );
     }
+  }
+
+  /// Apple 소셜 로그인 (Custom Token 방식)
+  Future<void> signInWithApple(UserRole role) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      debugPrint('[Auth] Apple 로그인 시작...');
+
+      // 1단계: Apple 로그인 자격 증명 요청
+      final AuthorizationCredentialAppleID appleCredential;
+      try {
+        appleCredential = await SignInWithApple.getAppleIDCredential(
+          scopes: [
+            AppleIDAuthorizationScopes.email,
+            AppleIDAuthorizationScopes.fullName,
+          ],
+        );
+        debugPrint('[Auth] Apple 자격 증명 획득 성공');
+      } catch (e) {
+        debugPrint('[Auth] Apple SDK 오류: $e');
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('canceled') ||
+            errorStr.contains('cancelled') ||
+            errorStr.contains('user canceled') ||
+            errorStr.contains('authorizationerror')) {
+          state = state.copyWith(isLoading: false);
+          return;
+        }
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Apple 로그인에 실패했습니다.',
+        );
+        return;
+      }
+
+      // 2단계: JWT에서 사용자 정보 추출
+      String? userId;
+      String? email;
+
+      if (appleCredential.identityToken != null) {
+        final parts = appleCredential.identityToken!.split('.');
+        if (parts.length >= 2) {
+          final payload = parts[1];
+          final normalized = base64Url.normalize(payload);
+          final decoded = utf8.decode(base64Url.decode(normalized));
+          debugPrint('[Auth] JWT Payload: $decoded');
+
+          final payloadMap = Map<String, dynamic>.from(
+            const JsonDecoder().convert(decoded) as Map,
+          );
+          userId = payloadMap['sub'] as String?;
+          email = payloadMap['email'] as String?;
+        }
+      }
+
+      // userIdentifier를 사용 (더 안정적)
+      userId ??= appleCredential.userIdentifier;
+
+      if (userId == null || userId.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Apple 사용자 ID를 가져올 수 없습니다.',
+        );
+        return;
+      }
+
+      // 이름 정보 (Apple은 최초 로그인 시에만 제공)
+      String? name;
+      if (appleCredential.givenName != null || appleCredential.familyName != null) {
+        name = '${appleCredential.familyName ?? ''}${appleCredential.givenName ?? ''}'.trim();
+      }
+
+      debugPrint('[Auth] Apple 사용자 ID: $userId');
+      debugPrint('[Auth] Apple 이메일: $email');
+      debugPrint('[Auth] Apple 이름: $name');
+
+      // 3단계: Firebase Custom Token 발급
+      debugPrint('[Auth] Custom Token 발급 중...');
+      final String customToken;
+      try {
+        customToken = await _getCustomToken(
+          provider: 'apple',
+          userId: userId,
+          email: email,
+          name: name,
+        );
+        debugPrint('[Auth] Custom Token 발급 성공');
+      } catch (e) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Custom Token 오류: $e',
+        );
+        return;
+      }
+
+      // 4단계: Firebase에 Custom Token으로 로그인
+      debugPrint('[Auth] Firebase 로그인 중...');
+      final userCredential = await _auth.signInWithCustomToken(customToken);
+
+      if (userCredential.user != null) {
+        await _handleSocialLoginSuccess(userCredential.user!, role);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[Auth] Apple 로그인 최종 오류: $e');
+      debugPrint('[Auth] Stack trace: $stackTrace');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Apple 로그인 오류: ${e.toString().length > 100 ? e.toString().substring(0, 100) : e.toString()}',
+      );
+    }
+  }
+
+  /// 랜덤 nonce 문자열 생성
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
+  }
+
+  /// SHA256 해시 생성
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Cloud Function에서 Custom Token 발급
@@ -995,7 +1137,7 @@ class AuthNotifier extends Notifier<AuthState> {
       case 'too-many-requests':
         return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
       case 'invalid-credential':
-        return '이메일 또는 비밀번호가 올바르지 않습니다.';
+        return '이메일 또는 비밀번호가 올바르지 않습니다.\n소셜 로그인으로 가입했다면 해당 방법으로 로그인해주세요.';
       default:
         return '인증 오류가 발생했습니다. ($code)';
     }

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -9,12 +10,20 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/models/body_composition_prediction_model.dart';
 import '../../../data/models/body_record_model.dart';
 import '../../../data/models/curriculum_model.dart';
+import '../../../data/models/session_signature_model.dart';
 import '../../../data/repositories/body_record_repository.dart';
+import '../../../data/repositories/session_signature_repository.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/body_composition_prediction_provider.dart';
 import '../../providers/body_records_provider.dart';
 import '../../providers/curriculums_provider.dart';
+
+/// 회원의 서명 기록 Provider
+final memberSignaturesProvider = StreamProvider.family<List<SessionSignatureModel>, String>((ref, memberId) {
+  final repository = ref.watch(sessionSignatureRepositoryProvider);
+  return repository.watchByMemberId(memberId);
+});
 
 /// 회원 내 기록 화면 - 프리미엄 UI
 /// [체성분] [운동기록] [서명기록] 3탭 구조
@@ -953,7 +962,9 @@ class _BodyCompositionChart extends ConsumerWidget {
 
     final minValue = validValues.reduce((a, b) => a < b ? a : b);
     final maxValue = validValues.reduce((a, b) => a > b ? a : b);
-    final valuePadding = (maxValue - minValue) * 0.2;
+    // 모든 값이 동일할 때 (데이터 1개 또는 동일값) 기본 패딩 적용
+    final range = maxValue - minValue;
+    final valuePadding = range > 0 ? range * 0.2 : maxValue * 0.1;
     final adjustedMin = minValue - valuePadding;
     final adjustedMax = maxValue + valuePadding;
 
@@ -982,7 +993,8 @@ class _BodyCompositionChart extends ConsumerWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: (adjustedMax - adjustedMin) / 4,
+          // horizontalInterval이 0이 되지 않도록 최소값 보장
+          horizontalInterval: ((adjustedMax - adjustedMin) / 4).clamp(0.1, double.infinity),
           getDrawingHorizontalLine: (value) => FlLine(
             color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             strokeWidth: 1,
@@ -1201,14 +1213,17 @@ class _BodyCompositionChart extends ConsumerWidget {
 
     final minValue = allValues.reduce((a, b) => a < b ? a : b);
     final maxValue = allValues.reduce((a, b) => a > b ? a : b);
-    final valuePadding = (maxValue - minValue) * 0.2;
+    // 모든 값이 동일할 때 기본 패딩 적용
+    final range = maxValue - minValue;
+    final valuePadding = range > 0 ? range * 0.2 : maxValue * 0.1;
 
     return LineChart(
       LineChartData(
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: (maxValue - minValue + valuePadding * 2) / 4,
+          // horizontalInterval이 0이 되지 않도록 최소값 보장
+          horizontalInterval: ((maxValue - minValue + valuePadding * 2) / 4).clamp(0.1, double.infinity),
           getDrawingHorizontalLine: (value) => FlLine(
             color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             strokeWidth: 1,
@@ -2373,104 +2388,70 @@ class _ExerciseInfoItem extends StatelessWidget {
 }
 
 /// 서명기록 탭
-class _SignatureRecordsTab extends StatelessWidget {
+class _SignatureRecordsTab extends ConsumerWidget {
   const _SignatureRecordsTab();
 
-  // 더미 서명 데이터
-  static final List<_SignatureRecord> _dummySignatures = [
-    _SignatureRecord(
-      id: '1',
-      sessionNumber: 10,
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      signatureUrl: 'assets/images/signature_placeholder.png',
-    ),
-    _SignatureRecord(
-      id: '2',
-      sessionNumber: 9,
-      date: DateTime.now().subtract(const Duration(days: 5)),
-      signatureUrl: 'assets/images/signature_placeholder.png',
-    ),
-    _SignatureRecord(
-      id: '3',
-      sessionNumber: 8,
-      date: DateTime.now().subtract(const Duration(days: 9)),
-      signatureUrl: 'assets/images/signature_placeholder.png',
-    ),
-    _SignatureRecord(
-      id: '4',
-      sessionNumber: 7,
-      date: DateTime.now().subtract(const Duration(days: 12)),
-      signatureUrl: 'assets/images/signature_placeholder.png',
-    ),
-    _SignatureRecord(
-      id: '5',
-      sessionNumber: 6,
-      date: DateTime.now().subtract(const Duration(days: 16)),
-      signatureUrl: 'assets/images/signature_placeholder.png',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    if (_dummySignatures.isEmpty) {
-      return const EmptyState(
-        type: EmptyStateType.signatures,
-      );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final memberId = authState.memberModel?.userId ?? authState.userId ?? '';
+
+    if (memberId.isEmpty) {
+      return const EmptyState(type: EmptyStateType.signatures);
     }
 
-    return CustomScrollView(
-      slivers: [
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 16),
-        ),
-        SliverToBoxAdapter(
-          child: _SectionHeader(
-            title: '서명 기록',
-            subtitle: '총 ${_dummySignatures.length}개',
-          ),
-        ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 16),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.2,
+    final signaturesAsync = ref.watch(memberSignaturesProvider(memberId));
+
+    return signaturesAsync.when(
+      data: (signatures) {
+        if (signatures.isEmpty) {
+          return const EmptyState(type: EmptyStateType.signatures);
+        }
+
+        return CustomScrollView(
+          slivers: [
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 16),
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _SignatureCard(
-                signature: _dummySignatures[index],
-                index: index,
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: '서명 기록',
+                subtitle: '총 ${signatures.length}개',
               ),
-              childCount: _dummySignatures.length,
             ),
-          ),
-        ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 32),
-        ),
-      ],
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 16),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.2,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _SignatureCard(
+                    signature: signatures[index],
+                    index: index,
+                  ),
+                  childCount: signatures.length,
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 32),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Text('서명 기록을 불러올 수 없습니다: $error'),
+      ),
     );
   }
-}
-
-/// 서명 기록 모델
-class _SignatureRecord {
-  final String id;
-  final int sessionNumber;
-  final DateTime date;
-  final String signatureUrl;
-
-  const _SignatureRecord({
-    required this.id,
-    required this.sessionNumber,
-    required this.date,
-    required this.signatureUrl,
-  });
 }
 
 /// 서명 카드
@@ -2480,7 +2461,7 @@ class _SignatureCard extends StatelessWidget {
     required this.index,
   });
 
-  final _SignatureRecord signature;
+  final SessionSignatureModel signature;
   final int index;
 
   @override
@@ -2520,12 +2501,33 @@ class _SignatureCard extends StatelessWidget {
                     top: Radius.circular(16),
                   ),
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.draw_rounded,
-                    size: 48,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
                   ),
+                  child: signature.signatureImageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: signature.signatureImageUrl,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Icon(
+                            Icons.draw_rounded,
+                            size: 48,
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
+                        )
+                      : Center(
+                          child: Icon(
+                            Icons.draw_rounded,
+                            size: 48,
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -2564,7 +2566,7 @@ class _SignatureCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    DateFormat('yyyy.MM.dd').format(signature.date),
+                    DateFormat('yyyy.MM.dd').format(signature.signedAt),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -2629,29 +2631,62 @@ class _SignatureCard extends StatelessWidget {
                     color: colorScheme.outlineVariant,
                   ),
                 ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.draw_rounded,
-                        size: 64,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '서명 이미지',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: signature.signatureImageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: signature.signatureImageUrl,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 48,
+                                  color: colorScheme.error.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '이미지 로드 실패',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.draw_rounded,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '서명 이미지 없음',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                DateFormat('yyyy년 M월 d일').format(signature.date),
+                DateFormat('yyyy년 M월 d일').format(signature.signedAt),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),

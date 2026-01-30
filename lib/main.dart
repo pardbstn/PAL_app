@@ -23,6 +23,26 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[FCM] 백그라운드 메시지 수신: ${message.notification?.title}');
 }
 
+/// FCM 초기화 (비동기, 앱 시작을 막지 않음)
+Future<void> _initializeFCM() async {
+  try {
+    debugPrint('[Main] FCM 초기화 시작...');
+
+    // FCM 백그라운드 핸들러 등록
+    FirebaseMessaging.onBackgroundMessage(
+      _firebaseMessagingBackgroundHandler,
+    );
+
+    // FCM 서비스 초기화 (타임아웃 5초)
+    final fcmService = FCMService();
+    await fcmService.initialize().timeout(const Duration(seconds: 5));
+    debugPrint('[Main] FCM 초기화 완료');
+  } catch (e) {
+    debugPrint('[Main] FCM 초기화 실패 (무시됨): $e');
+    // FCM 실패해도 앱은 계속 실행 (푸시 알림만 비활성화)
+  }
+}
+
 void main() async {
   // runZonedGuarded로 비동기 에러 캐치
   runZonedGuarded(
@@ -51,37 +71,53 @@ void main() async {
         return true;
       };
 
+      debugPrint('[Main] 앱 초기화 시작...');
+
       // 한국어 로케일 초기화
       await initializeDateFormatting('ko_KR', null);
+      debugPrint('[Main] 로케일 초기화 완료');
 
       // Firebase 초기화
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 10));
+        debugPrint('[Main] Firebase 초기화 완료');
+      } catch (e, st) {
+        debugPrint('[Main] Firebase 초기화 실패: $e');
+        // Firebase 없이는 앱 실행 불가 - 에러 화면 표시 후 종료 필요
+        rethrow;
+      }
 
       // Kakao SDK 초기화
-      KakaoSdk.init(nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa');
+      try {
+        KakaoSdk.init(nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa');
+        debugPrint('[Main] Kakao SDK 초기화 완료');
+      } catch (e, st) {
+        debugPrint('[Main] Kakao SDK 초기화 실패: $e');
+        // 카카오 로그인 불가하지만 앱은 계속 실행
+      }
 
-      // FCM 초기화 (웹에서는 지원하지 않음)
+      // FCM 초기화 (웹에서는 지원하지 않음) - 백그라운드에서 비동기 처리
       if (!kIsWeb) {
-        // FCM 백그라운드 핸들러 등록
-        FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler,
-        );
-
-        // FCM 서비스 초기화
-        final fcmService = FCMService();
-        await fcmService.initialize();
+        // FCM은 앱 시작을 막지 않도록 비동기로 처리
+        _initializeFCM();
       }
 
       // Supabase 초기화
-      await Supabase.initialize(
-        url: 'https://bfakxuixdebjvwjbasto.supabase.co',
-        anonKey:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYWt4dWl4ZGVianZ3amJhc3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0Nzc1NTQsImV4cCI6MjA4NDA1MzU1NH0.q8rb2oY8QimxmCDlLhRncMp-00TriKAOjBNckM-u8SM',
-      );
+      try {
+        await Supabase.initialize(
+          url: 'https://bfakxuixdebjvwjbasto.supabase.co',
+          anonKey:
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYWt4dWl4ZGVianZ3amJhc3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0Nzc1NTQsImV4cCI6MjA4NDA1MzU1NH0.q8rb2oY8QimxmCDlLhRncMp-00TriKAOjBNckM-u8SM',
+        ).timeout(const Duration(seconds: 10));
+        debugPrint('[Main] Supabase 초기화 완료');
+      } catch (e, st) {
+        debugPrint('[Main] Supabase 초기화 실패: $e');
+        // Supabase 실패해도 앱은 계속 실행 (이미지 저장만 불가)
+      }
 
-      AppLogger.info('앱 초기화 완료', tag: 'Main');
+      debugPrint('[Main] 앱 초기화 완료, UI 시작');
 
       runApp(const ProviderScope(child: MyApp()));
     },

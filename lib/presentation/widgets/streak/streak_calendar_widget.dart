@@ -254,7 +254,7 @@ class _StreakCalendarWidgetState extends State<StreakCalendarWidget> {
           ),
           _buildLegendItem(
             color: fireColor,
-            label: '현재 스트릭',
+            label: '현재',
             icon: '🔥',
             theme: theme,
           ),
@@ -340,7 +340,7 @@ class _StreakCalendarWidgetState extends State<StreakCalendarWidget> {
             child: _buildSummaryItem(
               icon: Icons.local_fire_department,
               iconColor: const Color(0xFFFF6B35),
-              label: '현재 스트릭',
+              label: '현재',
               value: '$currentStreak일',
               theme: theme,
             ),

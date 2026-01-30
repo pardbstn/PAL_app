@@ -1366,6 +1366,25 @@ class _QuickActionsSection extends StatelessWidget {
           label: '트레이너 평가',
           color: const Color(0xFFF59E0B),
           onTap: () {
+            // 연동된 트레이너가 없는 경우 안내 다이얼로그 표시
+            if (trainerId.isEmpty) {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('연동된 트레이너 없음'),
+                  content: const Text(
+                    '현재 연동된 트레이너가 없습니다.\n트레이너와 연동 후 평가할 수 있습니다.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+              );
+              return;
+            }
             context.push(
               '/member/review-trainer/$trainerId?memberId=$memberId',
             );

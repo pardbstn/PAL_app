@@ -14,6 +14,7 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final trainerId = authState.trainerModel?.id ?? '';
 
@@ -26,7 +27,7 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
     final ratingAsync = ref.watch(trainerRatingProvider(trainerId));
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(
           '배지 관리',
@@ -35,7 +36,7 @@ class TrainerBadgeManagementScreen extends ConsumerWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
         iconTheme: IconThemeData(

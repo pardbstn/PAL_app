@@ -42,38 +42,41 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD7Ln2IRAQpeqMKllJQns0p4b87-Ew7IU8',
-    appId: '1:944944117072:android:fe6855', // TODO: Firebase Console에서 Android 앱 ID 확인 필요
+    apiKey: 'AIzaSyDT57R-5SuV9_pET4Amzlf94liMwxd7b-0',
+    appId: '1:944944117072:android:baf2d7a2b3f269b0fe6855',
     messagingSenderId: '944944117072',
     projectId: 'ptmate-1a542',
     storageBucket: 'ptmate-1a542.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyD7Ln2IRAQpeqMKllJQns0p4b87-Ew7IU8',
-    appId: '1:944944117072:ios:a226ab80f705c6dcfe6855',
+    apiKey: 'AIzaSyAAoI7BXJpuUzDzNtvtiJLMZ3aUaNQKgOI',
+    appId: '1:944944117072:ios:abaddf36fd67718ffe6855',
     messagingSenderId: '944944117072',
     projectId: 'ptmate-1a542',
     storageBucket: 'ptmate-1a542.firebasestorage.app',
-    iosBundleId: 'com.pal.app',
+    iosClientId: '944944117072-94ipnautubi9do1b3di8toc5o06cc8nk.apps.googleusercontent.com',
+    iosBundleId: 'com.yl.palapp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD7Ln2IRAQpeqMKllJQns0p4b87-Ew7IU8',
-    appId: '1:944944117072:ios:a226ab80f705c6dcfe6855',
+    apiKey: 'AIzaSyAAoI7BXJpuUzDzNtvtiJLMZ3aUaNQKgOI',
+    appId: '1:944944117072:ios:5ceb790c6daefcedfe6855',
     messagingSenderId: '944944117072',
     projectId: 'ptmate-1a542',
     storageBucket: 'ptmate-1a542.firebasestorage.app',
-    iosBundleId: 'com.pal.app',
+    iosClientId: '944944117072-01fc638110adrcu87g4g4hdcve01m4fl.apps.googleusercontent.com',
+    iosBundleId: 'com.example.flutterPalApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyD7Ln2IRAQpeqMKllJQns0p4b87-Ew7IU8',
-    appId: '1:944944117072:web:2e079eae2512b578fe6855',
+    appId: '1:944944117072:web:18d6bda4e8d37c50fe6855',
     messagingSenderId: '944944117072',
     projectId: 'ptmate-1a542',
     authDomain: 'ptmate-1a542.firebaseapp.com',
     storageBucket: 'ptmate-1a542.firebasestorage.app',
-    measurementId: 'G-5XMZZTBTEP',
+    measurementId: 'G-BE1SM9ZVH2',
   );
+
 }

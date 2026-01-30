@@ -5,6 +5,20 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
 
+/// 소셜 로그인 임시 이메일 체크 및 표시
+String _getDisplayEmail(String? email) {
+  if (email == null || email.isEmpty) return '-';
+
+  // 소셜 로그인 임시/릴레이 이메일 패턴
+  if (email.contains('privaterelay.appleid.com') || // Apple
+      email.contains('@privaterelay.') ||
+      RegExp(r'^[a-z0-9]{10,}@').hasMatch(email)) { // 랜덤 문자열 이메일
+    return '-';
+  }
+
+  return email;
+}
+
 /// 회원 설정 화면
 class MemberSettingsScreen extends ConsumerWidget {
   const MemberSettingsScreen({super.key});
@@ -213,7 +227,7 @@ class MemberSettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  authState.email ?? '',
+                  _getDisplayEmail(authState.email),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],

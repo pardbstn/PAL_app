@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -23,25 +23,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigateNext() async {
-    // 애니메이션을 위해 2초 대기 (웹에서는 1초)
+    debugPrint('[Splash] 네비게이션 시작...');
+
+    // 애니메이션을 위해 잠시 대기 (웹에서는 1초)
     await Future.delayed(Duration(seconds: kIsWeb ? 1 : 2));
+    debugPrint('[Splash] 딜레이 완료');
+
+    if (!mounted) {
+      debugPrint('[Splash] mounted=false, 종료');
+      return;
+    }
+
+    // 인증 상태가 로드될 때까지 최대 5초 대기
+    AuthState authState = ref.read(authProvider);
+    debugPrint('[Splash] 초기 authState: isLoading=${authState.isLoading}, isAuthenticated=${authState.isAuthenticated}');
+
+    int waitCount = 0;
+    const maxWait = 10; // 최대 5초 (0.5초 * 10)
+
+    while (authState.isLoading && waitCount < maxWait) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      authState = ref.read(authProvider);
+      waitCount++;
+      debugPrint('[Splash] 대기 중... $waitCount/$maxWait');
+    }
 
     if (!mounted) return;
 
-    // 온보딩 비활성화 - 바로 로그인 화면으로 이동
+    debugPrint('[Splash] 최종 authState: isAuthenticated=${authState.isAuthenticated}, role=${authState.userRole}');
 
     // 로그인 상태 확인
-    final authState = ref.read(authProvider);
-
     if (!authState.isAuthenticated) {
+      debugPrint('[Splash] 로그인 화면으로 이동');
       context.go(AppRoutes.login);
       return;
     }
 
     // 역할에 따라 홈으로 이동
     if (authState.userRole == UserRole.trainer) {
+      debugPrint('[Splash] 트레이너 홈으로 이동');
       context.go(AppRoutes.trainerHome);
     } else {
+      debugPrint('[Splash] 회원 홈으로 이동');
       context.go(AppRoutes.memberHome);
     }
   }

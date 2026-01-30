@@ -15,6 +15,18 @@ import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/web/web_widgets.dart';
 
+/// 소셜 로그인 임시 이메일 체크 및 표시
+String _getDisplayEmail(String? email) {
+  if (email == null || email.isEmpty) return '-';
+  // 소셜 로그인 임시/릴레이 이메일 패턴
+  if (email.contains('privaterelay.appleid.com') ||
+      email.contains('@privaterelay.') ||
+      RegExp(r'^[a-z0-9]{10,}@').hasMatch(email)) {
+    return '-';
+  }
+  return email;
+}
+
 // ============================================================================
 // 회원 상세 조회용 Provider (로컬 정의)
 // ============================================================================
@@ -519,7 +531,7 @@ class _TrainerMemberDetailWebScreenState
             ],
           ),
           const SizedBox(height: 16),
-          _buildContactRow(context, icon: Icons.email_outlined, label: '이메일', value: memberWithUser.email ?? '-'),
+          _buildContactRow(context, icon: Icons.email_outlined, label: '이메일', value: _getDisplayEmail(memberWithUser.email)),
           const SizedBox(height: 12),
           _buildContactRow(context, icon: Icons.phone_outlined, label: '전화번호', value: memberWithUser.phone ?? '-'),
         ],

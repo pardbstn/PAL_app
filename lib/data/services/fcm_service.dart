@@ -17,11 +17,19 @@ class FCMService {
 
   /// 초기화
   Future<void> initialize() async {
-    // 권한 요청
-    await _requestPermission();
+    // 권한 요청 (실패해도 계속 진행)
+    try {
+      await _requestPermission();
+    } catch (e) {
+      debugPrint('[FCM] 권한 요청 실패: $e');
+    }
 
-    // 로컬 알림 초기화
-    await _initializeLocalNotifications();
+    // 로컬 알림 초기화 (실패해도 계속 진행)
+    try {
+      await _initializeLocalNotifications();
+    } catch (e) {
+      debugPrint('[FCM] 로컬 알림 초기화 실패: $e');
+    }
 
     // 포그라운드 메시지 핸들러
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -30,9 +38,13 @@ class FCMService {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
     // 앱 종료 상태에서 알림으로 열었을 때
-    final initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      _handleMessageOpenedApp(initialMessage);
+    try {
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleMessageOpenedApp(initialMessage);
+      }
+    } catch (e) {
+      debugPrint('[FCM] 초기 메시지 가져오기 실패: $e');
     }
   }
 

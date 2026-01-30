@@ -145,11 +145,11 @@ class DietAnalysisService {
           'diet/$memberId/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       await _supabase.storage
-          .from('images')
+          .from('pal-storage')
           .uploadBinary(fileName, imageBytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
 
       final imageUrl = _supabase.storage
-          .from('images')
+          .from('pal-storage')
           .getPublicUrl(fileName);
 
       // 2. Cloud Function 호출

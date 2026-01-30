@@ -309,7 +309,17 @@ class _InfoTab extends StatelessWidget {
 
   String get memberName => user?.name ?? '회원';
   String? get profileImageUrl => user?.profileImageUrl;
-  String get email => user?.email ?? '-';
+  String get email {
+    final e = user?.email;
+    if (e == null || e.isEmpty) return '-';
+    // 소셜 로그인 임시/릴레이 이메일 숨김
+    if (e.contains('privaterelay.appleid.com') ||
+        e.contains('@privaterelay.') ||
+        RegExp(r'^[a-z0-9]{10,}@').hasMatch(e)) {
+      return '-';
+    }
+    return e;
+  }
   String get phone => user?.phone ?? '-';
 
   @override
@@ -1008,7 +1018,8 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: (maxY - minY) / 4,
+            // horizontalInterval이 0이 되지 않도록 최소값 보장
+            horizontalInterval: ((maxY - minY) / 4).clamp(0.1, double.infinity),
             getDrawingHorizontalLine: (value) => FlLine(
               color: colorScheme.outlineVariant.withValues(alpha: 0.3),
               strokeWidth: 1,
@@ -1266,7 +1277,8 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                horizontalInterval: (maxY - minY) / 4,
+                // horizontalInterval이 0이 되지 않도록 최소값 보장
+                horizontalInterval: ((maxY - minY) / 4).clamp(0.1, double.infinity),
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                   strokeWidth: 1,

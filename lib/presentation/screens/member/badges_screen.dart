@@ -216,7 +216,7 @@ class BadgesScreen extends ConsumerWidget {
               const Text('🔥', style: TextStyle(fontSize: 24)),
               const SizedBox(width: 8),
               Text(
-                '나의 스트릭 기록',
+                '나의 연속 기록',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

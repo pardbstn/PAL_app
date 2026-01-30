@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:cloud_functions/cloud_functions.dart';
@@ -96,8 +97,38 @@ class AuthNotifier extends Notifier<AuthState> {
     // Firebase Auth 상태 변화 리스닝
     _auth.authStateChanges().listen((User? user) async {
       if (user != null) {
-        // Firestore에서 사용자 정보 로드
-        await _loadUserData(user.uid);
+        // 로딩 시작
+        state = state.copyWith(isLoading: true);
+
+        // Firestore에서 사용자 정보 로드 (타임아웃 10초)
+        try {
+          await _loadUserData(user.uid).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              debugPrint('[Auth] 사용자 데이터 로드 타임아웃');
+              // 타임아웃 시 기본 인증 상태만 설정
+              state = state.copyWith(
+                isLoading: false,
+                isAuthenticated: true,
+                userId: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoUrl: user.photoURL,
+              );
+            },
+          );
+        } catch (e) {
+          debugPrint('[Auth] 사용자 데이터 로드 오류: $e');
+          // 오류 발생해도 기본 인증 상태 설정
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            userId: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoUrl: user.photoURL,
+          );
+        }
       } else {
         state = const AuthState();
       }
@@ -190,6 +221,7 @@ class AuthNotifier extends Notifier<AuthState> {
         }
 
         state = state.copyWith(
+          isLoading: false,
           isAuthenticated: true,
           userId: uid,
           email: userModel.email,
@@ -204,6 +236,7 @@ class AuthNotifier extends Notifier<AuthState> {
         // Firestore에 사용자 정보가 없으면 기본 상태만 설정
         final user = _auth.currentUser;
         state = state.copyWith(
+          isLoading: false,
           isAuthenticated: true,
           userId: uid,
           email: user?.email,
@@ -806,11 +839,22 @@ class AuthNotifier extends Notifier<AuthState> {
       // 1단계: Apple 로그인 자격 증명 요청
       final AuthorizationCredentialAppleID appleCredential;
       try {
+        // Android에서는 웹 기반 인증 사용
+        final isAndroid = !kIsWeb && Platform.isAndroid;
+
         appleCredential = await SignInWithApple.getAppleIDCredential(
           scopes: [
             AppleIDAuthorizationScopes.email,
             AppleIDAuthorizationScopes.fullName,
           ],
+          webAuthenticationOptions: isAndroid
+              ? WebAuthenticationOptions(
+                  clientId: 'com.palapp.health123.service',
+                  redirectUri: Uri.parse(
+                    'https://ptmate-1a542.firebaseapp.com/__/auth/handler',
+                  ),
+                )
+              : null,
         );
         debugPrint('[Auth] Apple 자격 증명 획득 성공');
       } catch (e) {

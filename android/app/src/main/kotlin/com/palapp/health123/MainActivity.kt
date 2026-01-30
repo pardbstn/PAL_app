@@ -1,4 +1,4 @@
-package com.example.flutter_pal_app
+package com.palapp.health123
 
 import io.flutter.embedding.android.FlutterActivity
 

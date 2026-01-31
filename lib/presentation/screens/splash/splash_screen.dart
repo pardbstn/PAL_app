@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
@@ -85,93 +84,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
           ),
         ),
-        child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 로고 아이콘
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.fitness_center,
-                size: 60,
-                color: Color(0xFF2563EB),
-              ),
-            )
-                .animate()
-                .fadeIn(duration: 600.ms)
-                .scale(
-                  begin: const Offset(0.5, 0.5),
-                  end: const Offset(1.0, 1.0),
-                  duration: 600.ms,
-                  curve: Curves.easeOutBack,
-                ),
-
-            const SizedBox(height: 32),
-
-            // 앱 이름
-            Text(
-              'PAL',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFF2563EB),
-                letterSpacing: 8,
-              ),
-            )
-                .animate(delay: 300.ms)
-                .fadeIn(duration: 500.ms)
-                .slideY(begin: 0.3, end: 0, duration: 500.ms, curve: Curves.easeOut),
-
-            const SizedBox(height: 12),
-
-            // 슬로건
-            Text(
-              'Progress, Analyze, Level-up',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.8)
-                    : const Color(0xFF64748B),
-                letterSpacing: 1,
-              ),
-            )
-                .animate(delay: 600.ms)
-                .fadeIn(duration: 500.ms),
-
-            const SizedBox(height: 80),
-
-            // 로딩 인디케이터
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isDark
-                      ? Colors.white.withValues(alpha: 0.7)
-                      : const Color(0xFF2563EB).withValues(alpha: 0.5),
-                ),
-              ),
-            )
-                .animate(delay: 1000.ms)
-                .fadeIn(duration: 300.ms),
-          ],
-        ),
-      ),
+        // 배경색만 표시 (로고 없음)
+        child: const SizedBox.shrink(),
       ),
     );
   }

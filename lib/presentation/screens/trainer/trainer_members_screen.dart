@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/presentation/providers/members_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/member_card.dart';
@@ -117,10 +117,10 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       child: Row(
         children: [
           if (option == currentOption)
-            const Icon(Icons.check, size: 18, color: AppTheme.primary)
+            const Icon(Icons.check, size: 18, color: AppColors.primary)
           else
-            const SizedBox(width: 18),
-          const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: AppSpacing.sm),
           Text(label),
         ],
       ),
@@ -131,7 +131,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
     final statsAsync = ref.watch(memberStatsProvider);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         children: [
           // 검색바
@@ -153,7 +153,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
               ref.read(memberSearchQueryProvider.notifier).setQuery(value);
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
 
           // 통계 칩
           statsAsync.when(
@@ -163,17 +163,17 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
               children: [
                 _buildStatChip(
                   '전체 ${stats.totalMembers}명',
-                  AppTheme.primary,
+                  AppColors.primary,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 _buildStatChip(
                   '진행중 ${stats.activeMembers}명',
-                  AppTheme.secondary,
+                  AppColors.secondary,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 _buildStatChip(
                   '완료 ${stats.completedMembers}명',
-                  Colors.grey,
+                  AppColors.gray500,
                 ),
               ],
             ),
@@ -185,16 +185,19 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
 
   Widget _buildStatChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.fullBorderRadius,
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppTextStyle.bodySmall,
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -230,20 +233,20 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Shimmer.fromColors(
-          baseColor: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-          highlightColor: isDark ? const Color(0xFF616161) : const Color(0xFFF5F5F5),
+          baseColor: isDark ? AppColors.gray700 : AppColors.gray300,
+          highlightColor: isDark ? AppColors.gray600 : AppColors.gray100,
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             itemCount: 5,
             itemBuilder: (context, index) {
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.lgBorderRadius,
                   border: Border.all(
-                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+                    color: isDark ? AppColors.gray700 : AppColors.gray200,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -264,7 +267,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppSpacing.md),
                     // 텍스트
                     Expanded(
                       child: Column(
@@ -275,7 +278,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
                             width: 120,
                             color: Colors.white,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           Container(
                             height: 12,
                             width: 180,
@@ -290,7 +293,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
                       height: 30,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.smBorderRadius,
                       ),
                     ),
                   ],
@@ -331,7 +334,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       child: ListView.builder(
         // 검색/정렬 변경 시 애니메이션 재실행을 위한 키
         key: ValueKey('$searchQuery-${sortOption.name}'),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         itemCount: membersWithUser.length,
         itemBuilder: (context, index) {
           final mwu = membersWithUser[index];
@@ -394,7 +397,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('회원이 삭제되었습니다.'),
-            backgroundColor: AppTheme.secondary,
+            backgroundColor: AppColors.secondary,
           ),
         );
       }
@@ -403,7 +406,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('삭제 실패: $e'),
-            backgroundColor: AppTheme.error,
+            backgroundColor: AppColors.error,
           ),
         );
       }

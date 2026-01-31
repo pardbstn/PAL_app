@@ -10,6 +10,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
 import 'package:flutter_pal_app/data/repositories/insight_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
@@ -70,7 +71,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
               // 하단 여백
               const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
+                child: SizedBox(height: 100), // 하단 FAB 공간 확보
               ),
             ],
           ),
@@ -99,7 +100,10 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       title: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -107,19 +111,19 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
                   AppTheme.primary.withValues(alpha: 0.8)
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppRadius.fullBorderRadius,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
-                const SizedBox(width: 6),
+                const Icon(Icons.auto_awesome, color: Colors.white, size: AppIconSize.xs),
+                const SizedBox(width: AppSpacing.sm),
                 const Text(
                   'AI 인사이트',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: AppTextStyle.bodyLarge,
                   ),
                 ),
               ],
@@ -130,18 +134,20 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           unreadCount.when(
             data: (count) => count > 0
                 ? Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.error,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.mdBorderRadius,
                     ),
                     child: Text(
                       '$count',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: AppTextStyle.bodySmall,
                       ),
                     ),
                   )
@@ -168,7 +174,10 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       child: Row(
         children: [
           // 읽지 않은 것만 토글
@@ -181,7 +190,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
             selectedColor: AppTheme.primary.withValues(alpha: 0.2),
             checkmarkColor: AppTheme.primary,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           // 전체
           FilterChip(
             label: const Text('전체'),
@@ -192,7 +201,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
             selectedColor: colorScheme.primary.withValues(alpha: 0.2),
             checkmarkColor: colorScheme.primary,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           // 타입별 필터
           ..._buildTypeFilterChips(context),
         ],
@@ -217,9 +226,9 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
     return filters.map((filter) {
       return Padding(
-        padding: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.only(right: AppSpacing.sm),
         child: FilterChip(
-          avatar: Icon(filter.$3, size: 16),
+          avatar: Icon(filter.$3, size: AppIconSize.xs),
           label: Text(filter.$2),
           selected: _selectedFilter == filter.$1,
           onSelected: (_) {
@@ -283,7 +292,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
@@ -309,7 +318,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
   /// 로딩 스켈레톤
   Widget _buildLoadingSkeleton() {
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) => _buildSkeletonCard(context),
@@ -324,7 +333,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Shimmer.fromColors(
         baseColor: colorScheme.surfaceContainerHighest,
         highlightColor: colorScheme.surface,
@@ -332,17 +341,11 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           height: 120,
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.lgBorderRadius,
             border: Border.all(
-              color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+              color: isDark ? AppColors.gray700 : AppColors.gray200,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: AppShadows.sm,
           ),
         ),
       ),
@@ -357,10 +360,10 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
         children: [
           Icon(
             Icons.auto_awesome_outlined,
-            size: 80,
+            size: AppIconSize.xxl + AppSpacing.md,
             color: Theme.of(context).colorScheme.outline,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Text(
             _selectedFilter != null || _showUnreadOnly
                 ? '해당 조건의 인사이트가 없습니다'
@@ -369,7 +372,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
                   color: Theme.of(context).colorScheme.outline,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             '새 인사이트 생성 버튼을 눌러\nAI 분석을 시작해보세요',
             textAlign: TextAlign.center,
@@ -391,15 +394,15 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.xxl,
               color: AppTheme.error,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Text(
               '인사이트를 불러오지 못했습니다',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             TextButton.icon(
               onPressed: () => ref.invalidate(trainerInsightsProvider),
               icon: const Icon(Icons.refresh),
@@ -483,7 +486,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
         content: Row(
           children: [
             CircularProgressIndicator(),
-            SizedBox(width: 16),
+            SizedBox(width: AppSpacing.md),
             Text('AI가 회원 데이터를 분석 중입니다...'),
           ],
         ),
@@ -545,20 +548,20 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       case InsightType.recommendation:
         return AppTheme.primary;
       case InsightType.weightProgress:
-        return Colors.purple;
+        return const Color(0xFF8B5CF6); // 보라색
       case InsightType.workoutVolume:
-        return Colors.teal;
+        return AppColors.secondary;
       // 신규 트레이너 인사이트
       case InsightType.churnRisk:
-        return const Color(0xFFEF4444); // 빨간색 - 이탈 위험
+        return AppColors.error;
       case InsightType.renewalLikelihood:
-        return const Color(0xFF10B981); // 초록색 - 재등록 가능성
+        return AppColors.secondary;
       case InsightType.plateauDetection:
-        return const Color(0xFFF59E0B); // 주황색 - 정체기
+        return AppColors.tertiary;
       case InsightType.workoutRecommendation:
         return AppTheme.primary;
       case InsightType.noshowPattern:
-        return const Color(0xFFEF4444); // 빨간색 - 노쇼
+        return AppColors.error;
       case InsightType.performanceRanking:
         return const Color(0xFF8B5CF6); // 보라색 - 랭킹
       // 회원 인사이트 (필터에는 나오지 않지만 처리)
@@ -593,11 +596,11 @@ class _InsightCard extends StatelessWidget {
   Color _getPriorityColor(InsightPriority priority) {
     switch (priority) {
       case InsightPriority.high:
-        return const Color(0xFFEF4444); // Red
+        return AppColors.error;
       case InsightPriority.medium:
-        return const Color(0xFFF59E0B); // Orange
+        return AppColors.tertiary;
       case InsightPriority.low:
-        return const Color(0xFF3B82F6); // Blue
+        return AppColors.primary;
     }
   }
 
@@ -610,7 +613,7 @@ class _InsightCard extends StatelessWidget {
                      insight.graphType != null;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: GestureDetector(
         onTap: () {
           // 회원 ID가 있으면 회원 상세 페이지로 이동
@@ -627,8 +630,8 @@ class _InsightCard extends StatelessWidget {
               // 읽지 않은 표시
               if (!insight.isRead)
                 Positioned(
-                  top: 12,
-                  right: 12,
+                  top: AppSpacing.md,
+                  right: AppSpacing.md,
                   child: Container(
                     width: 10,
                     height: 10,
@@ -639,7 +642,7 @@ class _InsightCard extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -648,18 +651,18 @@ class _InsightCard extends StatelessWidget {
                       children: [
                         // 타입 아이콘
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
                             color: priorityColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadius.smBorderRadius,
                           ),
                           child: Icon(
                             insight.typeIcon,
                             color: priorityColor,
-                            size: 20,
+                            size: AppIconSize.sm,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppSpacing.md),
                         // 타입 & 회원명
                         Expanded(
                           child: Column(
@@ -685,19 +688,19 @@ class _InsightCard extends StatelessWidget {
                                   ),
                                   // 우선순위 배지
                                   Container(
-                                    margin: const EdgeInsets.only(left: 8),
+                                    margin: const EdgeInsets.only(left: AppSpacing.sm),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
+                                      horizontal: AppSpacing.sm,
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
                                       color: priorityColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: AppRadius.mdBorderRadius,
                                     ),
                                     child: Text(
                                       _getPriorityLabel(insight.priority),
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: AppTextStyle.caption,
                                         fontWeight: FontWeight.w600,
                                         color: priorityColor,
                                       ),
@@ -707,7 +710,7 @@ class _InsightCard extends StatelessWidget {
                               ),
                               if (insight.memberName != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 2),
+                                  padding: const EdgeInsets.only(top: AppSpacing.xs),
                                   child: Text(
                                     insight.memberName!,
                                     style: Theme.of(context)
@@ -726,7 +729,7 @@ class _InsightCard extends StatelessWidget {
                     // 미니 그래프 - 타입별 전용 위젯 사용
                     if (insight.type == InsightType.churnRisk &&
                         insight.data != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       ChurnGaugeChart(
                         churnScore:
                             (insight.data!['churnScore'] as num?)?.toInt() ?? 0,
@@ -739,7 +742,7 @@ class _InsightCard extends StatelessWidget {
                       ),
                     ] else if (insight.type == InsightType.workoutVolume &&
                         insight.data != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       VolumeBarChart(
                         weeklyVolumes: _parseWeeklyVolumes(
                             insight.data!['weeklyVolumes']),
@@ -753,7 +756,7 @@ class _InsightCard extends StatelessWidget {
                             insight.data!['weeklyChanges']),
                       ),
                     ] else if (hasGraph) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Center(
                         child: InsightMiniChart(
                           graphType: insight.graphType!,
@@ -764,7 +767,7 @@ class _InsightCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     // 메시지
                     Text(
                       insight.message,
@@ -778,12 +781,12 @@ class _InsightCard extends StatelessWidget {
                     ),
                     // 조치 제안
                     if (insight.actionSuggestion != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.smBorderRadius,
                           border: Border.all(
                             color: AppTheme.primary.withValues(alpha: 0.2),
                           ),
@@ -792,10 +795,10 @@ class _InsightCard extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.lightbulb_outline,
-                              size: 16,
+                              size: AppIconSize.xs,
                               color: AppTheme.primary,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 insight.actionSuggestion!,
@@ -915,7 +918,9 @@ class _InsightDetailSheet extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
+            ),
           ),
           child: Column(
             children: [
@@ -923,7 +928,7 @@ class _InsightDetailSheet extends StatelessWidget {
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 12),
+                margin: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
                   color: colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
@@ -933,25 +938,25 @@ class _InsightDetailSheet extends StatelessWidget {
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   children: [
                     // 헤더
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(AppSpacing.md),
                           decoration: BoxDecoration(
                             color:
                                 insight.priorityColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadius.mdBorderRadius,
                           ),
                           child: Icon(
                             insight.typeIcon,
                             color: insight.priorityColor,
-                            size: 28,
+                            size: AppIconSize.lg,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -980,7 +985,7 @@ class _InsightDetailSheet extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.lg),
                     // 우선순위 배지
                     Row(
                       children: [
@@ -989,7 +994,7 @@ class _InsightDetailSheet extends StatelessWidget {
                           _getPriorityLabel(insight.priority),
                           insight.priorityColor,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         _buildBadge(
                           context,
                           _getTypeLabel(insight.type),
@@ -997,7 +1002,7 @@ class _InsightDetailSheet extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.lg),
                     // 메시지
                     Text(
                       '내용',
@@ -1005,26 +1010,26 @@ class _InsightDetailSheet extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       insight.message,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     // 조치 제안
                     if (insight.actionSuggestion != null) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
                         '권장 조치',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadius.mdBorderRadius,
                           border: Border.all(
                             color: AppTheme.primary.withValues(alpha: 0.2),
                           ),
@@ -1036,7 +1041,7 @@ class _InsightDetailSheet extends StatelessWidget {
                               Icons.lightbulb,
                               color: AppTheme.primary,
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Text(
                                 insight.actionSuggestion!,
@@ -1054,17 +1059,17 @@ class _InsightDetailSheet extends StatelessWidget {
                     ],
                     // 추가 데이터
                     if (insight.data != null && insight.data!.isNotEmpty) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
                         '상세 데이터',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       ...insight.data!.entries.map((entry) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1091,7 +1096,7 @@ class _InsightDetailSheet extends StatelessWidget {
                         );
                       }),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.lg),
                     // 생성일
                     Text(
                       '생성일: ${_formatDate(insight.createdAt)}',
@@ -1118,10 +1123,13 @@ class _InsightDetailSheet extends StatelessWidget {
 
   Widget _buildBadge(BuildContext context, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgBorderRadius,
       ),
       child: Text(
         label,

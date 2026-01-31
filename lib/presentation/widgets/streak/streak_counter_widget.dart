@@ -130,12 +130,17 @@ class _StreakCounterWidgetState extends ConsumerState<StreakCounterWidget> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildAnimatedFireEmoji(),
-            const SizedBox(width: 4),
             _buildAnimatedCounter(
               theme.textTheme.bodyMedium!.copyWith(
                 color: streakColor,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              '일연속',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: streakColor,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -206,8 +211,6 @@ class _StreakCounterWidgetState extends ConsumerState<StreakCounterWidget> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildAnimatedFireEmoji(size: 24),
-                          const SizedBox(width: 2),
                           _buildAnimatedCounter(
                             theme.textTheme.titleMedium!.copyWith(
                               color: streakColor,
@@ -232,39 +235,13 @@ class _StreakCounterWidgetState extends ConsumerState<StreakCounterWidget> {
                 ),
               ],
             ),
-            if (_currentStreak > 0) ...[
-              const SizedBox(height: 12),
-              _buildProgressIndicator(streakColor),
-            ],
+            // 항상 진행바 표시 (크기 통일)
+            const SizedBox(height: 12),
+            _buildProgressIndicator(streakColor),
           ],
         ),
       ),
     ).animate().fadeIn(duration: 300.ms).slideX(begin: -0.1, end: 0);
-  }
-
-  Widget _buildAnimatedFireEmoji({double size = 20}) {
-    if (_currentStreak == 0) {
-      return Text(
-        '🔥',
-        style: TextStyle(
-          fontSize: size,
-          color: Colors.grey,
-        ),
-      ).animate().fade(begin: 0.3, end: 0.5);
-    }
-
-    return Text(
-      '🔥',
-      style: TextStyle(fontSize: size),
-    )
-        .animate(
-          onPlay: (controller) => controller.repeat(reverse: true),
-        )
-        .scale(
-          begin: const Offset(1, 1),
-          end: const Offset(1.15, 1.15),
-          duration: 800.ms,
-        );
   }
 
   Widget _buildAnimatedCounter(TextStyle style) {

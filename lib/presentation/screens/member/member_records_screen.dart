@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/body_composition_prediction_model.dart';
 import '../../../data/models/body_record_model.dart';
 import '../../../data/models/curriculum_model.dart';
@@ -73,7 +73,7 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
                 ),
               ),
               titlePadding:
-                  const EdgeInsets.only(left: 16, bottom: 72),
+                  const EdgeInsets.only(left: AppSpacing.md, bottom: 72),
               background: Container(
                 color: Colors.transparent,
               ),
@@ -102,10 +102,10 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
     final colorScheme = theme.colorScheme;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdBorderRadius,
       ),
       child: TabBar(
         controller: _tabController,
@@ -192,7 +192,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
               child: CustomScrollView(
                 slivers: [
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: 16),
+                    child: SizedBox(height: AppSpacing.md),
                   ),
                   // 현재 체성분 요약 카드들
                   SliverToBoxAdapter(
@@ -205,7 +205,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                     ),
                   ),
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: 24),
+                    child: SizedBox(height: AppSpacing.lg),
                   ),
                   // 메트릭 선택 세그먼트 버튼
                   SliverToBoxAdapter(
@@ -217,7 +217,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                     ),
                   ),
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: 16),
+                    child: SizedBox(height: AppSpacing.md),
                   ),
                   // 체성분 변화 그래프
                   SliverToBoxAdapter(
@@ -239,14 +239,14 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                     ),
                   ),
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: 16),
+                    child: SizedBox(height: AppSpacing.md),
                   ),
                   // AI 예측 카드
                   SliverToBoxAdapter(
                     child: _AIPredictionCard(memberId: memberId),
                   ),
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: 24),
+                    child: SizedBox(height: AppSpacing.lg),
                   ),
                   // 섹션 헤더
                   SliverToBoxAdapter(
@@ -260,7 +260,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                   ),
                   // 기록 리스트
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => _BodyRecordCard(
@@ -318,11 +318,11 @@ class _MetricSegmentedButton extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdBorderRadius,
         ),
         child: SegmentedButton<String>(
           segments: const [
@@ -368,14 +368,14 @@ class _AIPredictionCard extends ConsumerWidget {
 
     if (predictionState.isLoading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.lg - 4),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.lgBorderRadius,
             border: Border.all(
-              color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+              color: isDark ? AppColors.darkBorder : AppColors.gray200,
             ),
             boxShadow: [
               BoxShadow(
@@ -401,14 +401,14 @@ class _AIPredictionCard extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg - 4),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -423,19 +423,6 @@ class _AIPredictionCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    size: 20,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Text(
                   '체성분 예측 (4주 후)',
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -463,7 +450,7 @@ class _AIPredictionCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             // 체중 예측
             if (prediction.weightPrediction != null)
               _buildPredictionRow(
@@ -471,7 +458,7 @@ class _AIPredictionCard extends ConsumerWidget {
                 '체중',
                 prediction.weightPrediction!,
                 'kg',
-                AppTheme.primary,
+                AppColors.primary,
                 Icons.monitor_weight_rounded,
               ),
             // 골격근량 예측
@@ -501,10 +488,10 @@ class _AIPredictionCard extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.lightbulb_outline_rounded,
-                    size: 16,
+                    size: AppIconSize.xs,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       prediction.analysisMessage,
@@ -551,7 +538,7 @@ class _AIPredictionCard extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           Container(
@@ -560,9 +547,9 @@ class _AIPredictionCard extends ConsumerWidget {
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 16, color: color),
+            child: Icon(icon, size: AppIconSize.xs, color: color),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md / 1.333),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,7 +583,7 @@ class _AIPredictionCard extends ConsumerWidget {
                         color: color,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       '(4주 후)',
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -610,7 +597,7 @@ class _AIPredictionCard extends ConsumerWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: changeColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -638,7 +625,7 @@ class _CurrentStatsCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         children: [
           Expanded(
@@ -646,28 +633,22 @@ class _CurrentStatsCards extends StatelessWidget {
               label: '체중',
               value: record.weight.toStringAsFixed(1),
               unit: 'kg',
-              icon: Icons.monitor_weight_rounded,
-              color: AppTheme.primary,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md / 1.333),
           Expanded(
             child: _StatCard(
               label: '체지방률',
               value: record.bodyFatPercent?.toStringAsFixed(1) ?? '-',
               unit: '%',
-              icon: Icons.water_drop_rounded,
-              color: AppTheme.tertiary,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md / 1.333),
           Expanded(
             child: _StatCard(
               label: '골격근량',
               value: record.muscleMass?.toStringAsFixed(1) ?? '-',
               unit: 'kg',
-              icon: Icons.fitness_center_rounded,
-              color: AppTheme.secondary,
             ),
           ),
         ],
@@ -685,15 +666,11 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.unit,
-    required this.icon,
-    required this.color,
   });
 
   final String label;
   final String value;
   final String unit;
-  final IconData icon;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -703,12 +680,12 @@ class _StatCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgBorderRadius,
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray200,
         ),
         boxShadow: [
           BoxShadow(
@@ -721,26 +698,13 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 12),
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -752,7 +716,7 @@ class _StatCard extends StatelessWidget {
                   color: colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 unit,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -805,24 +769,24 @@ class _BodyCompositionChart extends ConsumerWidget {
         break;
       case 'all':
         chartTitle = '체성분 종합 추이';
-        primaryColor = AppTheme.primary;
+        primaryColor = AppColors.primary;
         break;
       default:
         chartTitle = '체중 변화 추이';
-        primaryColor = AppTheme.primary;
+        primaryColor = AppColors.primary;
     }
 
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg - 4),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -838,18 +802,18 @@ class _BodyCompositionChart extends ConsumerWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
                     color: primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smBorderRadius,
                   ),
                   child: Icon(
                     Icons.trending_up_rounded,
-                    size: 20,
+                    size: AppIconSize.sm,
                     color: primaryColor,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md / 1.333),
                 Text(
                   chartTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -862,7 +826,7 @@ class _BodyCompositionChart extends ConsumerWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             SizedBox(
               height: 200,
               child: selectedMetric == 'all'
@@ -883,10 +847,10 @@ class _BodyCompositionChart extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _legendItem(context, '체중', AppTheme.primary),
-        const SizedBox(width: 8),
+        _legendItem(context, '체중', AppColors.primary),
+        const SizedBox(width: AppSpacing.sm),
         _legendItem(context, '근육', Colors.green),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.sm),
         _legendItem(context, '체지방', Colors.orange),
       ],
     );
@@ -904,7 +868,7 @@ class _BodyCompositionChart extends ConsumerWidget {
             shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.xs),
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1091,7 +1055,7 @@ class _BodyCompositionChart extends ConsumerWidget {
           },
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => colorScheme.inverseSurface,
-            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipBorderRadius: AppRadius.smBorderRadius,
             getTooltipItems: (spots) {
               return spots.map((spot) {
                 final index = spot.spotIndex;
@@ -1238,7 +1202,7 @@ class _BodyCompositionChart extends ConsumerWidget {
         lineBarsData: [
           // 체중 라인
           if (weightSpots.isNotEmpty)
-            _buildLineBarData(weightSpots, AppTheme.primary, colorScheme),
+            _buildLineBarData(weightSpots, AppColors.primary, colorScheme),
           // 골격근량 라인
           if (muscleSpots.isNotEmpty)
             _buildLineBarData(muscleSpots, Colors.green, colorScheme),
@@ -1247,7 +1211,7 @@ class _BodyCompositionChart extends ConsumerWidget {
             _buildLineBarData(bodyFatSpots, Colors.orange, colorScheme),
           // 예측 라인 (점선)
           if (weightPredSpots.isNotEmpty)
-            _buildPredictionLineBarData(weightPredSpots, AppTheme.primary),
+            _buildPredictionLineBarData(weightPredSpots, AppColors.primary),
           if (musclePredSpots.isNotEmpty)
             _buildPredictionLineBarData(musclePredSpots, Colors.green),
           if (bodyFatPredSpots.isNotEmpty)
@@ -1266,7 +1230,7 @@ class _BodyCompositionChart extends ConsumerWidget {
                       radius: 6,
                       color: colorScheme.surface,
                       strokeWidth: 2,
-                      strokeColor: barData.color ?? AppTheme.primary,
+                      strokeColor: barData.color ?? AppColors.primary,
                     );
                   },
                 ),
@@ -1275,7 +1239,7 @@ class _BodyCompositionChart extends ConsumerWidget {
           },
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => colorScheme.inverseSurface,
-            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipBorderRadius: AppRadius.smBorderRadius,
             getTooltipItems: (spots) {
               return spots.map((spot) {
                 final index = spot.spotIndex;
@@ -1285,7 +1249,7 @@ class _BodyCompositionChart extends ConsumerWidget {
                 String unit;
 
                 // 색상으로 어떤 라인인지 판별
-                if (spot.bar.color == AppTheme.primary) {
+                if (spot.bar.color == AppColors.primary) {
                   label = '체중';
                   unit = 'kg';
                 } else if (spot.bar.color == Colors.green) {
@@ -1412,7 +1376,7 @@ class _BodyCompositionChart extends ConsumerWidget {
               return const SizedBox.shrink();
             }
             return Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 DateFormat('M/d').format(chartData[index].date),
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1448,14 +1412,14 @@ class _BodyRecordCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md / 1.333),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -1479,32 +1443,32 @@ class _BodyRecordCard extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: AppRadius.smBorderRadius,
                       ),
                       child: Text(
                         DateFormat('yyyy.MM.dd HH:mm').format(record.createdAt),
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: AppTheme.primary,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     if (record.isInbodyData) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondary.withValues(alpha: 0.1),
+                          color: AppColors.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           'InBody',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.secondary,
+                            color: AppColors.secondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1519,13 +1483,13 @@ class _BodyRecordCard extends ConsumerWidget {
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         color: colorScheme.error,
-                        size: 20,
+                        size: AppIconSize.sm,
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => _showDeleteDialog(context, ref),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Icon(
                       Icons.chevron_right_rounded,
                       color: colorScheme.onSurfaceVariant,
@@ -1534,31 +1498,47 @@ class _BodyRecordCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _RecordItem(
-                  label: '체중',
-                  value: '${record.weight.toStringAsFixed(1)} kg',
-                ),
-                const SizedBox(width: 24),
-                _RecordItem(
-                  label: '체지방률',
-                  value: record.bodyFatPercent != null
-                      ? '${record.bodyFatPercent!.toStringAsFixed(1)} %'
-                      : '-',
-                ),
-                const SizedBox(width: 24),
-                _RecordItem(
-                  label: '골격근량',
-                  value: record.muscleMass != null
-                      ? '${record.muscleMass!.toStringAsFixed(1)} kg'
-                      : '-',
-                ),
-              ],
+            const SizedBox(height: AppSpacing.md),
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _RecordItem(
+                      label: '체중',
+                      value: '${record.weight.toStringAsFixed(1)} kg',
+                    ),
+                  ),
+                  VerticalDivider(
+                    width: AppSpacing.lg * 2,
+                    thickness: 1,
+                    color: isDark ? AppColors.darkBorder : AppColors.gray200,
+                  ),
+                  Expanded(
+                    child: _RecordItem(
+                      label: '체지방률',
+                      value: record.bodyFatPercent != null
+                          ? '${record.bodyFatPercent!.toStringAsFixed(1)} %'
+                          : '-',
+                    ),
+                  ),
+                  VerticalDivider(
+                    width: AppSpacing.lg * 2,
+                    thickness: 1,
+                    color: isDark ? AppColors.darkBorder : AppColors.gray200,
+                  ),
+                  Expanded(
+                    child: _RecordItem(
+                      label: '골격근량',
+                      value: record.muscleMass != null
+                          ? '${record.muscleMass!.toStringAsFixed(1)} kg'
+                          : '-',
+                    ),
+                  ),
+                ],
+              ),
             ),
             if (record.note != null && record.note!.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md / 1.333),
               Text(
                 record.note!,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1599,7 +1579,7 @@ class _BodyRecordCard extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('기록이 삭제되었습니다'),
-                      backgroundColor: AppTheme.secondary,
+                      backgroundColor: AppColors.secondary,
                     ),
                   );
                 }
@@ -1608,7 +1588,7 @@ class _BodyRecordCard extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('삭제 실패: $e'),
-                      backgroundColor: AppTheme.error,
+                      backgroundColor: AppColors.error,
                     ),
                   );
                 }
@@ -1712,7 +1692,7 @@ class _ExerciseRecordsTab extends ConsumerWidget {
               ),
               // 타임라인 리스트
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => _ExerciseTimelineCard(
@@ -1767,11 +1747,11 @@ class _ExerciseTimelineCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary,
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1791,14 +1771,14 @@ class _ExerciseTimelineCard extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            AppTheme.primary,
-                            AppTheme.primary.withValues(alpha: 0.2),
+                            AppColors.primary,
+                            AppColors.primary.withValues(alpha: 0.2),
                           ],
                         ),
                       ),
@@ -1807,17 +1787,17 @@ class _ExerciseTimelineCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md / 1.333),
           // 카드 컨텐츠
           Expanded(
             child: GestureDetector(
               onTap: () => _showExerciseDetailSheet(context),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.lgBorderRadius,
                   border: Border.all(
                     color: theme.brightness == Brightness.dark
                         ? const Color(0xFF2E3B5E)
@@ -1846,14 +1826,14 @@ class _ExerciseTimelineCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.secondary.withValues(alpha: 0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -1862,13 +1842,13 @@ class _ExerciseTimelineCard extends StatelessWidget {
                               const Icon(
                                 Icons.check_circle_rounded,
                                 size: 14,
-                                color: AppTheme.secondary,
+                                color: AppColors.secondary,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppSpacing.xs),
                               Text(
                                 '완료',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.secondary,
+                                  color: AppColors.secondary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1877,7 +1857,7 @@ class _ExerciseTimelineCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         Expanded(
@@ -1890,13 +1870,13 @@ class _ExerciseTimelineCard extends StatelessWidget {
                         ),
                         Icon(
                           Icons.chevron_right_rounded,
-                          size: 20,
+                          size: AppIconSize.sm,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ],
                     ),
                     if (curriculum.exercises.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md / 1.333),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -1910,7 +1890,7 @@ class _ExerciseTimelineCard extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: colorScheme.surfaceContainerHighest
                                         .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AppRadius.smBorderRadius,
                                   ),
                                   child: Text(
                                     exercise.name,
@@ -1923,11 +1903,11 @@ class _ExerciseTimelineCard extends StatelessWidget {
                       ),
                       if (curriculum.exercises.length > 4)
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
                           child: Text(
                             '+${curriculum.exercises.length - 4}개 더보기',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.primary,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -1983,7 +1963,7 @@ class _ExerciseDetailSheet extends StatelessWidget {
         children: [
           // 드래그 핸들
           Container(
-            margin: const EdgeInsets.only(top: 12),
+            margin: const EdgeInsets.only(top: AppSpacing.md / 1.333),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
@@ -1993,7 +1973,7 @@ class _ExerciseDetailSheet extends StatelessWidget {
           ),
           // 헤더
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.lg - 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2012,25 +1992,25 @@ class _ExerciseDetailSheet extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  borderRadius: AppRadius.smBorderRadius,
                                 ),
                                 child: Text(
                                   '${curriculum.sessionNumber}회차',
                                   style: theme.textTheme.labelMedium?.copyWith(
-                                    color: AppTheme.primary,
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.sm),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.secondary.withValues(alpha: 0.1),
+                                  color: AppColors.secondary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
@@ -2039,13 +2019,13 @@ class _ExerciseDetailSheet extends StatelessWidget {
                                     const Icon(
                                       Icons.check_circle_rounded,
                                       size: 14,
-                                      color: AppTheme.secondary,
+                                      color: AppColors.secondary,
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(width: AppSpacing.xs),
                                     Text(
                                       '완료',
                                       style: theme.textTheme.labelSmall?.copyWith(
-                                        color: AppTheme.secondary,
+                                        color: AppColors.secondary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -2054,14 +2034,14 @@ class _ExerciseDetailSheet extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.md / 1.333),
                           Text(
                             curriculum.title,
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                             DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -2077,26 +2057,26 @@ class _ExerciseDetailSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // 요약 통계
                 Row(
                   children: [
                     _SummaryChip(
                       icon: Icons.fitness_center_rounded,
                       label: '${curriculum.exercises.length}개 운동',
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md / 1.333),
                     _SummaryChip(
                       icon: Icons.repeat_rounded,
                       label: '${curriculum.totalSets}세트',
-                      color: AppTheme.tertiary,
+                      color: AppColors.tertiary,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md / 1.333),
                     _SummaryChip(
                       icon: Icons.timer_rounded,
                       label: '약 ${curriculum.estimatedDuration}분',
-                      color: AppTheme.secondary,
+                      color: AppColors.secondary,
                     ),
                   ],
                 ),
@@ -2117,10 +2097,10 @@ class _ExerciseDetailSheet extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.fitness_center_rounded,
-                          size: 48,
+                          size: AppIconSize.xl,
                           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.md / 1.333),
                         Text(
                           '등록된 운동이 없습니다',
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -2132,9 +2112,9 @@ class _ExerciseDetailSheet extends StatelessWidget {
                   )
                 : ListView.separated(
                     shrinkWrap: true,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(AppSpacing.lg - 4),
                     itemCount: curriculum.exercises.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md / 1.333),
                     itemBuilder: (context, index) {
                       final exercise = curriculum.exercises[index];
                       return _ExerciseDetailCard(
@@ -2172,7 +2152,7 @@ class _SummaryChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md / 1.333, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
@@ -2182,7 +2162,7 @@ class _SummaryChip extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 16,
+            size: AppIconSize.xs,
             color: color,
           ),
           const SizedBox(width: 6),
@@ -2217,12 +2197,12 @@ class _ExerciseDetailCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgBorderRadius,
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray200,
         ),
         boxShadow: [
           BoxShadow(
@@ -2242,8 +2222,8 @@ class _ExerciseDetailCard extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.primary,
+                  borderRadius: AppRadius.smBorderRadius,
                 ),
                 child: Center(
                   child: Text(
@@ -2255,7 +2235,7 @@ class _ExerciseDetailCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md / 1.333),
               // 운동 이름
               Expanded(
                 child: Text(
@@ -2267,7 +2247,7 @@ class _ExerciseDetailCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           // 세트 정보
           Row(
             children: [
@@ -2306,7 +2286,7 @@ class _ExerciseDetailCard extends StatelessWidget {
           ),
           // 메모
           if (exercise.note != null && exercise.note!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md / 1.333),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -2319,10 +2299,10 @@ class _ExerciseDetailCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.notes_rounded,
-                    size: 16,
+                    size: AppIconSize.xs,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       exercise.note!,
@@ -2368,7 +2348,7 @@ class _ExerciseInfoItem extends StatelessWidget {
           size: 18,
           color: colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           label,
           style: theme.textTheme.labelSmall?.copyWith(
@@ -2423,7 +2403,7 @@ class _SignatureRecordsTab extends ConsumerWidget {
               child: SizedBox(height: 16),
             ),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -2476,9 +2456,9 @@ class _SignatureCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -2517,14 +2497,14 @@ class _SignatureCard extends StatelessWidget {
                           ),
                           errorWidget: (context, url, error) => Icon(
                             Icons.draw_rounded,
-                            size: 48,
+                            size: AppIconSize.xl,
                             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                           ),
                         )
                       : Center(
                           child: Icon(
                             Icons.draw_rounded,
-                            size: 48,
+                            size: AppIconSize.xl,
                             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                           ),
                         ),
@@ -2546,20 +2526,20 @@ class _SignatureCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           '${signature.sessionNumber}회차',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.primary,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                       Icon(
                         Icons.open_in_new_rounded,
-                        size: 16,
+                        size: AppIconSize.xs,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ],
@@ -2597,10 +2577,10 @@ class _SignatureCard extends StatelessWidget {
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: AppRadius.xlBorderRadius,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2620,19 +2600,19 @@ class _SignatureCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               Container(
                 height: 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.lgBorderRadius,
                   border: Border.all(
                     color: colorScheme.outlineVariant,
                   ),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.lgBorderRadius,
                   child: signature.signatureImageUrl.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: signature.signatureImageUrl,
@@ -2649,10 +2629,10 @@ class _SignatureCard extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.error_outline_rounded,
-                                  size: 48,
+                                  size: AppIconSize.xl,
                                   color: colorScheme.error.withValues(alpha: 0.5),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: AppSpacing.sm),
                                 Text(
                                   '이미지 로드 실패',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -2672,7 +2652,7 @@ class _SignatureCard extends StatelessWidget {
                                 size: 64,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               Text(
                                 '서명 이미지 없음',
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -2684,7 +2664,7 @@ class _SignatureCard extends StatelessWidget {
                         ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 DateFormat('yyyy년 M월 d일').format(signature.signedAt),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -2719,7 +2699,7 @@ class _SectionHeader extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -2730,10 +2710,10 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.mdBorderRadius,
             ),
             child: Text(
               subtitle,
@@ -2760,7 +2740,7 @@ class _AddRecordFAB extends StatelessWidget {
 
     return FloatingActionButton.extended(
       onPressed: onPressed,
-      backgroundColor: AppTheme.primary,
+      backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 4,
       icon: const Icon(Icons.add_rounded),
@@ -2863,7 +2843,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
           const SnackBar(
             content: Text('체성분 기록이 저장되었습니다'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: AppTheme.secondary,
+            backgroundColor: AppColors.secondary,
           ),
         );
       }
@@ -2873,7 +2853,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
           SnackBar(
             content: Text('저장 실패: $e'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: AppTheme.error,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -2890,7 +2870,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -2914,7 +2894,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           // 날짜 선택
           GestureDetector(
             onTap: () async {
@@ -2929,15 +2909,15 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
               }
             },
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdBorderRadius,
               ),
               child: Row(
                 children: [
                   const Icon(Icons.calendar_today_rounded),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md / 1.333),
                   Text(
                     DateFormat('yyyy년 M월 d일').format(_selectedDate),
                     style: theme.textTheme.bodyLarge,
@@ -2946,7 +2926,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           // 입력 필드들
           Row(
             children: [
@@ -2960,7 +2940,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md / 1.333),
               Expanded(
                 child: TextField(
                   controller: _bodyFatController,
@@ -2973,7 +2953,7 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md / 1.333),
           Row(
             children: [
               Expanded(
@@ -2986,11 +2966,11 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md / 1.333),
               const Expanded(child: SizedBox()),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md / 1.333),
           TextField(
             controller: _noteController,
             maxLines: 2,
@@ -2999,13 +2979,13 @@ class _AddBodyRecordSheetState extends ConsumerState<_AddBodyRecordSheet> {
               hintText: '메모를 입력하세요',
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: _isSaving ? null : _saveRecord,
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               ),
               child: _isSaving
                   ? const SizedBox(
@@ -3039,14 +3019,14 @@ class _SingleRecordDisplay extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg - 4),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -3060,12 +3040,6 @@ class _SingleRecordDisplay extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.monitor_weight_rounded,
-                  color: AppTheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
                 Text(
                   '현재 체성분',
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -3089,7 +3063,7 @@ class _SingleRecordDisplay extends StatelessWidget {
                   context,
                   '체중',
                   '${record.weight.toStringAsFixed(1)}kg',
-                  AppTheme.primary,
+                  AppColors.primary,
                 ),
                 if (record.bodyFatPercent != null)
                   _buildMetricItem(
@@ -3107,22 +3081,22 @@ class _SingleRecordDisplay extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md / 1.333, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smBorderRadius,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.xs,
                     color: colorScheme.primary,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     '기록을 추가하면 변화 그래프가 표시됩니다',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -3153,7 +3127,7 @@ class _SingleRecordDisplay extends StatelessWidget {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           value,
           style: theme.textTheme.titleLarge?.copyWith(
@@ -3180,14 +3154,14 @@ class _ChartPlaceholder extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
         height: 200,
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgBorderRadius,
           border: Border.all(
-            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray200,
           ),
           boxShadow: [
             BoxShadow(
@@ -3203,10 +3177,10 @@ class _ChartPlaceholder extends StatelessWidget {
             children: [
               Icon(
                 Icons.show_chart_rounded,
-                size: 48,
+                size: AppIconSize.xl,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md / 1.333),
               Text(
                 message,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -3237,25 +3211,25 @@ class _BodyCompositionShimmer extends StatelessWidget {
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
             // 통계 카드 시머
             const _StatsCardsShimmer(),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             // 차트 시머
             const _ChartShimmer(),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             // 리스트 시머
             ...List.generate(
               3,
               (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: AppSpacing.md / 1.333),
                 child: Container(
                   height: 100,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: AppRadius.lgBorderRadius,
                   ),
                 ),
               ),
@@ -3279,7 +3253,7 @@ class _StatsCardsShimmer extends StatelessWidget {
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Row(
           children: List.generate(
             3,
@@ -3289,7 +3263,7 @@ class _StatsCardsShimmer extends StatelessWidget {
                 height: 120,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.lgBorderRadius,
                 ),
               ),
             ),
@@ -3312,12 +3286,12 @@ class _ChartShimmer extends StatelessWidget {
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Container(
           height: 260,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppSpacing.lg - 4),
           ),
         ),
       ),
@@ -3337,7 +3311,7 @@ class _ExerciseRecordsShimmer extends StatelessWidget {
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: List.generate(
             4,
@@ -3360,7 +3334,7 @@ class _ExerciseRecordsShimmer extends StatelessWidget {
                       height: 120,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadius.lgBorderRadius,
                       ),
                     ),
                   ),

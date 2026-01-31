@@ -13,8 +13,7 @@ import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
-
-import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_alert_card.dart';
@@ -1402,139 +1401,145 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               context.push('/trainer/members/${insight.memberId}');
             }
           },
-          child: GradientGlassCard(
-            gradientColors: [
-              insight.priorityColor.withValues(alpha: 0.8),
-              insight.priorityColor.withValues(alpha: 0.6),
-            ],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+          child: AppCard(
+            variant: AppCardVariant.standard,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: insight.priorityColor,
+                    width: 4,
+                  ),
+                ),
+              ),
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: insight.priorityColor.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          insight.typeIcon,
+                          color: insight.priorityColor,
+                          size: 24,
+                        ),
                       ),
-                      child: Icon(
-                        insight.typeIcon,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  insight.title,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'AI',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    insight.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
-                              if (!insight.isRead)
                                 Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'AI',
+                                    style: TextStyle(
+                                      color: AppTheme.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          // 회원 이름 표시
-                          if (insight.memberName != null &&
-                              insight.memberName!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              insight.memberName!,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
+                                if (!insight.isRead)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 6),
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.error,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
                             ),
+                            // 회원 이름 표시
+                            if (insight.memberName != null &&
+                                insight.memberName!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                insight.memberName!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  insight.message,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 13,
-                    height: 1.4,
+                    ],
                   ),
-                ),
-                // 이탈 위험도 게이지 차트 (churnRisk 타입일 때)
-                if (insight.type == InsightType.churnRisk &&
-                    insight.data != null)
-                  _buildChurnGaugeSection(insight.data!),
-                // 운동 볼륨 바 차트 (workoutVolume 타입일 때)
-                if (insight.type == InsightType.workoutVolume &&
-                    insight.data != null)
-                  _buildVolumeBarSection(insight.data!),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      insight.isRead ? '확인하기' : '새 알림',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
+                  const SizedBox(height: 10),
+                  Text(
+                    insight.message,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
                     ),
                   ),
-                ),
-              ],
+                  // 이탈 위험도 게이지 차트 (churnRisk 타입일 때)
+                  if (insight.type == InsightType.churnRisk &&
+                      insight.data != null)
+                    _buildChurnGaugeSection(insight.data!),
+                  // 운동 볼륨 바 차트 (workoutVolume 타입일 때)
+                  if (insight.type == InsightType.workoutVolume &&
+                      insight.data != null)
+                    _buildVolumeBarSection(insight.data!),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: insight.priorityColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: insight.priorityColor.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        insight.isRead ? '확인하기' : '새 알림',
+                        style: TextStyle(
+                          color: insight.priorityColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         )
@@ -1725,8 +1730,19 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
 
   /// 로컬 인사이트 카드 (기존 스타일 유지)
   Widget _buildLocalInsightCard(_InsightItem insight, int index) {
-    return GradientGlassCard(
-          gradientColors: insight.gradientColors,
+    return Container(
+      child: AppCard(
+        variant: AppCardVariant.standard,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: insight.iconColor,
+                width: 4,
+              ),
+            ),
+          ),
+          padding: EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1735,17 +1751,16 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: insight.iconColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(insight.icon, color: Colors.white, size: 24),
+                    child: Icon(insight.icon, color: insight.iconColor, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       insight.title,
                       style: const TextStyle(
-                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -1759,7 +1774,6 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               Text(
                 insight.description,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 13,
                   height: 1.4,
                 ),
@@ -1773,16 +1787,16 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: insight.iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: insight.iconColor.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
                     insight.actionLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: insight.iconColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -1791,13 +1805,12 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               ),
             ],
           ),
-        )
-        .animate()
-        .fadeIn(
-          delay: Duration(milliseconds: 700 + (100 * index)),
-          duration: 500.ms,
-        )
-        .slideY(begin: 0.1);
+        ),
+      ),
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: 700 + (100 * index)),
+      duration: 500.ms,
+    ).slideY(begin: 0.1);
   }
 
   Widget _buildSeeMoreButton(
@@ -1867,7 +1880,8 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
         2,
         (index) => Padding(
           padding: EdgeInsets.only(top: index > 0 ? 16 : 0),
-          child: GlassCard(
+          child: AppCard(
+            variant: AppCardVariant.standard,
             child: Builder(
               builder: (context) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;

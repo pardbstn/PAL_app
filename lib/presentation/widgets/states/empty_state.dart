@@ -103,20 +103,8 @@ class EmptyState extends StatelessWidget {
   }
 
   Widget _buildFallbackIcon(BuildContext context, _EmptyStateConfig config) {
-    final theme = Theme.of(context);
-    return Container(
-      width: iconSize,
-      height: iconSize,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        config.icon,
-        size: iconSize * 0.5,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
+    // 아이콘 없이 깔끔한 빈 상태 표시
+    return const SizedBox.shrink();
   }
 
   _EmptyStateConfig _getConfig(EmptyStateType type) {

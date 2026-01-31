@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../widgets/common/app_card.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/diet_analysis_model.dart';
 import '../../../data/models/diet_record_model.dart' as diet_record;
 import '../../../data/models/food_item_model.dart';
@@ -417,6 +418,9 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: analysisState.isLoading ? null : _showAnalyzeBottomSheet,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
         icon: analysisState.isLoading
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : const Icon(Icons.add_a_photo),

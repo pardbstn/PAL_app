@@ -23,6 +23,7 @@ import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
+import '../../../core/theme/app_tokens.dart';
 
 /// 프리미엄 회원 홈 화면
 class MemberHomeScreen extends ConsumerWidget {
@@ -591,25 +592,17 @@ class _PtProgressCardState extends State<_PtProgressCard>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final remaining = widget.total - widget.completed;
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]
-              : [AppTheme.primary, const Color(0xFF60A5FA)],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.2),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -730,11 +723,6 @@ class _PtProgressCardState extends State<_PtProgressCard>
                           ),
                         ],
                       ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.white70,
-                      size: 28,
                     ),
                   ],
                 ),
@@ -897,10 +885,6 @@ class _NextClassCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),

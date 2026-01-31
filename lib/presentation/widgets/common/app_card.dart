@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 
 /// 카드 변형 타입
 enum AppCardVariant {
@@ -11,6 +12,9 @@ enum AppCardVariant {
 
   /// 활성/강조 스타일: 흰색 배경 + primary blue 보더 2px + 쉐도우
   accent,
+
+  /// 기록 스타일: 흰색 배경 + 미세한 쉐도우 + 그레이 보더 1px, 패딩 없음
+  record,
 
   /// @deprecated standard와 동일하게 처리됩니다
   outlined,
@@ -139,6 +143,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         return _buildElevatedCard(colorScheme, isDark, effectivePadding);
       case AppCardVariant.accent:
         return _buildAccentCard(colorScheme, isDark, effectivePadding);
+      case AppCardVariant.record:
+        return _buildRecordCard(colorScheme, isDark, effectivePadding);
     }
   }
 
@@ -240,6 +246,38 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// Record 카드: 흰색 배경 + 미세한 쉐도우 + 그레이 보더 1px, 패딩 없음 (자식이 직접 처리)
+  Widget _buildRecordCard(
+      ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
+    final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
+    final borderColor = isDark ? _darkBorderColor : _lightBorderColor;
+
+    return _wrapWithInkWell(
+      colorScheme: colorScheme,
+      backgroundColor: backgroundColor,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(_borderRadius),
+          border: Border.all(
+            color: borderColor,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.zero, // 자식이 패딩을 직접 처리
+        child: widget.child,
+      ),
+    );
+  }
+
   /// onTap이 있으면 InkWell로 래핑 (프리미엄 터치 피드백)
   Widget _wrapWithInkWell({
     required Widget child,
@@ -259,6 +297,81 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         highlightColor: colorScheme.primary.withValues(alpha: 0.02),
         child: child,
       ),
+    );
+  }
+
+  // ==================== 정적 헬퍼 위젯 ====================
+
+  /// 날짜 뱃지 위젯 (pill shape)
+  ///
+  /// [dateText] 날짜 텍스트 (예: "2024-01-15")
+  static Widget dateBadge(String dateText) {
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final primaryColor = AppColors.primary;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: isDark ? 0.15 : 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.full),
+          ),
+          child: Text(
+            dateText,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: primaryColor,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 통계 항목 위젯
+  ///
+  /// [label] 라벨 텍스트 (예: "세트 수")
+  /// [value] 값 텍스트 (예: "3")
+  /// [valueColor] 값 색상 (선택사항)
+  static Widget statItem({
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final defaultTextColor = isDark ? Colors.white : AppColors.gray900;
+        final grayColor = isDark ? AppColors.gray400 : AppColors.gray500;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTextStyle.bodySmall,
+                color: grayColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: AppTextStyle.titleMedium,
+                fontWeight: FontWeight.bold,
+                color: valueColor ?? defaultTextColor,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

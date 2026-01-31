@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/app_list_tile.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/app_section.dart';
 
 /// 소셜 로그인 임시 이메일 체크 및 표시
 String _getDisplayEmail(String? email) {
@@ -37,120 +40,171 @@ class TrainerSettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           // 프로필 섹션
-          _buildProfileSection(context, authState),
-          const Divider(height: 32),
+          _buildProfileSection(context, authState)
+              .animate()
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.1, end: 0),
+          const SizedBox(height: AppSpacing.xl),
 
           // 앱 설정
-          _buildSectionHeader('앱 설정'),
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('프로필 수정'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showEditProfileDialog(context, ref, authState),
-          ),
-          ListTile(
-            leading: const Icon(Icons.workspace_premium_outlined),
-            title: const Text('배지 관리'),
-            subtitle: const Text('획득 배지 및 진행률 확인'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/trainer/badges'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.fitness_center_outlined),
-            title: const Text('체육관 프리셋'),
-            subtitle: const Text('AI 커리큘럼 기본 설정'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              final trainerId = authState.userId;
-              context.push('${AppRoutes.trainerGymPreset}?trainerId=$trainerId');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.notifications_outlined),
-            title: const Text('알림 설정'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: 알림 설정 화면
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
-            title: const Text('다크 모드'),
-            trailing: Switch(
-              value: ref.watch(themeModeProvider) == ThemeMode.dark,
-              onChanged: (value) {
-                ref.read(themeModeProvider.notifier).toggleDarkMode(value);
-              },
+          AppSection(
+            title: '앱 설정',
+            animationDelay: 100.ms,
+            child: AppListTileGroup(
+              animate: false,
+              children: [
+                AppListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: '프로필 수정',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showEditProfileDialog(context, ref, authState),
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.workspace_premium_outlined),
+                  title: '배지 관리',
+                  subtitle: '획득 배지 및 진행률 확인',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/trainer/badges'),
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.fitness_center_outlined),
+                  title: '체육관 프리셋',
+                  subtitle: 'AI 커리큘럼 기본 설정',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    final trainerId = authState.userId;
+                    context.push('${AppRoutes.trainerGymPreset}?trainerId=$trainerId');
+                  },
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: '알림 설정',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // TODO: 알림 설정 화면
+                  },
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.dark_mode_outlined),
+                  title: '다크 모드',
+                  trailing: Switch(
+                    value: ref.watch(themeModeProvider) == ThemeMode.dark,
+                    onChanged: (value) {
+                      ref.read(themeModeProvider.notifier).toggleDarkMode(value);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          const Divider(height: 32),
+          const SizedBox(height: AppSpacing.xl),
 
           // 지원
-          _buildSectionHeader('지원'),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('고객센터'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: 고객센터
-            },
+          AppSection(
+            title: '지원',
+            animationDelay: 200.ms,
+            child: AppListTileGroup(
+              animate: false,
+              children: [
+                AppListTile(
+                  leading: const Icon(Icons.help_outline),
+                  title: '고객센터',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // TODO: 고객센터
+                  },
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: '이용약관',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // TODO: 이용약관
+                  },
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: '개인정보 처리방침',
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // TODO: 개인정보 처리방침
+                  },
+                ),
+                AppListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: '앱 정보',
+                  subtitle: '버전 1.0.0',
+                  onTap: () {
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'PAL',
+                      applicationVersion: '1.0.0',
+                      applicationLegalese: '© 2025 PAL. All rights reserved.',
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: const Text('이용약관'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: 이용약관
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined),
-            title: const Text('개인정보 처리방침'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: 개인정보 처리방침
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('앱 정보'),
-            subtitle: const Text('버전 1.0.0'),
-            onTap: () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'PAL',
-                applicationVersion: '1.0.0',
-                applicationLegalese: '© 2025 PAL. All rights reserved.',
-              );
-            },
-          ),
-          const Divider(height: 32),
+          const SizedBox(height: AppSpacing.xl),
 
           // 로그아웃
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppTheme.error),
-            title: const Text(
-              '로그아웃',
-              style: TextStyle(color: AppTheme.error),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.05),
+                borderRadius: AppRadius.lgBorderRadius,
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: InkWell(
+                onTap: () => _showLogoutDialog(context, ref),
+                borderRadius: AppRadius.lgBorderRadius,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: AppColors.error),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          '로그아웃',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            onTap: () => _showLogoutDialog(context, ref),
-          ),
-          const SizedBox(height: 16),
+          )
+              .animate()
+              .fadeIn(duration: 300.ms, delay: 300.ms)
+              .slideY(begin: 0.1, end: 0),
+          const SizedBox(height: AppSpacing.md),
 
           // 회원 탈퇴
           Center(
             child: TextButton(
               onPressed: () => _showDeleteAccountDialog(context, ref),
-              child: Text(
+              child: const Text(
                 '회원 탈퇴',
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: AppColors.gray500,
                   fontSize: 13,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
@@ -158,7 +212,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
 
   Widget _buildProfileSection(BuildContext context, AuthState authState) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(
         children: [
           // 프로필 이미지
@@ -167,12 +221,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primary,
-                  AppTheme.primary.withValues(alpha: 0.7),
-                ],
-              ),
+              color: AppColors.primary,
             ),
             child: authState.photoUrl != null
                 ? ClipOval(
@@ -192,7 +241,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
                     size: 36,
                   ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           // 정보
           Expanded(
             child: Column(
@@ -205,28 +254,28 @@ class TrainerSettingsScreen extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   _getDisplayEmail(authState.email),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: AppColors.gray600,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: AppRadius.mdBorderRadius,
                   ),
                   child: const Text(
                     '트레이너',
                     style: TextStyle(
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -240,19 +289,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey[600],
-        ),
-      ),
-    );
-  }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -274,7 +310,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
             child: const Text('로그아웃'),
@@ -303,7 +339,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
             child: const Text('탈퇴'),

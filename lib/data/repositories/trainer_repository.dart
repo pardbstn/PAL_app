@@ -112,6 +112,18 @@ class TrainerRepository extends BaseRepository<TrainerModel> {
     });
   }
 
+  /// 회원을 다른 트레이너로 이전
+  Future<void> transferMember(
+    String fromTrainerId,
+    String toTrainerId,
+    String memberId,
+  ) async {
+    // 기존 트레이너에서 제거
+    await removeMember(fromTrainerId, memberId);
+    // 새 트레이너에 추가
+    await addMember(toTrainerId, memberId);
+  }
+
   /// AI 사용량 증가
   Future<void> incrementAiUsage(
     String trainerId, {

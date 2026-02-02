@@ -60,6 +60,8 @@ CustomTransitionPage<void> buildFadeTransitionPage({
   return CustomTransitionPage<void>(
     key: key,
     child: child,
+    opaque: true,
+    maintainState: false, // 이전 페이지 상태 유지 안함
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(
         opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
@@ -78,18 +80,39 @@ CustomTransitionPage<void> buildSlideTransitionPage({
   return CustomTransitionPage<void>(
     key: key,
     child: child,
+    opaque: true,
+    maintainState: false, // 이전 페이지 상태 유지 안함
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
           .chain(CurveTween(curve: Curves.easeOutCubic));
-      return SlideTransition(
-        position: animation.drive(tween),
-        child: FadeTransition(
-          opacity: animation,
-          child: child,
+      // 배경색으로 이전 페이지 잔상 방지
+      return ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SlideTransition(
+          position: animation.drive(tween),
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
         ),
       );
     },
     transitionDuration: const Duration(milliseconds: 350),
+  );
+}
+
+/// 즉시 전환 페이지 (Shell 내부 탭 전환용 - AnimatedSwitcher가 처리)
+CustomTransitionPage<void> buildInstantTransitionPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    opaque: true,
+    maintainState: false,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+    transitionDuration: Duration.zero,
   );
 }
 
@@ -215,7 +238,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerHome,
             name: RouteNames.trainerHome,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: kIsWeb
                   ? const TrainerDashboardWebScreen()
@@ -225,7 +248,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerMembers,
             name: RouteNames.trainerMembers,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: kIsWeb
                   ? const TrainerMembersWebScreen()
@@ -235,7 +258,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerCalendar,
             name: RouteNames.trainerCalendar,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: kIsWeb
                   ? const TrainerScheduleWebScreen()
@@ -245,7 +268,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerMessages,
             name: RouteNames.trainerMessages,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const ChatListScreen(),
             ),
@@ -253,7 +276,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.trainerRevenue,
             name: RouteNames.trainerRevenue,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const TrainerRevenueWebScreen(),
             ),
@@ -385,7 +408,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.memberHome,
             name: RouteNames.memberHome,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const MemberHomeScreen(),
             ),
@@ -393,7 +416,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.memberRecords,
             name: RouteNames.memberRecords,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const MemberRecordsScreen(),
             ),
@@ -401,7 +424,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.memberCalendar,
             name: RouteNames.memberCalendar,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const MemberCalendarScreen(),
             ),
@@ -409,7 +432,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.memberDiet,
             name: RouteNames.memberDiet,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const MemberDietScreen(),
             ),
@@ -417,7 +440,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.memberMessages,
             name: RouteNames.memberMessages,
-            pageBuilder: (context, state) => buildFadeTransitionPage(
+            pageBuilder: (context, state) => buildInstantTransitionPage(
               key: state.pageKey,
               child: const ChatListScreen(),
             ),

@@ -45,7 +45,22 @@ class TrainerWebShell extends ConsumerWidget {
                     color: isDark
                         ? const Color(0xFF1E293B)
                         : const Color(0xFFF8FAFC),
-                    child: child,
+                    // 페이지별 고유 키 + AnimatedSwitcher로 이전 페이지 잔상 방지
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey(GoRouterState.of(context).uri.path),
+                        child: child,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -306,7 +321,7 @@ class _NavItemState extends State<_NavItem> {
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
-          onTap: () => context.go(widget.path),
+          onTap: isSelected ? null : () => context.go(widget.path),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(

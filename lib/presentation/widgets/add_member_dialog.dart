@@ -560,7 +560,15 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       }
 
       if (trainer == null || trainer.id.isEmpty) {
-        throw Exception('트레이너 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+        if (mounted) {
+          _showErrorDialog(
+            context,
+            title: '트레이너 정보 오류',
+            message: '트레이너 정보를 찾을 수 없습니다.',
+            details: ['앱을 다시 시작하거나 재로그인해주세요'],
+          );
+        }
+        return;
       }
 
       // 폼 데이터 추출
@@ -575,7 +583,15 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       // memberTag 파싱 (예: "홍길동#1234" -> name="홍길동", code="1234")
       final tagParts = memberTag.split('#');
       if (tagParts.length != 2) {
-        throw Exception('올바른 회원 코드 형식이 아닙니다.');
+        if (mounted) {
+          _showErrorDialog(
+            context,
+            title: '입력 형식 오류',
+            message: '회원 코드 형식이 올바르지 않습니다.',
+            details: ['이름#코드 형식으로 입력해주세요 (예: 홍길동#1234)'],
+          );
+        }
+        return;
       }
       final name = tagParts[0];
       final memberCode = tagParts[1];
@@ -584,14 +600,23 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       final existingUser = await userRepository.getByNameAndCode(name, memberCode);
 
       if (existingUser == null) {
-        throw Exception('해당 회원을 찾을 수 없습니다.\n\n확인사항:\n• 회원이 PAL 앱에 가입했는지 확인\n• 이름과 코드가 정확한지 확인\n• 회원 앱 설정에서 이름#코드 확인');
+        if (mounted) {
+          _showErrorDialog(
+            context,
+            title: '회원을 찾을 수 없습니다',
+            message: '입력하신 정보와 일치하는 회원이 없습니다.',
+            details: [
+              '회원이 PAL 앱에 가입했는지 확인해주세요',
+              '이름과 코드가 정확한지 확인해주세요',
+              '회원 앱 설정에서 이름#코드를 확인해주세요',
+            ],
+          );
+        }
+        return;
       }
 
-      // 이미 다른 트레이너에게 등록되어 있는지 확인
+      // 기존 회원 정보 조회
       final existingMember = await memberRepository.getByUserId(existingUser.uid);
-      if (existingMember != null && existingMember.trainerId.isNotEmpty) {
-        throw Exception('이미 다른 트레이너에게 등록된 회원입니다.');
-      }
 
       // 전화번호 업데이트 (입력한 경우)
       if (phone != null && phone.isNotEmpty) {
@@ -599,7 +624,33 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       }
 
       // 2. 회원 프로필 생성 또는 기존 회원 업데이트
-      if (existingMember != null && existingMember.trainerId.isEmpty) {
+      if (existingMember != null && existingMember.trainerId.isNotEmpty) {
+        // 이미 다른 트레이너에게 등록된 경우 - 트레이너 전환
+        final oldTrainerId = existingMember.trainerId;
+
+        // 기존 트레이너에서 제거하고 새 트레이너에 추가 (다른 트레이너인 경우만)
+        if (oldTrainerId != trainer.id) {
+          await trainerRepository.transferMember(
+            oldTrainerId,
+            trainer.id,
+            existingUser.uid,
+          );
+        }
+
+        // 회원 정보 업데이트 (trainerId + 새 PT 정보)
+        await memberRepository.update(existingMember.id, {
+          'trainerId': trainer.id,
+          'goal': goal.name,
+          'experience': experience.name,
+          'ptInfo': {
+            'totalSessions': totalSessions,
+            'completedSessions': 0, // 새 트레이너와는 0부터 시작
+            'startDate': DateTime.now().toIso8601String(),
+          },
+          if (targetWeight != null) 'targetWeight': targetWeight,
+          if (memo != null && memo.isNotEmpty) 'memo': memo,
+        });
+      } else if (existingMember != null && existingMember.trainerId.isEmpty) {
         // 기존 회원이 있지만 트레이너가 없는 경우 (회원이 먼저 가입한 경우)
         await memberRepository.update(existingMember.id, {
           'trainerId': trainer.id,
@@ -613,6 +664,8 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           if (targetWeight != null) 'targetWeight': targetWeight,
           if (memo != null && memo.isNotEmpty) 'memo': memo,
         });
+        // 트레이너의 memberIds에 추가
+        await trainerRepository.addMember(trainer.id, existingUser.uid);
       } else {
         // 새 회원 프로필 생성
         final member = MemberModel(
@@ -631,10 +684,9 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
         );
 
         await memberRepository.create(member);
+        // 트레이너의 memberIds에 추가
+        await trainerRepository.addMember(trainer.id, existingUser.uid);
       }
-
-      // 트레이너의 memberIds에 추가
-      await trainerRepository.addMember(trainer.id, existingUser.uid);
 
       // 채팅방 자동 생성
       // trainerId는 Firebase Auth UID를 사용해야 채팅방 조회 시 일치함
@@ -670,21 +722,13 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('등록 실패: $e')),
-              ],
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        // 예외 메시지에서 "Exception: " 접두사 제거
+        final errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _showErrorDialog(
+          context,
+          title: '회원 등록 실패',
+          message: '회원 등록 중 문제가 발생했습니다.',
+          details: [errorMessage],
         );
       }
     } finally {
@@ -692,5 +736,122 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// 사용자 친화적인 에러 다이얼로그 표시
+  void _showErrorDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    List<String>? details,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: AppTheme.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+            if (details != null && details.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                      : colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: details
+                      .map((detail) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '•',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    detail,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              '확인',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

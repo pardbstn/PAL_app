@@ -22,14 +22,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordConfirmController = TextEditingController();
   UserRole _selectedRole = UserRole.member; // 기본값: 회원
   bool _isPasswordVisible = false;
+  bool _isPasswordConfirmVisible = false;
   bool _isSignUp = false; // 회원가입 모드 토글
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordConfirmController.dispose();
     super.dispose();
   }
 
@@ -97,6 +100,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                     // 비밀번호 입력
                     _buildPasswordField(context),
+
+                    // 비밀번호 확인 (회원가입 모드일 때만)
+                    if (_isSignUp) ...[
+                      const SizedBox(height: 16),
+                      _buildPasswordConfirmField(context),
+                    ],
                     const SizedBox(height: 8),
 
                     // 에러 메시지
@@ -114,9 +123,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     const SizedBox(height: 16),
 
                     // 소셜 로그인 버튼들
-                    // Google 로그인 임시 비활성화
-                    // _buildGoogleSignInButton(context, isLoading),
-                    // const SizedBox(height: 12),
+                    _buildGoogleSignInButton(context, isLoading),
+                    const SizedBox(height: 12),
                     _buildAppleSignInButton(context, isLoading),
                     const SizedBox(height: 12),
                     _buildKakaoSignInButton(context, isLoading),
@@ -301,6 +309,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         return null;
       },
     ).animateSlideUp(delay: const Duration(milliseconds: 500));
+  }
+
+  /// 비밀번호 확인 입력 필드 (회원가입 모드)
+  Widget _buildPasswordConfirmField(BuildContext context) {
+    return TextFormField(
+      controller: _passwordConfirmController,
+      obscureText: !_isPasswordConfirmVisible,
+      textInputAction: TextInputAction.done,
+      onFieldSubmitted: (_) => _handleSubmit(),
+      decoration: InputDecoration(
+        labelText: '비밀번호 확인',
+        prefixIcon: const Icon(Icons.lock_outlined),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordConfirmVisible
+                ? Icons.visibility_off
+                : Icons.visibility,
+          ),
+          onPressed: () {
+            setState(() => _isPasswordConfirmVisible = !_isPasswordConfirmVisible);
+          },
+        ),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surface,
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '비밀번호를 다시 입력해주세요';
+        }
+        if (value != _passwordController.text) {
+          return '비밀번호가 일치하지 않습니다';
+        }
+        return null;
+      },
+    ).animateSlideUp(delay: const Duration(milliseconds: 550));
   }
 
   /// 에러 메시지
@@ -490,6 +533,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animateSlideUp(delay: const Duration(milliseconds: 700));
   }
 
+  /// Google 로그인 버튼
+  Widget _buildGoogleSignInButton(BuildContext context, bool isLoading) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: OutlinedButton.icon(
+        onPressed: isLoading ? null : _handleGoogleSignIn,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          side: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1,
+          ),
+          elevation: 0,
+        ),
+        icon: Image.network(
+          'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+          height: 24,
+          width: 24,
+          errorBuilder: (context, error, stackTrace) => const Icon(
+            Icons.g_mobiledata,
+            size: 24,
+            color: Colors.red,
+          ),
+        ),
+        label: const Text(
+          'Google로 계속하기',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+      ),
+    ).animateSlideUp(delay: const Duration(milliseconds: 650));
+  }
+
   /// 로그인/회원가입 모드 전환
   Widget _buildModeSwitch(BuildContext context) {
     return Row(
@@ -503,7 +587,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
         TextButton(
           onPressed: () {
-            setState(() => _isSignUp = !_isSignUp);
+            setState(() {
+              _isSignUp = !_isSignUp;
+              // 모드 전환 시 비밀번호 확인 필드 초기화
+              _passwordConfirmController.clear();
+              _isPasswordConfirmVisible = false;
+            });
           },
           child: Text(
             _isSignUp ? '로그인' : '회원가입',
@@ -573,6 +662,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleAppleSignIn() async {
     try {
       await ref.read(authProvider.notifier).signInWithApple(_selectedRole);
+    } catch (e) {
+      // 에러는 authState.errorMessage로 표시됨
+    }
+  }
+
+  /// Google 로그인 처리
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle(_selectedRole);
     } catch (e) {
       // 에러는 authState.errorMessage로 표시됨
     }

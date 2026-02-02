@@ -25,7 +25,22 @@ class TrainerShell extends ConsumerWidget {
                 : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
           ),
         ),
-        child: child,
+        // 페이지별 고유 키 + AnimatedSwitcher로 이전 페이지 잔상 방지
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+          child: KeyedSubtree(
+            key: ValueKey(GoRouterState.of(context).uri.path),
+            child: child,
+          ),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
@@ -86,6 +101,10 @@ class TrainerShell extends ConsumerWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    // 현재 위치와 동일한 탭이면 네비게이션 스킵 (중복 네비게이션 방지)
+    final currentIndex = _calculateSelectedIndex(context);
+    if (currentIndex == index) return;
+
     switch (index) {
       case 0:
         context.go(AppRoutes.trainerHome);

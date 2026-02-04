@@ -9,6 +9,12 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {db, safeToDate} from "./utils/firestore";
 import {Collections} from "./constants/collections";
+import {
+  INSIGHT_CONFIG,
+  calculateInsightScore,
+  truncateMessage,
+  MEMBER_MESSAGE_TEMPLATES,
+} from "./constants/insightConfig";
 
 // 인사이트 타입 정의
 type MemberInsightType =
@@ -223,29 +229,31 @@ function generateBodyPrediction(
     });
   }
 
-  // 메시지 생성
+  // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority = "medium";
 
   if (targetWeight && Math.abs(predictedWeight - targetWeight) <= 2) {
-    message = `현재 속도 유지 시 4주 후 목표 체중 ${targetWeight}kg 도달 예상!`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.loss(Math.abs(weightChange));
     priority = "high";
   } else if (weightChange < -0.5) {
-    message = `현재 페이스대로면 4주 후 ${predictedWeight.toFixed(1)}kg 예상! ` +
-      `${Math.abs(weightChange).toFixed(1)}kg 감량 중이에요.`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.loss(
+      parseFloat(Math.abs(weightChange).toFixed(1))
+    );
   } else if (weightChange > 0.5) {
-    message = `4주 후 ${predictedWeight.toFixed(1)}kg 예상. ` +
-      "체중이 조금씩 증가하고 있어요.";
+    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.gain(
+      parseFloat(weightChange.toFixed(1))
+    );
   } else {
-    message = `체중이 ${currentWeight.toFixed(1)}kg으로 안정적으로 유지되고 있어요!`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.stable();
     priority = "low";
   }
 
   return {
     type: "body_prediction",
     priority,
-    title: "체성분 예측",
-    message,
+    title: truncateMessage("체성분 예측", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData,
     graphType: "line",
     data: {
@@ -355,8 +363,11 @@ function generateWorkoutAchievement(
     return {
       type: "workout_achievement",
       priority: "low",
-      title: "운동 성과",
-      message: `${bestExercise} 최고 기록: ${latestRM.toFixed(0)}kg! 꾸준히 운동하고 있어요.`,
+      title: truncateMessage("운동 성과", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+      message: truncateMessage(
+        MEMBER_MESSAGE_TEMPLATES.workout_achievement.best(bestExercise, parseFloat(latestRM.toFixed(0))),
+        INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+      ),
       graphData: exerciseGroups.get(bestExercise)?.map((r) => ({
         x: r.date.toISOString().split("T")[0],
         y: parseFloat(r.oneRM.toFixed(1)),
@@ -382,9 +393,11 @@ function generateWorkoutAchievement(
   return {
     type: "workout_achievement",
     priority: "high",
-    title: "운동 성과",
-    message: `${bestExercise} 1RM이 4주 전보다 ${bestImprovement.toFixed(0)}kg 증가! ` +
-      `이 속도면 다음 달 ${nextTarget}kg 도전 가능`,
+    title: truncateMessage("운동 성과", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(
+      MEMBER_MESSAGE_TEMPLATES.workout_achievement.improved(bestExercise, parseFloat(bestImprovement.toFixed(0))),
+      INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+    ),
     graphData,
     graphType: "line",
     data: {
@@ -454,26 +467,26 @@ async function generateAttendanceHabit(
     value: count,
   }));
 
-  // 메시지 생성
+  // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
   if (attendanceRate >= 80) {
-    message = `출석률 ${attendanceRate}%로 상위 ${percentile}%! 꾸준함이 최고의 무기예요`;
+    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.good(attendanceRate);
     priority = "medium";
   } else if (attendanceRate >= 60) {
-    message = `출석률 ${attendanceRate}%! 조금만 더 힘내면 목표 달성이 눈앞이에요`;
+    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.average(attendanceRate);
     priority = "medium";
   } else {
-    message = `최근 출석률이 ${attendanceRate}%예요. 다시 시작해볼까요?`;
+    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.low(attendanceRate);
     priority = "high";
   }
 
   return {
     type: "attendance_habit",
     priority,
-    title: "출석 습관",
-    message,
+    title: truncateMessage("출석 습관", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData,
     graphType: "bar",
     data: {
@@ -577,28 +590,26 @@ function generateNutritionBalance(
     d.percent < min.percent ? d : min
   );
 
-  // 메시지 생성
+  // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
   if (mostDeficient.percent < 70) {
-    message = `이번 주 ${mostDeficient.name} 섭취 목표 대비 ` +
-      `${100 - mostDeficient.percent}% 부족 - ${mostDeficient.suggestion} 추가 권장`;
+    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(mostDeficient.name);
     priority = "high";
   } else if (mostDeficient.percent < 90) {
-    message = `${mostDeficient.name} 섭취가 조금 부족해요. ` +
-      `${mostDeficient.suggestion} 추가하면 완벽!`;
+    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(mostDeficient.name);
     priority = "medium";
   } else {
-    message = "이번 주 영양 밸런스가 매우 좋아요! 이대로 유지하세요";
+    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.balanced();
     priority = "low";
   }
 
   return {
     type: "nutrition_balance",
     priority,
-    title: "영양 밸런스",
-    message,
+    title: truncateMessage("영양 밸런스", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData,
     graphType: "donut",
     data: {
@@ -716,39 +727,36 @@ function generateBodyChangeReport(
     },
   ];
 
-  // 메시지 생성
+  // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
-  const fatText = fatChange < 0
-    ? `체지방 ${Math.abs(fatChange).toFixed(1)}kg`
-    : "";
-  const muscleText = muscleChange > 0
-    ? `골격근 +${muscleChange.toFixed(1)}kg`
-    : "";
-  const fatPercentText = beforeFatPercent > 0 && afterFatPercent > 0
-    ? `체지방률 ${beforeFatPercent.toFixed(0)}%→${afterFatPercent.toFixed(0)}%`
-    : "";
-
   if (fatChange < 0 && muscleChange > 0) {
-    message = `3개월간 ${fatText}, ${muscleText}! ${fatPercentText}`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_change_report.both(
+      parseFloat(Math.abs(fatChange).toFixed(1)),
+      parseFloat(muscleChange.toFixed(1))
+    );
     priority = "high";
   } else if (fatChange < 0) {
-    message = `3개월간 ${fatText} 감량 성공! ${fatPercentText}`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_change_report.fatLoss(
+      parseFloat(Math.abs(fatChange).toFixed(1))
+    );
     priority = "medium";
   } else if (muscleChange > 0) {
-    message = `3개월간 ${muscleText} 증가! 근육이 늘고 있어요`;
+    message = MEMBER_MESSAGE_TEMPLATES.body_change_report.muscleGain(
+      parseFloat(muscleChange.toFixed(1))
+    );
     priority = "medium";
   } else {
-    message = "체성분이 안정적으로 유지되고 있어요";
+    message = MEMBER_MESSAGE_TEMPLATES.body_change_report.stable();
     priority = "low";
   }
 
   return {
     type: "body_change_report",
     priority,
-    title: "체성분 변화 리포트",
-    message,
+    title: truncateMessage("체성분 변화", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData,
     graphType: "bar",
     data: {
@@ -937,7 +945,6 @@ function generateGoalProgress(
 
   // 진행률 계산
   let progressPercent = 0;
-  let progressMessage = "";
   let hasTarget = false;
 
   if (targetWeight && currentWeight) {
@@ -972,8 +979,6 @@ function generateGoalProgress(
         progressPercent = Math.min(100, Math.round((alreadyGained / totalToGain) * 100));
       }
     }
-
-    progressMessage = `목표 체중 ${targetWeight}kg까지`;
   }
 
   if (!hasTarget) {
@@ -991,29 +996,26 @@ function generateGoalProgress(
     };
   }
 
-  // 메시지 및 우선순위 결정
+  // 메시지 및 우선순위 결정 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
   if (progressPercent >= 90) {
-    message = `목표까지 ${progressPercent}% 달성! 조금만 더 힘내세요`;
+    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.high(progressPercent);
     priority = "high";
-  } else if (progressPercent >= 70) {
-    message = `목표까지 ${progressPercent}% 달성! 순조롭게 진행 중이에요`;
-    priority = "medium";
   } else if (progressPercent >= 50) {
-    message = `목표까지 절반 왔어요! ${progressPercent}% 달성`;
+    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.medium(progressPercent);
     priority = "medium";
   } else {
-    message = `${progressMessage} ${progressPercent}% 진행 중. 꾸준히 해봐요!`;
+    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.low(progressPercent);
     priority = "low";
   }
 
   return {
     type: "goal_progress",
     priority,
-    title: "목표 달성률",
-    message,
+    title: truncateMessage("목표 달성률", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData: [{value: progressPercent, max: 100}],
     graphType: "progress",
     data: {
@@ -1445,6 +1447,22 @@ export const generateMemberInsights = functions
         types: insights.map((i) => i.type),
       });
 
+      // 5-9. 우선순위 기반 필터링 및 정렬
+      const sortedInsights = insights
+        .map((insight) => ({
+          ...insight,
+          score: calculateInsightScore(insight.type, insight.priority, false),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, INSIGHT_CONFIG.MAX_INSIGHTS_DISPLAY)
+        .map(({score: _score, ...insight}) => insight); // score 제거
+
+      functions.logger.info("[generateMemberInsights] 필터링 완료", {
+        beforeCount: insights.length,
+        afterCount: sortedInsights.length,
+        topTypes: sortedInsights.map((i) => i.type),
+      });
+
       // 6. member_insights 컬렉션에 저장
       const now = admin.firestore.Timestamp.now();
       const expiresAt = admin.firestore.Timestamp.fromDate(
@@ -1462,9 +1480,9 @@ export const generateMemberInsights = functions
         batch.delete(doc.ref);
       });
 
-      // 새 인사이트 저장
+      // 새 인사이트 저장 (필터링된 상위 인사이트만)
       const savedInsights: Array<MemberInsight & {id: string}> = [];
-      for (const insight of insights) {
+      for (const insight of sortedInsights) {
         const docRef = db.collection("member_insights").doc();
         const insightDoc = {
           memberId,
@@ -1649,6 +1667,16 @@ export const generateMemberInsightsScheduled = functions
           );
           if (benchmarking) insights.push(benchmarking);
 
+          // 우선순위 기반 필터링 및 정렬
+          const sortedInsights = insights
+            .map((insight) => ({
+              ...insight,
+              score: calculateInsightScore(insight.type, insight.priority, false),
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, INSIGHT_CONFIG.MAX_INSIGHTS_DISPLAY)
+            .map(({score: _score, ...insight}) => insight);
+
           // 저장
           const now = admin.firestore.Timestamp.now();
           const expiresAt = admin.firestore.Timestamp.fromDate(
@@ -1666,8 +1694,8 @@ export const generateMemberInsightsScheduled = functions
             batch.delete(doc.ref);
           });
 
-          // 새 인사이트 저장
-          for (const insight of insights) {
+          // 새 인사이트 저장 (필터링된 상위 인사이트만)
+          for (const insight of sortedInsights) {
             const docRef = db.collection("member_insights").doc();
             batch.set(docRef, {
               memberId,
@@ -1685,7 +1713,7 @@ export const generateMemberInsightsScheduled = functions
 
           await batch.commit();
 
-          totalInsights += insights.length;
+          totalInsights += sortedInsights.length;
           successCount++;
 
           functions.logger.info("[generateMemberInsightsScheduled] 회원 처리 완료", {

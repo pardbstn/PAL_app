@@ -10,6 +10,13 @@ import * as admin from "firebase-admin";
 import {db, safeToDate} from "./utils/firestore";
 import {Collections} from "./constants/collections";
 import {getOpenAIClient} from "./services/ai-service";
+import {
+  INSIGHT_CONFIG,
+  TRAINER_INSIGHT_CONFIG,
+  calculateInsightScore,
+  truncateMessage,
+  TRAINER_MESSAGE_TEMPLATES,
+} from "./constants/insightConfig";
 
 // 인사이트 타입 정의
 type InsightType =
@@ -134,9 +141,12 @@ function analyzeAttendancePattern(
       memberName,
       type: "attendanceAlert",
       priority: "high",
-      title: `${memberName}님 출석률 하락`,
-      message: `최근 2주간 출석률이 ${dropRate}% 하락했습니다. 이전 2주 ${previousWeeks}회 → 최근 2주 ${recentWeeks}회`,
-      actionSuggestion: "회원에게 연락하여 운동 지속 가능 여부를 확인해보세요.",
+      title: truncateMessage(`${memberName} 출석 경고`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+      message: truncateMessage(
+        TRAINER_MESSAGE_TEMPLATES.attendanceAlert.drop(memberName, dropRate),
+        INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+      ),
+      actionSuggestion: "회원에게 연락하세요",
       data: {
         dropRate,
         recentCount: recentWeeks,
@@ -174,15 +184,13 @@ function analyzePTExpiry(
   if (daysUntilExpiry > 0 && daysUntilExpiry <= 7) {
     const remainingSessions = member.remainingSessions ?? 0;
     let priority: InsightPriority = "medium";
-    let expiryMessage = `${daysUntilExpiry}일 후 PT 이용권이 종료됩니다.`;
+    let expiryMessage: string;
 
     if (daysUntilExpiry <= 3) {
       priority = "high";
-      expiryMessage = `${daysUntilExpiry}일 후 PT 이용권이 종료됩니다!`;
-    }
-
-    if (remainingSessions > 0) {
-      expiryMessage += ` 잔여 ${remainingSessions}회가 남아있습니다.`;
+      expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.urgent(member.name, daysUntilExpiry);
+    } else {
+      expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.soon(member.name, daysUntilExpiry);
     }
 
     return {
@@ -191,12 +199,9 @@ function analyzePTExpiry(
       memberName: member.name,
       type: "ptExpiry",
       priority,
-      title: `${member.name}님 PT 종료 임박`,
-      message: expiryMessage,
-      actionSuggestion:
-        remainingSessions > 0
-          ? "남은 세션 소화 일정을 조율하거나 연장을 권유해보세요."
-          : "PT 연장 여부를 확인해보세요.",
+      title: truncateMessage(`${member.name} PT 만료`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+      message: truncateMessage(expiryMessage, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
+      actionSuggestion: remainingSessions > 0 ? "세션 일정 조율" : "연장 확인",
       data: {
         daysUntilExpiry,
         remainingSessions,
@@ -538,18 +543,25 @@ function analyzeChurnRisk(
 
   const priority: InsightPriority = riskLevel === "CRITICAL" ? "high" : "medium";
 
+  // 간결한 메시지 생성
+  let churnMessage: string;
+  if (riskLevel === "CRITICAL") {
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.critical(member.name);
+  } else if (riskLevel === "HIGH") {
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.high(member.name);
+  } else {
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.medium(member.name);
+  }
+
   return {
     trainerId,
     memberId: member.id,
     memberName: member.name,
     type: "churnRisk",
     priority,
-    title: `이탈 위험 ${churnScore}%`,
-    message: `${member.name} 회원 이탈 위험도 ${churnScore}% - ${riskFactors.join(", ")}`,
-    actionSuggestion:
-      riskLevel === "CRITICAL"
-        ? "즉시 개인 연락 필요! 동기 부여 및 프로그램 조정 상담 권장"
-        : "개인 연락으로 동기 부여 필요",
+    title: truncateMessage(`${member.name} 이탈위험`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(churnMessage, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
+    actionSuggestion: riskLevel === "CRITICAL" ? "즉시 연락 필요" : "동기 부여 필요",
     data: {
       churnScore,
       riskLevel,
@@ -1913,6 +1925,38 @@ async function generateInsightsForTrainer(
       ).length,
     },
   });
+
+  // 3-12. 우선순위 기반 필터링 및 정렬 (트레이너용)
+  // 필수 타입은 항상 포함, 나머지는 점수순으로 상위 N개만
+  const requiredInsights = insights.filter((i) =>
+    TRAINER_INSIGHT_CONFIG.REQUIRED_TYPES.includes(i.type)
+  );
+  const optionalInsights = insights.filter((i) =>
+    !TRAINER_INSIGHT_CONFIG.REQUIRED_TYPES.includes(i.type)
+  );
+
+  const sortedOptional = optionalInsights
+    .map((insight) => ({
+      ...insight,
+      score: calculateInsightScore(insight.type, insight.priority, true),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, Math.max(0, INSIGHT_CONFIG.MAX_INSIGHTS_DISPLAY - requiredInsights.length))
+    .map(({score: _score, ...insight}) => insight);
+
+  // 필수 인사이트 + 상위 선택 인사이트 합치기
+  const filteredInsights = [...requiredInsights, ...sortedOptional]
+    .slice(0, INSIGHT_CONFIG.MAX_INSIGHTS_DISPLAY * 2); // 트레이너는 더 많은 인사이트 허용
+
+  functions.logger.info("[generateInsightsForTrainer] 필터링 완료", {
+    beforeCount: insights.length,
+    afterCount: filteredInsights.length,
+    requiredCount: requiredInsights.length,
+  });
+
+  // insights를 filteredInsights로 교체
+  insights.length = 0;
+  insights.push(...filteredInsights);
 
   // 4. 기존 중복 인사이트 제거 (같은 타입, 같은 회원의 24시간 이내 인사이트)
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

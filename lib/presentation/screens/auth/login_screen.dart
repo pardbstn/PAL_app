@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -125,11 +128,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     // 소셜 로그인 버튼들
                     _buildGoogleSignInButton(context, isLoading),
                     const SizedBox(height: 12),
-                    _buildAppleSignInButton(context, isLoading),
-                    const SizedBox(height: 12),
+                    // Apple 로그인: iOS/웹에서만 표시 (Android에서는 sessionStorage 문제로 작동 안함)
+                    if (kIsWeb || !Platform.isAndroid) ...[
+                      _buildAppleSignInButton(context, isLoading),
+                      const SizedBox(height: 12),
+                    ],
                     _buildKakaoSignInButton(context, isLoading),
-                    const SizedBox(height: 12),
-                    _buildNaverSignInButton(context, isLoading),
                     const SizedBox(height: 24),
 
                     // 모드 전환 (로그인 <-> 회원가입)
@@ -468,37 +472,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animateSlideUp(delay: const Duration(milliseconds: 750));
   }
 
-  /// 네이버 로그인 버튼
-  Widget _buildNaverSignInButton(BuildContext context, bool isLoading) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton.icon(
-        onPressed: isLoading ? null : _handleNaverSignIn,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF03C75A),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        icon: const Text(
-          'N',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        label: const Text(
-          '네이버로 계속하기',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-    ).animateSlideUp(delay: const Duration(milliseconds: 800));
-  }
-
   /// Apple 로그인 버튼
   Widget _buildAppleSignInButton(BuildContext context, bool isLoading) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -644,15 +617,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleKakaoSignIn() async {
     try {
       await ref.read(authProvider.notifier).signInWithKakao(_selectedRole);
-    } catch (e) {
-      // 에러는 authState.errorMessage로 표시됨
-    }
-  }
-
-  /// 네이버 로그인 처리
-  Future<void> _handleNaverSignIn() async {
-    try {
-      await ref.read(authProvider.notifier).signInWithNaver(_selectedRole);
     } catch (e) {
       // 에러는 authState.errorMessage로 표시됨
     }

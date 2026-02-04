@@ -1667,10 +1667,36 @@ async function generateInsightsForTrainer(
     .where("trainerId", "==", trainerId)
     .get();
 
-  const members: MemberData[] = membersSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as MemberData[];
+  // 2. 회원 이름 조회를 위해 users 컬렉션과 조인
+  const userIds = membersSnapshot.docs
+    .map((doc) => doc.data().userId)
+    .filter((id): id is string => !!id);
+
+  // userId로 사용자 정보 배치 조회 (10개씩 나눠서 조회 - Firestore 'in' 제한)
+  const usersMap = new Map<string, {name?: string}>();
+  for (let i = 0; i < userIds.length; i += 10) {
+    const batchIds = userIds.slice(i, i + 10);
+    if (batchIds.length > 0) {
+      const usersSnapshot = await db
+        .collection(Collections.USERS)
+        .where(admin.firestore.FieldPath.documentId(), "in", batchIds)
+        .get();
+      usersSnapshot.docs.forEach((doc) => {
+        usersMap.set(doc.id, doc.data() as {name?: string});
+      });
+    }
+  }
+
+  // members 데이터에 이름 매핑
+  const members: MemberData[] = membersSnapshot.docs.map((doc) => {
+    const data = doc.data();
+    const userData = usersMap.get(data.userId);
+    return {
+      id: doc.id,
+      name: userData?.name || "회원",
+      ...data,
+    };
+  }) as MemberData[];
 
   functions.logger.info("[generateInsightsForTrainer] 회원 조회 완료", {
     trainerId,

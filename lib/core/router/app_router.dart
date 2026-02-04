@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
+import 'package:flutter_pal_app/data/models/curriculum_template_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 // Screens
@@ -23,7 +24,6 @@ import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_schedul
 import 'package:flutter_pal_app/presentation/screens/trainer/web/trainer_revenue_web_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/curriculum_settings_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/curriculum_result_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/gym_preset_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_calendar_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/add_schedule_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_settings_screen.dart';
@@ -39,9 +39,7 @@ import 'package:flutter_pal_app/presentation/screens/onboarding/onboarding_scree
 import 'package:flutter_pal_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/chat/chat_room_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/common/notifications_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/member/badges_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_review_trainer_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/trainer/trainer_badge_management_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/subscription_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/self_training_home_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/monthly_report_screen.dart';
@@ -119,10 +117,12 @@ CustomTransitionPage<void> buildInstantTransitionPage({
 /// GoRouter Provider
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final refreshListenable = ref.watch(authRefreshListenableProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
+    refreshListenable: refreshListenable,
 
     // 리다이렉트 가드
     redirect: (context, state) {
@@ -165,6 +165,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         } else if (userRole == UserRole.member) {
           return AppRoutes.memberHome;
         }
+        // userRole이 아직 로드되지 않은 경우 (null) 로그인 페이지 유지
+        // authStateChanges 리스너가 _loadUserData 완료 후 다시 리다이렉트됨
       }
 
       // 트레이너가 회원 경로 접근 시도시 트레이너 홈으로
@@ -315,11 +317,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final memberId = state.uri.queryParameters['memberId'];
           final memberName = state.uri.queryParameters['memberName'];
+          final additionalSessions = int.tryParse(state.uri.queryParameters['additionalSessions'] ?? '');
+          final startSession = int.tryParse(state.uri.queryParameters['startSession'] ?? '');
           return buildSlideTransitionPage(
             key: state.pageKey,
             child: CurriculumSettingsScreen(
               memberId: memberId,
               memberName: memberName,
+              additionalSessions: additionalSessions,
+              startSession: startSession,
             ),
           );
         },
@@ -336,18 +342,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               memberName: extra['memberName'] as String?,
               settings: extra['settings'] as CurriculumSettings?,
               excludedExerciseIds: (extra['excludedExerciseIds'] as List<String>?) ?? [],
+              isAdditionalMode: extra['isAdditionalMode'] as bool? ?? false,
+              startSession: extra['startSession'] as int?,
+              templateSessions: extra['templateSessions'] as List<TemplateSession>?,
+              isFromTemplate: extra['isFromTemplate'] as bool? ?? false,
+              templateName: extra['templateName'] as String?,
             ),
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.trainerGymPreset,
-        name: RouteNames.trainerGymPreset,
-        pageBuilder: (context, state) {
-          final trainerId = state.uri.queryParameters['trainerId'];
-          return buildSlideTransitionPage(
-            key: state.pageKey,
-            child: GymPresetScreen(trainerId: trainerId),
           );
         },
       ),
@@ -380,15 +380,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => buildSlideTransitionPage(
           key: state.pageKey,
           child: const TrainerInsightsScreen(),
-        ),
-      ),
-      // 트레이너 배지 관리
-      GoRoute(
-        path: AppRoutes.trainerBadges,
-        name: RouteNames.trainerBadges,
-        pageBuilder: (context, state) => buildSlideTransitionPage(
-          key: state.pageKey,
-          child: const TrainerBadgeManagementScreen(),
         ),
       ),
       // 트레이너 요청 관리 (트레이너용)
@@ -469,18 +460,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const MemberSettingsScreen(),
         ),
-      ),
-      // 배지 컬렉션
-      GoRoute(
-        path: AppRoutes.memberBadges,
-        name: RouteNames.memberBadges,
-        pageBuilder: (context, state) {
-          final memberId = state.uri.queryParameters['memberId'] ?? '';
-          return buildSlideTransitionPage(
-            key: state.pageKey,
-            child: BadgesScreen(memberId: memberId),
-          );
-        },
       ),
       // 트레이너 리뷰 작성 (회원)
       GoRoute(

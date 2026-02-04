@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/exercise_constants.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
+import 'package:flutter_pal_app/data/models/curriculum_template_model.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/curriculum_generator_v2_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/exercise_search_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/curriculum/exercise_card_widget.dart';
 
@@ -15,6 +17,16 @@ class CurriculumResultScreen extends ConsumerStatefulWidget {
   final String? memberName;
   final CurriculumSettings? settings;
   final List<String> excludedExerciseIds;
+  /// 추가 생성 모드 여부
+  final bool isAdditionalMode;
+  /// 추가 생성 시 시작 회차 번호
+  final int? startSession;
+  /// 템플릿에서 불러온 세션들
+  final List<TemplateSession>? templateSessions;
+  /// 템플릿에서 불러온 경우
+  final bool isFromTemplate;
+  /// 템플릿 이름
+  final String? templateName;
 
   const CurriculumResultScreen({
     super.key,
@@ -22,6 +34,11 @@ class CurriculumResultScreen extends ConsumerStatefulWidget {
     this.memberName,
     this.settings,
     this.excludedExerciseIds = const [],
+    this.isAdditionalMode = false,
+    this.startSession,
+    this.templateSessions,
+    this.isFromTemplate = false,
+    this.templateName,
   });
 
   @override
@@ -38,8 +55,21 @@ class _CurriculumResultScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startGeneration();
+      if (widget.templateSessions != null && widget.templateSessions!.isNotEmpty) {
+        // 템플릿에서 불러온 경우 바로 상태에 설정
+        _loadFromTemplate();
+      } else {
+        _startGeneration();
+      }
     });
+  }
+
+  Future<void> _loadFromTemplate() async {
+    if (_hasGenerated) return;
+    _hasGenerated = true;
+
+    final notifier = ref.read(curriculumGeneratorV2Provider.notifier);
+    notifier.setFromTemplateSessions(widget.templateSessions!);
   }
 
   Future<void> _startGeneration() async {
@@ -134,28 +164,74 @@ class _CurriculumResultScreenState
     if (_isSaving) return;
     setState(() => _isSaving = true);
 
-    final notifier = ref.read(curriculumGeneratorV2Provider.notifier);
+    final generatorNotifier = ref.read(curriculumGeneratorV2Provider.notifier);
     final settings = widget.settings ?? const CurriculumSettings();
     final authState = ref.read(authProvider);
+    final memberId = widget.memberId ?? '';
+    final trainerId = authState.userId ?? '';
 
-    final success = await notifier.saveAllCurriculums(
-      memberId: widget.memberId ?? '',
-      trainerId: authState.userId ?? '',
-      settings: settings,
-    );
+    bool success = false;
+
+    try {
+      if (widget.isAdditionalMode && widget.startSession != null) {
+        // 추가 생성 모드: addAdditionalSessions 사용
+        final state = ref.read(curriculumGeneratorV2Provider);
+        final now = DateTime.now();
+
+        // AI로 생성된 커리큘럼 목록 생성
+        final curriculums = <CurriculumModel>[];
+        for (int i = 0; i < state.sessions.length; i++) {
+          curriculums.add(CurriculumModel(
+            id: '',
+            memberId: memberId,
+            trainerId: trainerId,
+            sessionNumber: widget.startSession! + i,
+            title: '${widget.startSession! + i}회차',
+            exercises: state.sessions[i],
+            isCompleted: false,
+            createdAt: now,
+            updatedAt: now,
+          ));
+        }
+
+        // addAdditionalSessions로 저장 (회원 totalSessions도 업데이트됨)
+        await ref.read(curriculumsNotifierProvider.notifier).addAdditionalSessions(
+          memberId: memberId,
+          trainerId: trainerId,
+          additionalSessions: state.sessions.length,
+          curriculums: curriculums,
+        );
+        success = true;
+      } else {
+        // 일반 모드: 기존 방식 사용
+        success = await generatorNotifier.saveAllCurriculums(
+          memberId: memberId,
+          trainerId: trainerId,
+          settings: settings,
+        );
+      }
+    } catch (e) {
+      success = false;
+    }
 
     setState(() => _isSaving = false);
 
     if (success && mounted) {
+      final sessionCount = widget.isAdditionalMode
+          ? ref.read(curriculumGeneratorV2Provider).sessions.length
+          : ref.read(curriculumGeneratorV2Provider).sessionCount;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${ref.read(curriculumGeneratorV2Provider).sessionCount}회차 커리큘럼이 저장되었습니다!'),
+          content: Text(widget.isAdditionalMode
+              ? '$sessionCount회차 커리큘럼이 추가되었습니다!'
+              : '$sessionCount회차 커리큘럼이 저장되었습니다!'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
-      // 회원 상세 화면으로 이동 (memberId가 있으면 해당 회원으로, 없으면 홈으로)
-      if (widget.memberId != null && widget.memberId!.isNotEmpty) {
-        context.go('/trainer/members/${widget.memberId}');
+      // 회원 상세 화면의 커리큘럼 탭으로 이동 (memberId가 있으면 해당 회원으로, 없으면 홈으로)
+      if (memberId.isNotEmpty) {
+        context.go('/trainer/members/$memberId?tab=3'); // 커리큘럼 탭 (index 3)
       } else {
         context.go('/trainer');
       }

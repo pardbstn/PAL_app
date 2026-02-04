@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
-import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
 /// 스플래시 화면
 class SplashScreen extends ConsumerStatefulWidget {

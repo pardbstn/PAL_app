@@ -16,13 +16,11 @@ abstract class AppRoutes {
   static const String trainerScheduleAdd = '/trainer/schedule/add';
   static const String trainerCurriculumCreate = '/trainer/curriculum/create';
   static const String trainerCurriculumResult = '/trainer/curriculum/result';
-  static const String trainerGymPreset = '/trainer/gym-preset';
   static const String trainerMessages = '/trainer/messages';
   static const String trainerChatRoom = '/trainer/messages/:chatRoomId';
   static const String trainerRevenue = '/trainer/revenue';
   static const String trainerSettings = '/trainer/settings';
   static const String trainerInsights = '/trainer/insights';
-  static const String trainerBadges = '/trainer/badges';
   static const String trainerRequests = '/trainer/trainer-requests';
 
   // 회원 경로
@@ -33,7 +31,6 @@ abstract class AppRoutes {
   static const String memberMessages = '/member/messages';
   static const String memberChatRoom = '/member/messages/:chatRoomId';
   static const String memberSettings = '/member/settings';
-  static const String memberBadges = '/member/badges';
   static const String memberReviewTrainer = '/member/review-trainer/:trainerId';
   static const String memberSubscription = '/member/subscription';
   static const String memberSelfTraining = '/member/self-training';
@@ -61,13 +58,11 @@ abstract class RouteNames {
   static const String trainerScheduleAdd = 'trainer-schedule-add';
   static const String trainerCurriculumCreate = 'trainer-curriculum-create';
   static const String trainerCurriculumResult = 'trainer-curriculum-result';
-  static const String trainerGymPreset = 'trainer-gym-preset';
   static const String trainerMessages = 'trainer-messages';
   static const String trainerChatRoom = 'trainer-chat-room';
   static const String trainerRevenue = 'trainer-revenue';
   static const String trainerSettings = 'trainer-settings';
   static const String trainerInsights = 'trainer-insights';
-  static const String trainerBadges = 'trainer-badges';
   static const String trainerRequests = 'trainer-requests';
 
   // 회원
@@ -78,7 +73,6 @@ abstract class RouteNames {
   static const String memberMessages = 'member-messages';
   static const String memberChatRoom = 'member-chat-room';
   static const String memberSettings = 'member-settings';
-  static const String memberBadges = 'member-badges';
   static const String memberReviewTrainer = 'member-review-trainer';
   static const String memberSubscription = 'member-subscription';
   static const String memberSelfTraining = 'member-self-training';

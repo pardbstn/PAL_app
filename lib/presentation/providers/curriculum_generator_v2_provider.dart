@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/core/constants/exercise_constants.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
+import 'package:flutter_pal_app/data/models/curriculum_template_model.dart';
 import 'package:flutter_pal_app/data/repositories/curriculum_repository.dart';
 
 /// 커리큘럼 V2 생성 상태
@@ -412,6 +413,24 @@ class CurriculumGeneratorV2Notifier
       '팔꿈치': ['팔', '가슴'],
       '고관절': ['하체', '전신'],
     };
+  }
+
+  /// 템플릿 세션에서 커리큘럼 로드
+  void setFromTemplateSessions(List<TemplateSession> templateSessions) {
+    final sessions = templateSessions.map((session) {
+      return session.exercises.toList();
+    }).toList();
+
+    final notes = templateSessions.map((session) {
+      return '${session.sessionNumber}회차 ${session.title}';
+    }).toList();
+
+    state = state.copyWith(
+      status: CurriculumGeneratorStatus.generated,
+      sessions: sessions,
+      sessionNotes: notes,
+      currentSessionIndex: 0,
+    );
   }
 
   /// 상태 초기화

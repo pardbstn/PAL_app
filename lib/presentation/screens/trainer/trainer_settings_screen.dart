@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
@@ -58,23 +57,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
                   title: '프로필 수정',
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showEditProfileDialog(context, ref, authState),
-                ),
-                AppListTile(
-                  leading: const Icon(Icons.workspace_premium_outlined),
-                  title: '배지 관리',
-                  subtitle: '획득 배지 및 진행률 확인',
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/trainer/badges'),
-                ),
-                AppListTile(
-                  leading: const Icon(Icons.fitness_center_outlined),
-                  title: '체육관 프리셋',
-                  subtitle: 'AI 커리큘럼 기본 설정',
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    final trainerId = authState.userId;
-                    context.push('${AppRoutes.trainerGymPreset}?trainerId=$trainerId');
-                  },
                 ),
                 AppListTile(
                   leading: const Icon(Icons.notifications_outlined),

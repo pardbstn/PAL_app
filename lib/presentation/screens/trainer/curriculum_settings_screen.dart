@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
 import 'package:flutter_pal_app/data/models/exercise_db_model.dart';
+import 'package:flutter_pal_app/data/models/curriculum_template_model.dart';
+import 'package:flutter_pal_app/data/models/member_model.dart';
+import 'package:flutter_pal_app/data/repositories/curriculum_template_repository.dart';
+import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/curriculum/wheel_picker_widget.dart';
 import 'package:flutter_pal_app/presentation/widgets/curriculum/chip_button_widget.dart';
 import 'package:flutter_pal_app/presentation/widgets/curriculum/exercise_search_widget.dart';
@@ -11,12 +16,21 @@ import 'package:flutter_pal_app/presentation/widgets/curriculum/exercise_search_
 class CurriculumSettingsScreen extends ConsumerStatefulWidget {
   final String? memberId;
   final String? memberName;
+  /// 추가 생성 모드일 때 추가할 회차 수
+  final int? additionalSessions;
+  /// 추가 생성 모드일 때 시작 회차 번호
+  final int? startSession;
 
   const CurriculumSettingsScreen({
     super.key,
     this.memberId,
     this.memberName,
+    this.additionalSessions,
+    this.startSession,
   });
+
+  /// 추가 생성 모드인지 여부
+  bool get isAdditionalMode => additionalSessions != null && startSession != null;
 
   @override
   ConsumerState<CurriculumSettingsScreen> createState() =>
@@ -27,12 +41,19 @@ class _CurriculumSettingsScreenState
     extends ConsumerState<CurriculumSettingsScreen> {
   int _exerciseCount = 5;
   int _setCount = 3;
-  int _sessionCount = 1;
+  late int _sessionCount;
   final List<String> _focusParts = [];
   final List<String> _excludedBodyParts = [];
   final List<String> _styles = [];
   final List<ExerciseDbModel> _excludedExercises = [];
   final _notesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 추가 생성 모드면 additionalSessions 사용, 아니면 기본값 1
+    _sessionCount = widget.additionalSessions ?? 1;
+  }
 
   // 선택 옵션들
   static const List<String> _focusPartOptions = [
@@ -98,6 +119,9 @@ class _CurriculumSettingsScreenState
         'memberName': widget.memberName,
         'settings': settings,
         'excludedExerciseIds': _excludedExercises.map((e) => e.id).toList(),
+        // 추가 생성 모드 정보
+        'isAdditionalMode': widget.isAdditionalMode,
+        'startSession': widget.startSession,
       },
     );
   }
@@ -292,6 +316,21 @@ class _CurriculumSettingsScreenState
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // 저장된 템플릿 가져오기
+            _buildSectionCard(
+              theme: theme,
+              icon: Icons.folder_open,
+              title: '저장된 템플릿',
+              subtitle: '이전에 저장한 커리큘럼 템플릿을 불러옵니다',
+              child: _TemplateLoadSection(
+                memberId: widget.memberId,
+                memberName: widget.memberName,
+                isAdditionalMode: widget.isAdditionalMode,
+                startSession: widget.startSession,
+              ),
+            ),
             const SizedBox(height: 24),
 
             // 액션 버튼들
@@ -392,6 +431,358 @@ class _CurriculumSettingsScreenState
           child,
         ],
       ),
+    );
+  }
+}
+
+/// 트레이너별 템플릿 스트림 프로바이더
+final _trainerTemplatesProvider = StreamProvider.family<List<CurriculumTemplateModel>, String>((ref, trainerId) {
+  final repo = ref.watch(curriculumTemplateRepositoryProvider);
+  return repo.watchByTrainerId(trainerId);
+});
+
+/// 템플릿 불러오기 섹션
+class _TemplateLoadSection extends ConsumerWidget {
+  final String? memberId;
+  final String? memberName;
+  final bool isAdditionalMode;
+  final int? startSession;
+
+  const _TemplateLoadSection({
+    required this.memberId,
+    required this.memberName,
+    required this.isAdditionalMode,
+    required this.startSession,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final authState = ref.watch(authProvider);
+    final trainerId = authState.trainerModel?.id ?? authState.userId;
+
+    if (trainerId == null || trainerId.isEmpty) {
+      return Text(
+        '로그인이 필요합니다',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.5),
+        ),
+      );
+    }
+
+    final templatesAsync = ref.watch(_trainerTemplatesProvider(trainerId));
+
+    return templatesAsync.when(
+      data: (templates) {
+        if (templates.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.folder_off_outlined,
+                    size: 32,
+                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '저장된 템플릿이 없습니다',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '커리큘럼 생성 후 템플릿으로 저장할 수 있습니다',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            ...templates.take(5).map((template) => _TemplateListTile(
+              template: template,
+              memberId: memberId,
+              memberName: memberName,
+              isAdditionalMode: isAdditionalMode,
+              startSession: startSession,
+              isDark: isDark,
+            )),
+            if (templates.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: TextButton(
+                  onPressed: () => _showAllTemplates(context, ref, templates, isDark),
+                  child: Text(
+                    '전체 ${templates.length}개 템플릿 보기',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => Shimmer.fromColors(
+        baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+        highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+        child: Column(
+          children: List.generate(3, (index) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          )),
+        ),
+      ),
+      error: (error, _) => Text(
+        '템플릿 로드 실패: $error',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.error,
+        ),
+      ),
+    );
+  }
+
+  void _showAllTemplates(
+    BuildContext context,
+    WidgetRef ref,
+    List<CurriculumTemplateModel> templates,
+    bool isDark,
+  ) {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // 핸들바
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // 제목
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.folder_open, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      '저장된 템플릿 (${templates.length}개)',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              // 템플릿 목록
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: templates.length,
+                  itemBuilder: (context, index) => _TemplateListTile(
+                    template: templates[index],
+                    memberId: memberId,
+                    memberName: memberName,
+                    isAdditionalMode: isAdditionalMode,
+                    startSession: startSession,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 템플릿 리스트 타일
+class _TemplateListTile extends ConsumerWidget {
+  final CurriculumTemplateModel template;
+  final String? memberId;
+  final String? memberName;
+  final bool isAdditionalMode;
+  final int? startSession;
+  final bool isDark;
+
+  const _TemplateListTile({
+    required this.template,
+    required this.memberId,
+    required this.memberName,
+    required this.isAdditionalMode,
+    required this.startSession,
+    required this.isDark,
+  });
+
+  String _getGoalLabel(FitnessGoal goal) {
+    return switch (goal) {
+      FitnessGoal.diet => '다이어트',
+      FitnessGoal.bulk => '벌크업',
+      FitnessGoal.fitness => '체력향상',
+      FitnessGoal.rehab => '재활',
+    };
+  }
+
+  String _getExperienceLabel(ExperienceLevel exp) {
+    return switch (exp) {
+      ExperienceLevel.beginner => '초급',
+      ExperienceLevel.intermediate => '중급',
+      ExperienceLevel.advanced => '고급',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.1),
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.description_outlined,
+            color: theme.colorScheme.primary,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          template.name,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
+          children: [
+            _buildTag(context, _getGoalLabel(template.goal), theme.colorScheme.primary),
+            const SizedBox(width: 4),
+            _buildTag(context, _getExperienceLabel(template.experience), theme.colorScheme.secondary),
+            const SizedBox(width: 4),
+            Text(
+              '${template.sessionCount}회차',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+            ),
+            if (template.usageCount > 0) ...[
+              const SizedBox(width: 8),
+              Text(
+                '사용 ${template.usageCount}회',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right, size: 20),
+        onTap: () => _applyTemplate(context, ref),
+      ),
+    );
+  }
+
+  Widget _buildTag(BuildContext context, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  void _applyTemplate(BuildContext context, WidgetRef ref) {
+    if (memberId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('회원 정보가 없습니다.')),
+      );
+      return;
+    }
+
+    // 템플릿 사용 카운트 증가
+    final repo = ref.read(curriculumTemplateRepositoryProvider);
+    repo.incrementUsageCount(template.id);
+
+    // 템플릿에서 직접 커리큘럼 설정으로 결과 화면으로 이동
+    // 템플릿의 세션을 CurriculumSettings와 함께 전달
+    final settings = CurriculumSettings(
+      sessionCount: template.sessionCount,
+      exerciseCount: template.sessions.isNotEmpty
+          ? template.sessions.first.exercises.length
+          : 5,
+    );
+
+    context.push(
+      '/trainer/curriculum/result',
+      extra: {
+        'memberId': memberId,
+        'memberName': memberName,
+        'settings': settings,
+        'templateSessions': template.sessions,
+        'isFromTemplate': true,
+        'templateName': template.name,
+        'isAdditionalMode': isAdditionalMode,
+        'startSession': startSession,
+      },
     );
   }
 }

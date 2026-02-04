@@ -10,19 +10,19 @@ import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
+import 'package:flutter_pal_app/data/models/curriculum_model.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/benchmark_distribution_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/muscle_balance_donut.dart';
-import 'package:flutter_pal_app/presentation/widgets/streak/streak_counter_widget.dart';
 import 'package:flutter_pal_app/presentation/widgets/member/reregistration_banner.dart';
-import 'package:flutter_pal_app/presentation/providers/streak_provider.dart';
-import 'package:flutter_pal_app/data/models/streak_model.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
+import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
 import '../../../core/theme/app_tokens.dart';
 
 /// 프리미엄 회원 홈 화면
@@ -60,6 +60,7 @@ class MemberHomeScreen extends ConsumerWidget {
     final memberInsightsAsync = ref.watch(
       memberInsightsStreamProvider(memberId),
     );
+    final nextCurriculumAsync = ref.watch(nextCurriculumProvider(memberId));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -120,36 +121,20 @@ class MemberHomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // 스트릭 카운터
-                Consumer(
-                  builder: (context, ref, child) {
-                    final streakAsync = ref.watch(
-                      memberStreakProvider(memberId),
-                    );
-                    return streakAsync.when(
-                      data: (streak) => Row(
-                        children: [
-                          Expanded(
-                            child: StreakCounterWidget(
-                              streak: streak,
-                              type: StreakType.weight,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: StreakCounterWidget(
-                              streak: streak,
-                              type: StreakType.diet,
-                            ),
-                          ),
-                        ],
-                      ),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    );
-                  },
+                // 3.5. 다음 진행할 커리큘럼 카드
+                nextCurriculumAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (curriculum) => curriculum != null
+                      ? Column(
+                          children: [
+                            _NextCurriculumCard(curriculum: curriculum)
+                                .animateListItem(2),
+                            const SizedBox(height: 16),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                const SizedBox(height: 16),
 
                 // 4. 체중 변화 미니 차트 (index 3)
                 weightChangeAsync.when(
@@ -1299,15 +1284,21 @@ class _WeightChangeCard extends StatelessWidget {
 }
 
 /// 빠른 액션 버튼 섹션
-class _QuickActionsSection extends StatelessWidget {
+class _QuickActionsSection extends ConsumerWidget {
   final String trainerId;
   final String memberId;
 
   const _QuickActionsSection({required this.trainerId, required this.memberId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 트레이너 평점 조회
+    final trainerRatingAsync = trainerId.isNotEmpty
+        ? ref.watch(trainerRatingProvider(trainerId))
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1345,9 +1336,107 @@ class _QuickActionsSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        // 트레이너 평점 표시 카드
+        if (trainerId.isNotEmpty && trainerRatingAsync != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: trainerRatingAsync.when(
+              data: (rating) {
+                final overall = rating?.overall ?? 0.0;
+                final reviewCount = rating?.reviewCount ?? 0;
+                return Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFF59E0B),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '내 트레이너 평점',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              ...List.generate(5, (index) {
+                                final starValue = index + 1;
+                                if (overall >= starValue) {
+                                  return const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18);
+                                } else if (overall >= starValue - 0.5) {
+                                  return const Icon(Icons.star_half_rounded, color: Color(0xFFF59E0B), size: 18);
+                                } else {
+                                  return Icon(Icons.star_outline_rounded, color: Colors.grey.shade300, size: 18);
+                                }
+                              }),
+                              const SizedBox(width: 8),
+                              Text(
+                                overall > 0 ? overall.toStringAsFixed(1) : '-',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFF59E0B),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '($reviewCount개 리뷰)',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => Shimmer.fromColors(
+                baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          ),
         _QuickActionButton(
           icon: Icons.star_outline_rounded,
-          label: '트레이너 평가',
+          label: '트레이너 평가하기',
           color: const Color(0xFFF59E0B),
           onTap: () {
             // 연동된 트레이너가 없는 경우 안내 다이얼로그 표시
@@ -1830,6 +1919,142 @@ class _MemberInsightCard extends StatelessWidget {
       graphType: insight.graphType!,
       data: insight.graphData!,
       primaryColor: insight.priorityColor,
+    );
+  }
+}
+
+/// 다음 진행할 커리큘럼 카드
+class _NextCurriculumCard extends StatelessWidget {
+  final CurriculumModel curriculum;
+
+  const _NextCurriculumCard({required this.curriculum});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.fitness_center,
+                    color: AppTheme.secondary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '다음 진행할 운동',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${curriculum.sessionNumber}회차',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${curriculum.exercises.length}개 운동',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: AppTheme.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 커리큘럼 제목
+            Text(
+              curriculum.title,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 운동 목록 미리보기 (최대 3개)
+            ...curriculum.exercises.take(3).map((exercise) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        exercise.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isDark ? Colors.grey[300] : Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${exercise.sets}세트 × ${exercise.reps}회',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            // 더 많은 운동이 있을 경우
+            if (curriculum.exercises.length > 3)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '외 ${curriculum.exercises.length - 3}개 운동',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.secondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

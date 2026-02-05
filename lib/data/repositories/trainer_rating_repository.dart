@@ -119,6 +119,21 @@ class TrainerRatingRepository {
             .toList());
   }
 
+  /// 특정 회원의 리뷰 조회
+  Future<MemberReviewModel?> getMemberReview(String trainerId, String memberId) async {
+    final snapshot = await _firestore
+        .collection(FirestoreCollections.trainers)
+        .doc(trainerId)
+        .collection(FirestoreCollections.reviews)
+        .where('memberId', isEqualTo: memberId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+    final doc = snapshot.docs.first;
+    return MemberReviewModel.fromJson({...doc.data(), 'id': doc.id});
+  }
+
   /// 평점 스트림 (실시간)
   Stream<TrainerRatingModel?> watchRating(String trainerId) {
     return _firestore

@@ -45,6 +45,7 @@ import 'package:flutter_pal_app/presentation/screens/member/self_training_home_s
 import 'package:flutter_pal_app/presentation/screens/member/monthly_report_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/trainer_question_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_requests_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/trainer/trainer_rating_detail_screen.dart';
 
 // ============================================================================
 // 페이지 전환 애니메이션
@@ -389,6 +390,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => buildSlideTransitionPage(
           key: state.pageKey,
           child: const TrainerRequestsScreen(),
+        ),
+      ),
+      // 트레이너 평점 상세
+      GoRoute(
+        path: AppRoutes.trainerRatingDetail,
+        name: RouteNames.trainerRatingDetail,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const TrainerRatingDetailScreen(),
         ),
       ),
 

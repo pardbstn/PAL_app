@@ -19,7 +19,6 @@ import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.d
 import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_alert_card.dart';
 import 'package:flutter_pal_app/presentation/providers/reregistration_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/trainer_badge_provider.dart';
 
 /// 트레이너 홈 (대시보드) 화면
 /// 프리미엄 화이트 + 쉐도우 스타일의 깔끔한 UI 제공
@@ -39,14 +38,29 @@ class TrainerHomeScreen extends ConsumerWidget {
             // 앱바
             _buildSliverAppBar(context),
 
-            // 컨텐츠
+            // 컨텐츠 (회원 앱과 동일한 패딩 16)
             SliverPadding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // 환영 메시지 (순차 등장 - 0ms)
-                  _buildWelcomeSection(context, displayName),
-                  const SizedBox(height: 28),
+                  // 환영 메시지 + 알림/설정 아이콘 (회원 앱과 동일한 Row 구조)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildWelcomeSection(context, displayName),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined),
+                        onPressed: () {},
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined),
+                        onPressed: () => context.go('/trainer/settings'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
                   // 오늘 일정 (순차 등장 - 100ms)
                   Column(
@@ -84,8 +98,8 @@ class TrainerHomeScreen extends ConsumerWidget {
                       .slideY(begin: 0.05, duration: 400.ms),
                   const SizedBox(height: 28),
 
-                  // 내 평점 + 배지 (순차 등장 - 250ms)
-                  _TrainerRatingBadgeSection(
+                  // 내 평점 (순차 등장 - 250ms)
+                  _TrainerRatingSection(
                         trainerId: authState.trainerModel?.id ?? '',
                       )
                       .animate()
@@ -130,110 +144,51 @@ class TrainerHomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Sliver 앱바
+  /// Sliver 앱바 (회원 앱과 동일하게 빈 앱바)
   Widget _buildSliverAppBar(BuildContext context) {
-    return SliverAppBar(
+    return const SliverAppBar(
       floating: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primary,
-                  AppTheme.primary.withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'PAL',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                letterSpacing: 2,
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.notifications_outlined,
-              color: Theme.of(context).colorScheme.onSurface,
-              size: 20,
-            ),
-          ),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.settings_outlined,
-              color: Theme.of(context).colorScheme.onSurface,
-              size: 20,
-            ),
-          ),
-          onPressed: () => context.go('/trainer/settings'),
-        ),
-        const SizedBox(width: 12),
-      ],
+      toolbarHeight: 0, // 회원 앱과 동일하게 앱바 숨김
     );
   }
 
-  /// 환영 메시지 섹션
+  /// 환영 메시지 섹션 (회원 앱과 동일한 형식: 이름 먼저, 시간 인사말 나중)
   Widget _buildWelcomeSection(BuildContext context, String name) {
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = '좋은 아침이에요';
-    } else if (hour < 18) {
-      greeting = '좋은 오후예요';
-    } else {
-      greeting = '좋은 저녁이에요';
-    }
+    final theme = Theme.of(context);
+    final greeting = _getTimeBasedGreeting();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          greeting,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          '안녕하세요, $name님!',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
+        ),
         const SizedBox(height: 4),
         Text(
-          '$name님!',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-        ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideX(begin: -0.1),
+          greeting,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
+  }
+
+  /// 시간에 따른 인사말 (회원 앱과 동일)
+  String _getTimeBasedGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return '좋은 아침이에요! 오늘도 화이팅!';
+    } else if (hour < 18) {
+      return '오늘도 화이팅! 멋진 하루 보내세요!';
+    } else {
+      return '좋은 저녁이에요! 오늘 하루도 수고하셨어요!';
+    }
   }
 
   /// 섹션 헤더
@@ -2027,11 +1982,11 @@ class _AnimatedStatCard extends StatelessWidget {
   }
 }
 
-/// 트레이너 평점 + 배지 카드 섹션
-class _TrainerRatingBadgeSection extends ConsumerWidget {
+/// 트레이너 평점 카드 섹션
+class _TrainerRatingSection extends ConsumerWidget {
   final String trainerId;
 
-  const _TrainerRatingBadgeSection({required this.trainerId});
+  const _TrainerRatingSection({required this.trainerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2039,143 +1994,98 @@ class _TrainerRatingBadgeSection extends ConsumerWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ratingAsync = ref.watch(trainerRatingProvider(trainerId));
-    final badgesAsync = ref.watch(trainerBadgesProvider(trainerId));
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+    return GestureDetector(
+      onTap: () => context.push('/trainer/rating'),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 헤더
-          Row(
-            children: [
-              Text(
-                '내 평점',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => context.push('/trainer/badges'),
-                child: Text(
-                  '배지 관리 →',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '내 평점',
                   style: TextStyle(
-                    fontSize: 13,
-                    color: const Color(0xFF2563EB),
-                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // 평점 표시
-          ratingAsync.when(
-            data: (rating) {
-              final overall = rating?.overall ?? 0.0;
-              final reviewCount = rating?.reviewCount ?? 0;
-              return Row(
-                children: [
-                  // 별점
-                  Icon(
-                    Icons.star_rounded,
-                    color: const Color(0xFFF59E0B),
-                    size: 28,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    overall > 0 ? overall.toStringAsFixed(1) : '-',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                Row(
+                  children: [
+                    Text(
+                      '상세 보기',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '($reviewCount개 리뷰)',
-                    style: TextStyle(
-                      fontSize: 13,
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                     ),
-                  ),
-                ],
-              );
-            },
-            loading: () => const SizedBox(height: 28),
-            error: (_, __) => const Text('평점 로딩 실패'),
-          ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 16),
-
-          // 보유 배지
-          badgesAsync.when(
-            data: (badges) {
-              final activeBadges = badges?.activeBadges ?? [];
-              if (activeBadges.isEmpty) {
-                return Text(
-                  '아직 획득한 배지가 없습니다',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                  ),
-                );
-              }
-              // 최대 4개까지 표시
-              final displayBadges = activeBadges.take(4).toList();
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: displayBadges
-                    .map(
-                      (badge) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF2E3B5E)
-                              : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${badge.icon} ${badge.name}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? Colors.white70
-                                : const Color(0xFF475569),
-                          ),
-                        ),
+            // 평점 표시
+            ratingAsync.when(
+              data: (rating) {
+                final overall = rating?.overall ?? 0.0;
+                final reviewCount = rating?.reviewCount ?? 0;
+                return Row(
+                  children: [
+                    // 별점
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 28,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      overall > 0 ? overall.toStringAsFixed(1) : '-',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
-                    )
-                    .toList(),
-              );
-            },
-            loading: () => const SizedBox(height: 24),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-        ],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '($reviewCount개 리뷰)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const SizedBox(height: 28),
+              error: (_, __) => const Text('평점 로딩 실패'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -22,6 +22,7 @@ abstract class AppRoutes {
   static const String trainerSettings = '/trainer/settings';
   static const String trainerInsights = '/trainer/insights';
   static const String trainerRequests = '/trainer/trainer-requests';
+  static const String trainerRatingDetail = '/trainer/rating';
 
   // 회원 경로
   static const String memberHome = '/member/home';
@@ -64,6 +65,7 @@ abstract class RouteNames {
   static const String trainerSettings = 'trainer-settings';
   static const String trainerInsights = 'trainer-insights';
   static const String trainerRequests = 'trainer-requests';
+  static const String trainerRatingDetail = 'trainer-rating-detail';
 
   // 회원
   static const String memberHome = 'member-home';

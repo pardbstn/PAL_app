@@ -95,3 +95,92 @@ class ReviewSubmitNotifier extends Notifier<ReviewSubmitState> {
 final reviewSubmitProvider = NotifierProvider<ReviewSubmitNotifier, ReviewSubmitState>(() {
   return ReviewSubmitNotifier();
 });
+
+// ============================================================================
+// 리뷰 정렬/필터링 (트레이너 평점 상세 화면용)
+// ============================================================================
+
+/// 리뷰 정렬 옵션
+enum ReviewSortOption {
+  newest('최신순'),
+  oldest('오래된순'),
+  highest('높은 점수순'),
+  lowest('낮은 점수순');
+
+  final String label;
+  const ReviewSortOption(this.label);
+}
+
+/// 리뷰 정렬 옵션 Notifier
+class ReviewSortOptionNotifier extends Notifier<ReviewSortOption> {
+  @override
+  ReviewSortOption build() => ReviewSortOption.newest;
+
+  void setOption(ReviewSortOption option) {
+    state = option;
+  }
+}
+
+/// 현재 선택된 정렬 옵션
+final reviewSortOptionProvider = NotifierProvider<ReviewSortOptionNotifier, ReviewSortOption>(() {
+  return ReviewSortOptionNotifier();
+});
+
+/// 정렬된 리뷰 목록 Provider
+final sortedTrainerReviewsProvider = Provider.family<AsyncValue<List<MemberReviewModel>>, String>((ref, trainerId) {
+  final reviewsAsync = ref.watch(trainerReviewsProvider(trainerId));
+  final sortOption = ref.watch(reviewSortOptionProvider);
+
+  return reviewsAsync.whenData((reviews) {
+    final sorted = List<MemberReviewModel>.from(reviews);
+    switch (sortOption) {
+      case ReviewSortOption.newest:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case ReviewSortOption.oldest:
+        sorted.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      case ReviewSortOption.highest:
+        sorted.sort((a, b) => MemberReviewModel.averageRating(b).compareTo(MemberReviewModel.averageRating(a)));
+      case ReviewSortOption.lowest:
+        sorted.sort((a, b) => MemberReviewModel.averageRating(a).compareTo(MemberReviewModel.averageRating(b)));
+    }
+    return sorted;
+  });
+});
+
+/// 카테고리별 평균 점수 계산 Provider
+final categoryAveragesProvider = Provider.family<({double coaching, double communication, double kindness})?, String>((ref, trainerId) {
+  final reviewsAsync = ref.watch(trainerReviewsProvider(trainerId));
+
+  return reviewsAsync.whenOrNull(data: (reviews) {
+    if (reviews.isEmpty) return null;
+
+    double totalCoaching = 0;
+    double totalCommunication = 0;
+    double totalKindness = 0;
+
+    for (final review in reviews) {
+      totalCoaching += review.coachingSatisfaction;
+      totalCommunication += review.communication;
+      totalKindness += review.kindness;
+    }
+
+    return (
+      coaching: totalCoaching / reviews.length,
+      communication: totalCommunication / reviews.length,
+      kindness: totalKindness / reviews.length,
+    );
+  });
+});
+
+// ============================================================================
+// 회원용 Provider (내가 작성한 리뷰 조회)
+// ============================================================================
+
+/// 회원이 작성한 리뷰 조회 파라미터
+typedef MemberReviewParams = ({String trainerId, String memberId});
+
+/// 회원이 작성한 리뷰 Provider
+final memberOwnReviewProvider = FutureProvider.family<MemberReviewModel?, MemberReviewParams>((ref, params) async {
+  final repo = ref.watch(trainerRatingRepositoryProvider);
+  return repo.getMemberReview(params.trainerId, params.memberId);
+});

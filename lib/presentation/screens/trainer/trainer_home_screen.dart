@@ -52,7 +52,7 @@ class TrainerHomeScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.notifications_outlined),
-                        onPressed: () {},
+                        onPressed: () => context.push('/notifications?userId=${authState.userId ?? ''}'),
                       ),
                       IconButton(
                         icon: const Icon(Icons.settings_outlined),
@@ -791,7 +791,7 @@ class _ReregistrationAlertSection extends ConsumerWidget {
       maxItems: 3,
       onContactMember: (memberId) {
         // 회원 상세 페이지로 이동
-        context.go('/trainer/members/$memberId');
+        context.push('/trainer/members/$memberId');
       },
       onMarkComplete: (memberId) {
         // 재등록 완료 처리
@@ -872,7 +872,7 @@ class _EndingSoonSection extends ConsumerWidget {
     final urgencyColor = remaining <= 2 ? AppTheme.error : AppTheme.tertiary;
 
     return InkWell(
-          onTap: () => context.go('/trainer/members/${mwu.member.id}'),
+          onTap: () => context.push('/trainer/members/${mwu.member.id}'),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),

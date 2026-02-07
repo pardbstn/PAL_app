@@ -345,7 +345,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
               memberName: mwu.name,
               profileImageUrl: mwu.profileImageUrl,
               lastWorkoutDate: null, // TODO: 마지막 운동일 연동
-              onTap: () => context.go('/trainer/members/${mwu.member.id}'),
+              onTap: () => context.push('/trainer/members/${mwu.member.id}'),
               onEdit: () => _showEditMemberDialog(mwu.member),
               onDelete: () => _deleteMember(mwu.member),
             ),
@@ -380,7 +380,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
             onPressed: () {
               Navigator.pop(context);
               // TODO: 수정 화면으로 이동
-              context.go('/trainer/members/${member.id}');
+              context.push('/trainer/members/${member.id}');
             },
             child: const Text('상세보기'),
           ),

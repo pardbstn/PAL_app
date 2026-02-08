@@ -64,41 +64,42 @@ abstract class AppRadius {
   static BorderRadius get fullBorderRadius => BorderRadius.circular(full);
 }
 
-/// 그림자(Shadow) 토큰
+/// 그림자(Shadow) 토큰 - Floating Shadow Style
+/// 반응형 깊이: 오프셋 없이 블러만으로 "떠있는" 느낌 구현
 abstract class AppShadows {
-  /// 작은 그림자 - 미세한 구분이 필요한 요소
+  /// 작은 그림자 - 미세한 구분이 필요한 요소 (subtle float)
   static List<BoxShadow> get sm => [
         const BoxShadow(
-          color: Color(0x08000000),
-          blurRadius: 4,
-          offset: Offset(0, 1),
+          color: Color(0x0A000000),
+          blurRadius: 12,
+          offset: Offset(0, 0),
         ),
       ];
 
-  /// 중간 그림자 - 카드, 드롭다운 등
+  /// 중간 그림자 - 카드, 드롭다운 등 (standard float)
   static List<BoxShadow> get md => [
         const BoxShadow(
-          color: Color(0x0A000000),
-          blurRadius: 8,
-          offset: Offset(0, 2),
+          color: Color(0x10000000),
+          blurRadius: 24,
+          offset: Offset(0, 0),
         ),
       ];
 
-  /// 큰 그림자 - 모달, 플로팅 버튼 등
+  /// 큰 그림자 - 모달, 플로팅 버튼 등 (elevated float)
   static List<BoxShadow> get lg => [
         const BoxShadow(
-          color: Color(0x12000000),
-          blurRadius: 16,
-          offset: Offset(0, 4),
+          color: Color(0x14000000),
+          blurRadius: 32,
+          offset: Offset(0, 2),
         ),
       ];
 
   /// Primary 강조 그림자
   static List<BoxShadow> get accent => [
         const BoxShadow(
-          color: Color(0x330064FF),
-          blurRadius: 12,
-          offset: Offset(0, 4),
+          color: Color(0x200064FF),
+          blurRadius: 20,
+          offset: Offset(0, 0),
         ),
       ];
 

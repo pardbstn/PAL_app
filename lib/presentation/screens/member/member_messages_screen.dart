@@ -8,6 +8,7 @@ import 'package:flutter_pal_app/data/repositories/user_repository.dart';
 import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/data/models/user_model.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 채팅 메시지 모델 (로컬)
 class ChatMessage {
@@ -138,7 +139,8 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
         isDark,
         currentMember,
       ),
-      body: Column(
+      body: MeshGradientBackground(
+        child: Column(
         children: [
           // 준비 중 안내 배너
           Container(
@@ -173,6 +175,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
           // 메시지 입력 영역
           _buildInputArea(theme, colorScheme, isDark),
         ],
+      ),
       ),
     );
   }

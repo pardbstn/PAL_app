@@ -71,8 +71,8 @@ class MemberHomeScreen extends ConsumerWidget {
       body: Container(
         decoration: isDarkMode
             ? null
-            : const BoxDecoration(
-                gradient: LinearGradient(
+            : BoxDecoration(
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
@@ -82,6 +82,19 @@ class MemberHomeScreen extends ConsumerWidget {
                     Colors.white,
                   ],
                   stops: [0.0, 0.3, 0.6, 1.0],
+                ),
+              ),
+        foregroundDecoration: isDarkMode
+            ? null
+            : const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x26FFFFFF), // white at 15% opacity
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 1.0],
                 ),
               ),
         child: RefreshIndicator(
@@ -712,9 +725,9 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 duration: const Duration(milliseconds: 1200),
                                 suffix: '%',
                                 style: const TextStyle(
-                                  color: Color(0xFF0A1A3F),
+                                  color: Color(0xFFFFFFFF),
                                   fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -732,7 +745,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                         Text(
                           'PT 진행 현황',
                           style: TextStyle(
-                            color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 14,
                           ),
                         ),
@@ -746,17 +759,17 @@ class _PtProgressCardState extends State<_PtProgressCard>
                               value: widget.completed,
                               duration: const Duration(milliseconds: 1000),
                               style: const TextStyle(
-                                color: Color(0xFF0A1A3F),
+                                color: Color(0xFFFFFFFF),
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               ' / ${widget.total} 회차 완료',
                               style: const TextStyle(
-                                color: Color(0xFF0A1A3F),
+                                color: Color(0xFFFFFFFF),
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -768,7 +781,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                             Text(
                               '남은 회차: ',
                               style: TextStyle(
-                                color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                                color: Colors.white.withValues(alpha: 0.6),
                                 fontSize: 14,
                               ),
                             ),
@@ -777,7 +790,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                               duration: const Duration(milliseconds: 800),
                               suffix: '회',
                               style: TextStyle(
-                                color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                                color: Colors.white.withValues(alpha: 0.6),
                                 fontSize: 14,
                               ),
                             ),
@@ -793,8 +806,8 @@ class _PtProgressCardState extends State<_PtProgressCard>
               AnimatedProgressBar(
                 progress: widget.progressRate,
                 height: 8,
-                backgroundColor: const Color(0xFF0055FF).withValues(alpha: 0.15),
-                progressColor: const Color(0xFF0055FF),
+                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                progressColor: const Color(0xFF4D9AFF),
                 duration: const Duration(milliseconds: 1200),
               ),
             ],

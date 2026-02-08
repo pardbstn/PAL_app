@@ -94,7 +94,7 @@ class _LiquidGlassNavBarState extends State<LiquidGlassNavBar> {
                       width: itemWidth - 8,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: activeColor.withValues(alpha: 0.12),
+                          color: activeColor.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
@@ -140,7 +140,8 @@ class _NavBarItem extends StatelessWidget {
     final activeColor = isDark
         ? AppNavGlass.activeColorDark
         : AppNavGlass.activeColor;
-    final inactiveColor = isDark ? AppColors.gray300 : AppColors.gray400;
+    final inactiveColor = (isDark ? AppColors.gray300 : AppColors.gray400)
+        .withValues(alpha: 0.5);
     final inactiveLabelColor = isDark ? AppColors.gray300 : AppColors.gray500;
 
     return Expanded(
@@ -178,7 +179,7 @@ class _NavBarItem extends StatelessWidget {
       child: Icon(
         isActive ? item.activeIcon : item.icon,
         key: ValueKey(isActive),
-        size: 22,
+        size: isActive ? 24 : 22,
         color: isActive ? activeColor : inactiveColor,
       ),
     );

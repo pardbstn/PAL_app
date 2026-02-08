@@ -11,6 +11,7 @@ import 'package:flutter_pal_app/presentation/widgets/member_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/add_member_dialog.dart';
 import '../../../presentation/widgets/states/states.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 트레이너 회원 목록 화면
 class TrainerMembersScreen extends ConsumerStatefulWidget {
@@ -79,32 +80,34 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          children: [
-            // 검색바 + 통계
-            _buildSearchAndStats(),
+      body: MeshGradientBackground(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: [
+              // 검색바 + 통계
+              _buildSearchAndStats(),
 
-            // 회원 목록
-            Expanded(
-              child: membersWithUserAsync.when(
-                loading: () => _buildShimmerList(),
-                error: (error, stack) => _buildErrorView(error),
-                data: (membersWithUser) {
-                  // 검색 필터 적용
-                  final filteredMembers =
-                      _filterBySearchWithUser(membersWithUser, searchQuery);
+              // 회원 목록
+              Expanded(
+                child: membersWithUserAsync.when(
+                  loading: () => _buildShimmerList(),
+                  error: (error, stack) => _buildErrorView(error),
+                  data: (membersWithUser) {
+                    // 검색 필터 적용
+                    final filteredMembers =
+                        _filterBySearchWithUser(membersWithUser, searchQuery);
 
-                  if (filteredMembers.isEmpty) {
-                    return _buildEmptyView(searchQuery.isNotEmpty);
-                  }
+                    if (filteredMembers.isEmpty) {
+                      return _buildEmptyView(searchQuery.isNotEmpty);
+                    }
 
-                  return _buildMemberListWithUser(filteredMembers);
-                },
+                    return _buildMemberListWithUser(filteredMembers);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -10,6 +10,7 @@ import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/skeleton/skeletons.dart';
 import 'package:flutter_pal_app/presentation/widgets/states/states.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 회원 캘린더 화면 - 트레이너 스타일 UI/UX 적용
 /// 기능:
@@ -296,7 +297,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
+      body: MeshGradientBackground(
+        child: Stack(
         children: [
           SafeArea(
             child: Column(
@@ -328,6 +330,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                 ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -565,9 +568,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     color: isSelected
                         ? AppTheme.primary
                         : isToday
-                            ? AppTheme.primary.withValues(alpha: 0.1)
+                            ? AppTheme.primary.withValues(alpha: 0.15)
                             : null,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -756,9 +759,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         color: isSelected
                             ? AppTheme.primary
                             : isToday
-                                ? AppTheme.primary.withValues(alpha: 0.1)
+                                ? AppTheme.primary.withValues(alpha: 0.15)
                                 : null,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Builder(
                         builder: (context) {

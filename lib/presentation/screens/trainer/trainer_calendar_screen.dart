@@ -9,6 +9,7 @@ import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 트레이너 캘린더 화면 - 프로덕션 품질 버전
 /// 기능:
@@ -294,16 +295,18 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(theme),
-            Expanded(
-              child: _isWeekView
-                  ? _buildWeekViewWithSwipe()
-                  : _buildMonthViewWithSwipe(),
-            ),
-          ],
+      body: MeshGradientBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(theme),
+              Expanded(
+                child: _isWeekView
+                    ? _buildWeekViewWithSwipe()
+                    : _buildMonthViewWithSwipe(),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Padding(
@@ -737,9 +740,9 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                         color: isSelected
                             ? AppTheme.primary
                             : isToday
-                            ? AppTheme.primary.withValues(alpha: 0.1)
+                            ? AppTheme.primary.withValues(alpha: 0.15)
                             : null,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Builder(
                         builder: (context) {

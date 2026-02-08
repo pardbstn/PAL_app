@@ -21,6 +21,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/body_composition_prediction_provider.dart';
 import '../../providers/body_records_provider.dart';
 import '../../providers/curriculums_provider.dart';
+import '../../widgets/common/mesh_gradient_background.dart';
 
 /// 회원의 서명 기록 Provider
 final memberSignaturesProvider = StreamProvider.family<List<SessionSignatureModel>, String>((ref, memberId) {
@@ -64,40 +65,41 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAppBar(
-            pinned: true,
-            floating: true,
-            expandedHeight: 120,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                '내 기록',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  color: colorScheme.onSurface,
+      body: MeshGradientBackground(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverAppBar(
+              pinned: true,
+              floating: true,
+              expandedHeight: 120,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Text(
+                  '내 기록',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                titlePadding:
+                    const EdgeInsets.only(left: AppSpacing.md, bottom: 72),
+                background: Container(
+                  color: Colors.transparent,
                 ),
               ),
-              titlePadding:
-                  const EdgeInsets.only(left: AppSpacing.md, bottom: 72),
-              background: Container(
-                color: Colors.transparent,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(64),
+                child: _buildPremiumTabBar(context),
               ),
             ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(64),
-              child: _buildPremiumTabBar(context),
-            ),
-          ),
-        ],
-        body: TabBarView(
-          controller: _tabController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: isPersonal
-              ? const [
-                  _BodyCompositionTab(),
+          ],
+          body: TabBarView(
+            controller: _tabController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: isPersonal
+                ? const [
+                    _BodyCompositionTab(),
                   _ExerciseRecordsTab(),
                 ]
               : const [
@@ -105,6 +107,7 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
                   _ExerciseRecordsTab(),
                   _SignatureRecordsTab(),
                 ],
+          ),
         ),
       ),
     );
@@ -843,39 +846,93 @@ class _AIPredictionCard extends ConsumerWidget {
 }
 
 /// 현재 체성분 요약 카드들
-class _CurrentStatsCards extends StatelessWidget {
+class _CurrentStatsCards extends ConsumerWidget {
   const _CurrentStatsCards({required this.record});
 
   final BodyRecordModel record;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final memberId = record.memberId;
+    final recordsAsync = ref.watch(bodyRecordsProvider(memberId));
+
+    // 이전 기록에서 변화량 계산
+    double? weightChange;
+    double? muscleChange;
+    double? fatChange;
+
+    recordsAsync.whenData((records) {
+      if (records.length >= 2) {
+        final previous = records[1]; // 두 번째가 이전 기록
+        weightChange = record.weight - previous.weight;
+        if (record.muscleMass != null && previous.muscleMass != null) {
+          muscleChange = record.muscleMass! - previous.muscleMass!;
+        }
+        if (record.bodyFatPercent != null && previous.bodyFatPercent != null) {
+          fatChange = record.bodyFatPercent! - previous.bodyFatPercent!;
+        }
+      }
+    });
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: _StatCard(
-              label: '체중',
-              value: record.weight.toStringAsFixed(1),
-              unit: 'kg',
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md / 1.333),
-          Expanded(
-            child: _StatCard(
-              label: '체지방률',
-              value: record.bodyFatPercent?.toStringAsFixed(1) ?? '-',
-              unit: '%',
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md / 1.333),
-          Expanded(
-            child: _StatCard(
-              label: '골격근량',
-              value: record.muscleMass?.toStringAsFixed(1) ?? '-',
-              unit: 'kg',
-            ),
+          // 벤토 그리드: 왼쪽 큰 카드 + 오른쪽 작은 카드 2개
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 왼쪽: 체중 (큰 카드)
+              Expanded(
+                child: _BentoStatCard(
+                  label: '체중',
+                  value: record.weight.toStringAsFixed(1),
+                  unit: 'kg',
+                  change: weightChange,
+                  icon: Icons.monitor_weight_rounded,
+                  iconColor: AppColors.primary,
+                  height: 180,
+                  isPositiveGood: false,
+                  isPrimary: true,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 오른쪽: 골격근량 + 체지방률 (작은 카드 2개)
+              Expanded(
+                child: Column(
+                  children: [
+                    _BentoStatCard(
+                      label: '골격근량',
+                      value: record.muscleMass?.toStringAsFixed(1) ?? '-',
+                      unit: 'kg',
+                      change: muscleChange,
+                      icon: Icons.fitness_center_rounded,
+                      iconColor: const Color(0xFF10B981),
+                      height: 84,
+                      isPositiveGood: true,
+                      isPrimary: false,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    _BentoStatCard(
+                      label: '체지방률',
+                      value: record.bodyFatPercent?.toStringAsFixed(1) ?? '-',
+                      unit: '%',
+                      change: fatChange,
+                      icon: Icons.water_drop_rounded,
+                      iconColor: const Color(0xFFF59E0B),
+                      height: 84,
+                      isPositiveGood: false,
+                      isPrimary: false,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -886,73 +943,210 @@ class _CurrentStatsCards extends StatelessWidget {
   }
 }
 
-/// 개별 통계 카드
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+/// 벤토 그리드 스타일 통계 카드
+class _BentoStatCard extends StatelessWidget {
+  const _BentoStatCard({
     required this.label,
     required this.value,
     required this.unit,
+    required this.icon,
+    required this.iconColor,
+    required this.height,
+    required this.isPositiveGood,
+    required this.isPrimary,
+    required this.isDark,
+    this.change,
   });
 
   final String label;
   final String value;
   final String unit;
+  final double? change;
+  final IconData icon;
+  final Color iconColor;
+  final double height;
+  final bool isPositiveGood;
+  final bool isPrimary;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final isDark = theme.brightness == Brightness.dark;
+    // 변화량 색상: 골격근량은 증가가 좋고, 체중/체지방은 감소가 좋음
+    Color? changeColor;
+    String? changeText;
+    if (change != null && change != 0) {
+      final isGood = isPositiveGood ? change! > 0 : change! < 0;
+      changeColor = isGood ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+      final sign = change! > 0 ? '+' : '';
+      changeText = '$sign${change!.toStringAsFixed(1)}';
+    }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      height: height,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: AppRadius.lgBorderRadius,
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray200,
-        ),
-        boxShadow: [
+        color: isDark
+            ? colorScheme.surface.withValues(alpha: 0.8)
+            : Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Color(0x10000000),
+            blurRadius: 24,
+            offset: Offset.zero,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+      child: isPrimary
+          ? _buildPrimaryContent(theme, colorScheme, changeColor, changeText)
+          : _buildCompactContent(theme, colorScheme, changeColor, changeText),
+    );
+  }
+
+  /// 큰 카드 (체중) - 아이콘, 라벨, 큰 값, 변화량 표시
+  Widget _buildPrimaryContent(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Color? changeColor,
+    String? changeText,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: iconColor),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+            const Spacer(),
+            if (changeText != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: changeColor!.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  changeText,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: changeColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
+          ],
+        ),
+        const Spacer(),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              value,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              unit,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 작은 카드 (골격근량, 체지방률) - 컴팩트 레이아웃
+  Widget _buildCompactContent(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Color? changeColor,
+    String? changeText,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 14, color: iconColor),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Text(
-                unit,
+                label,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
+                  fontSize: 11,
                 ),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                      letterSpacing: -0.3,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    unit,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        if (changeText != null)
+          Text(
+            changeText,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: changeColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -987,11 +1181,11 @@ class _BodyCompositionChart extends ConsumerWidget {
     switch (selectedMetric) {
       case 'muscle':
         chartTitle = '골격근량 변화 추이';
-        primaryColor = Colors.green;
+        primaryColor = AppColors.secondary;
         break;
       case 'bodyFat':
         chartTitle = '체지방률 변화 추이';
-        primaryColor = Colors.orange;
+        primaryColor = AppColors.error;
         break;
       case 'all':
         chartTitle = '체성분 종합 추이';
@@ -1075,9 +1269,9 @@ class _BodyCompositionChart extends ConsumerWidget {
       children: [
         _legendItem(context, '체중', AppColors.primary),
         const SizedBox(width: AppSpacing.sm),
-        _legendItem(context, '근육', Colors.green),
+        _legendItem(context, '근육', AppColors.secondary),
         const SizedBox(width: AppSpacing.sm),
-        _legendItem(context, '체지방', Colors.orange),
+        _legendItem(context, '체지방', AppColors.error),
       ],
     );
   }
@@ -1203,26 +1397,16 @@ class _BodyCompositionChart extends ConsumerWidget {
             isCurved: true,
             curveSmoothness: 0.35,
             color: color,
-            barWidth: 3,
+            barWidth: 2.5,
             isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) {
-                return FlDotCirclePainter(
-                  radius: 4,
-                  color: colorScheme.surface,
-                  strokeWidth: 2,
-                  strokeColor: color,
-                );
-              },
-            ),
+            dotData: FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  color.withValues(alpha: 0.3),
+                  color.withValues(alpha: 0.15),
                   color.withValues(alpha: 0.0),
                 ],
               ),
@@ -1433,17 +1617,17 @@ class _BodyCompositionChart extends ConsumerWidget {
             _buildLineBarData(weightSpots, AppColors.primary, colorScheme),
           // 골격근량 라인
           if (muscleSpots.isNotEmpty)
-            _buildLineBarData(muscleSpots, Colors.green, colorScheme),
+            _buildLineBarData(muscleSpots, AppColors.secondary, colorScheme),
           // 체지방률 라인
           if (bodyFatSpots.isNotEmpty)
-            _buildLineBarData(bodyFatSpots, Colors.orange, colorScheme),
+            _buildLineBarData(bodyFatSpots, AppColors.error, colorScheme),
           // 예측 라인 (점선)
           if (weightPredSpots.isNotEmpty)
             _buildPredictionLineBarData(weightPredSpots, AppColors.primary),
           if (musclePredSpots.isNotEmpty)
-            _buildPredictionLineBarData(musclePredSpots, Colors.green),
+            _buildPredictionLineBarData(musclePredSpots, AppColors.secondary),
           if (bodyFatPredSpots.isNotEmpty)
-            _buildPredictionLineBarData(bodyFatPredSpots, Colors.orange),
+            _buildPredictionLineBarData(bodyFatPredSpots, AppColors.error),
         ],
         lineTouchData: LineTouchData(
           // 세로 점선 인디케이터 숨기기
@@ -1480,7 +1664,7 @@ class _BodyCompositionChart extends ConsumerWidget {
                 if (spot.bar.color == AppColors.primary) {
                   label = '체중';
                   unit = 'kg';
-                } else if (spot.bar.color == Colors.green) {
+                } else if (spot.bar.color == AppColors.secondary) {
                   label = '골격근량';
                   unit = 'kg';
                 } else {
@@ -1513,20 +1697,20 @@ class _BodyCompositionChart extends ConsumerWidget {
       isCurved: true,
       curveSmoothness: 0.35,
       color: color,
-      barWidth: 2,
+      barWidth: 2.5,
       isStrokeCapRound: true,
-      dotData: FlDotData(
+      dotData: FlDotData(show: false),
+      belowBarData: BarAreaData(
         show: true,
-        getDotPainter: (spot, percent, barData, index) {
-          return FlDotCirclePainter(
-            radius: 3,
-            color: colorScheme.surface,
-            strokeWidth: 2,
-            strokeColor: color,
-          );
-        },
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color.withValues(alpha: 0.15),
+            color.withValues(alpha: 0.0),
+          ],
+        ),
       ),
-      belowBarData: BarAreaData(show: false),
     );
   }
 
@@ -1540,7 +1724,7 @@ class _BodyCompositionChart extends ConsumerWidget {
       isCurved: true,
       curveSmoothness: 0.35,
       color: color.withValues(alpha: 0.6),
-      barWidth: 2,
+      barWidth: 2.5,
       isStrokeCapRound: true,
       dashArray: [5, 5],
       dotData: FlDotData(
@@ -3632,19 +3816,42 @@ class _StatsCardsShimmer extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Row(
-          children: List.generate(
-            3,
-            (index) => Expanded(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 왼쪽: 큰 카드 시머
+            Expanded(
               child: Container(
-                margin: EdgeInsets.only(left: index > 0 ? 12 : 0),
-                height: 120,
+                height: 180,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: AppRadius.lgBorderRadius,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            // 오른쪽: 작은 카드 2개 시머
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    height: 84,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 84,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

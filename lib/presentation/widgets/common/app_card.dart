@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
-import 'package:flutter_pal_app/core/utils/haptic_utils.dart';
 
 /// 카드 변형 타입
 enum AppCardVariant {
@@ -41,6 +41,7 @@ class AppCard extends StatefulWidget {
     this.variant = AppCardVariant.standard,
     this.padding,
     this.onTap,
+    this.onLongPress,
     this.isHoverable = false,
     this.animate = true,
     this.animationDelay = Duration.zero,
@@ -57,6 +58,9 @@ class AppCard extends StatefulWidget {
 
   /// 탭 콜백 (null이면 탭 불가)
   final VoidCallback? onTap;
+
+  /// 롱프레스 콜백 (null이면 롱프레스 불가)
+  final VoidCallback? onLongPress;
 
   /// 호버 시 확대 효과 활성화 여부
   final bool isHoverable;
@@ -93,18 +97,21 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     Widget card = _buildCardContent(colorScheme, isDark, effectivePadding);
 
     // 탭 피드백 애니메이션 (터치 시 축소 + 쉐도우 변화)
-    if (widget.onTap != null) {
+    // onTap 또는 onLongPress가 있으면 터치 피드백 적용
+    if (widget.onTap != null || widget.onLongPress != null) {
       card = GestureDetector(
         onTapDown: (_) {
-          HapticUtils.selection();
+          HapticFeedback.lightImpact();
           setState(() => _isPressed = true);
         },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         child: AnimatedScale(
-          scale: _isPressed ? 0.97 : 1.0,
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeOut,
+          scale: _isPressed ? 0.98 : 1.0,
+          duration: _isPressed
+              ? const Duration(milliseconds: 150)  // Press down: 150ms
+              : const Duration(milliseconds: 400), // Release: 400ms with spring
+          curve: _isPressed ? Curves.easeOut : Curves.elasticOut,
           child: card,
         ),
       );
@@ -173,8 +180,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
-              blurRadius: _isPressed ? 1 : 2,
-              offset: Offset(0, _isPressed ? 0 : 1),
+              blurRadius: _isPressed ? 1.0 : 2.0,
+              offset: Offset(0, _isPressed ? 0.5 : 1.0),
             ),
           ],
         ),
@@ -205,8 +212,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: _isPressed ? 0.02 : 0.04),
-              blurRadius: _isPressed ? 3 : 6,
-              offset: Offset(0, _isPressed ? 2 : 4),
+              blurRadius: _isPressed ? 3.0 : 6.0,
+              offset: Offset(0, _isPressed ? 2.0 : 4.0),
             ),
           ],
         ),
@@ -239,8 +246,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
-              blurRadius: _isPressed ? 1 : 2,
-              offset: Offset(0, _isPressed ? 0 : 1),
+              blurRadius: _isPressed ? 1.0 : 2.0,
+              offset: Offset(0, _isPressed ? 0.5 : 1.0),
             ),
           ],
         ),
@@ -266,8 +273,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
-              blurRadius: _isPressed ? 1 : 2,
-              offset: Offset(0, _isPressed ? 0 : 1),
+              blurRadius: _isPressed ? 1.0 : 2.0,
+              offset: Offset(0, _isPressed ? 0.5 : 1.0),
             ),
           ],
         ),
@@ -300,8 +307,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
-              blurRadius: _isPressed ? 1 : 2,
-              offset: Offset(0, _isPressed ? 0 : 1),
+              blurRadius: _isPressed ? 1.0 : 2.0,
+              offset: Offset(0, _isPressed ? 0.5 : 1.0),
             ),
           ],
         ),
@@ -311,13 +318,13 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// onTap이 있으면 InkWell로 래핑 (프리미엄 터치 피드백)
+  /// onTap 또는 onLongPress가 있으면 InkWell로 래핑 (프리미엄 터치 피드백)
   Widget _wrapWithInkWell({
     required Widget child,
     required Color backgroundColor,
     required ColorScheme colorScheme,
   }) {
-    if (widget.onTap == null) {
+    if (widget.onTap == null && widget.onLongPress == null) {
       return child;
     }
 
@@ -325,6 +332,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       color: Colors.transparent,
       child: InkWell(
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         borderRadius: BorderRadius.circular(_borderRadius),
         splashColor: colorScheme.primary.withValues(alpha: 0.03),
         highlightColor: colorScheme.primary.withValues(alpha: 0.01),

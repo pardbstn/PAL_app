@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 enum EmptyStateType {
   members,
@@ -50,21 +51,22 @@ class EmptyState extends StatelessWidget {
           children: [
             // 아이콘 또는 Lottie
             customIcon ?? _buildIcon(context, config),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             // 타이틀
             Text(
               customTitle ?? config.title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             // 메시지
             Text(
               customMessage ?? config.message,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
@@ -103,8 +105,43 @@ class EmptyState extends StatelessWidget {
   }
 
   Widget _buildFallbackIcon(BuildContext context, _EmptyStateConfig config) {
-    // 아이콘 없이 깔끔한 빈 상태 표시
-    return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  const Color(0xFF374151), // gray700
+                  const Color(0xFF1F2937), // gray800
+                ]
+              : [
+                  theme.colorScheme.primary.withOpacity(0.1),
+                  theme.colorScheme.primary.withOpacity(0.05),
+                ],
+        ),
+      ),
+      child: Icon(
+        config.icon,
+        size: 40,
+        color: isDark
+            ? theme.colorScheme.primary.withOpacity(0.7)
+            : theme.colorScheme.primary,
+      ),
+    )
+        .animate(onPlay: (controller) => controller.repeat(reverse: true))
+        .scale(
+          begin: const Offset(0.97, 0.97),
+          end: const Offset(1.03, 1.03),
+          duration: 2000.ms,
+          curve: Curves.easeInOut,
+        );
   }
 
   _EmptyStateConfig _getConfig(EmptyStateType type) {

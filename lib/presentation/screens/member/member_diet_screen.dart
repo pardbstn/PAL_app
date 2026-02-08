@@ -18,6 +18,7 @@ import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/diet_analysis_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../widgets/diet/food_search_bottom_sheet.dart';
+import '../../widgets/common/mesh_gradient_background.dart';
 
 /// 회원 식단 기록 화면 (AI 분석 기능 포함)
 class MemberDietScreen extends ConsumerStatefulWidget {
@@ -400,12 +401,6 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
 
   Widget _buildMealTypeChip(BuildContext ctx, MealType mealType, String memberId) {
     final cs = Theme.of(ctx).colorScheme;
-    final icons = {
-      MealType.breakfast: '🌅',
-      MealType.lunch: '☀️',
-      MealType.dinner: '🌙',
-      MealType.snack: '🍎',
-    };
     final labels = {
       MealType.breakfast: '아침',
       MealType.lunch: '점심',
@@ -428,7 +423,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(icons[mealType]!, style: const TextStyle(fontSize: 20)),
+            _MealTypeIcon(mealType: mealType),
             const SizedBox(width: 8),
             Text(labels[mealType]!, style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
           ],
@@ -674,59 +669,61 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('식단 기록'), centerTitle: true, elevation: 0, scrolledUnderElevation: 1),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              children: [
-                _buildDateSelector(cs, tt),
-                Expanded(
-                  child: summaryAsync.when(
-                    loading: () => _buildShimmerLoading(cs),
-                    error: (error, _) => ErrorState.fromError(error, onRetry: () {
-                      if (isToday) {
-                        ref.invalidate(dailyNutritionSummaryProvider(member.id));
-                      } else {
-                        ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: _selectedDate)));
-                      }
-                    }),
-                    data: (summary) => _buildContent(cs, tt, summary, isToday),
+      body: MeshGradientBackground(
+        child: Stack(
+          children: [
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildDateSelector(cs, tt),
+                  Expanded(
+                    child: summaryAsync.when(
+                      loading: () => _buildShimmerLoading(cs),
+                      error: (error, _) => ErrorState.fromError(error, onRetry: () {
+                        if (isToday) {
+                          ref.invalidate(dailyNutritionSummaryProvider(member.id));
+                        } else {
+                          ref.invalidate(dailyNutritionSummaryByDateProvider((memberId: member.id, date: _selectedDate)));
+                        }
+                      }),
+                      data: (summary) => _buildContent(cs, tt, summary, isToday),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Positioned(
-            right: 16,
-            bottom: AppNavGlass.fabBottomPadding,
-            child: analysisState.isLoading
-                ? FloatingActionButton.extended(
-                    onPressed: null,
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    icon: const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    ),
-                    label: const Text('분석 중...'),
-                  )
-                : FloatingActionButton.extended(
-                    onPressed: _showAnalyzeBottomSheet,
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('AI 분석'),
-                  )
-                    .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                    .shimmer(
-                      duration: 2000.ms,
-                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3),
-                    ),
-          ),
-        ],
+            Positioned(
+              right: 16,
+              bottom: AppNavGlass.fabBottomPadding,
+              child: analysisState.isLoading
+                  ? FloatingActionButton.extended(
+                      onPressed: null,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      icon: const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ),
+                      label: const Text('분석 중...'),
+                    )
+                  : FloatingActionButton.extended(
+                      onPressed: _showAnalyzeBottomSheet,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('AI 분석'),
+                    )
+                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                      .shimmer(
+                        duration: 2000.ms,
+                        color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3),
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -964,7 +961,6 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
 
   Widget _buildMealSection(MealType mealType, List<DietAnalysisModel> items, ColorScheme cs, TextTheme tt) {
     final sectionCal = items.fold<int>(0, (s, i) => s + i.calories);
-    final icons = {MealType.breakfast: '🌅', MealType.lunch: '☀️', MealType.dinner: '🌙', MealType.snack: '🍎'};
     final labels = {MealType.breakfast: '아침', MealType.lunch: '점심', MealType.dinner: '저녁', MealType.snack: '간식'};
     final colors = {
       MealType.breakfast: const Color(0xFFFFB347),
@@ -992,12 +988,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(color: colors[mealType]!.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                    child: Center(child: Text(icons[mealType]!, style: const TextStyle(fontSize: 22))),
-                  ),
+                  _MealTypeIcon(mealType: mealType),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1325,6 +1316,68 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 식사 유형별 아이콘 위젯 (Frosted Glass Gradient)
+class _MealTypeIcon extends StatelessWidget {
+  final MealType mealType;
+
+  const _MealTypeIcon({required this.mealType});
+
+  @override
+  Widget build(BuildContext context) {
+    // 식사 유형별 그라데이션 색상
+    final gradients = {
+      MealType.breakfast: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFF8A00), Color(0xFFFFB84D)],
+      ),
+      MealType.lunch: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFD700), Color(0xFFFFF176)],
+      ),
+      MealType.dinner: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF5C6BC0), Color(0xFF7986CB)],
+      ),
+      MealType.snack: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF66BB6A), Color(0xFFA5D6A7)],
+      ),
+    };
+
+    // 식사 유형별 아이콘
+    final icons = {
+      MealType.breakfast: Icons.wb_sunny_rounded,
+      MealType.lunch: Icons.light_mode_rounded,
+      MealType.dinner: Icons.dark_mode_rounded,
+      MealType.snack: Icons.eco_rounded,
+    };
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        gradient: gradients[mealType],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icons[mealType],
+          color: Colors.white,
+          size: 22,
         ),
       ),
     );

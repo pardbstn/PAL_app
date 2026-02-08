@@ -551,6 +551,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _InsightDetailSheet(insight: insight),

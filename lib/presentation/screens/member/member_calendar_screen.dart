@@ -382,6 +382,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1189,6 +1190,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1405,6 +1407,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
@@ -1960,6 +1963,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     return showModalBottomSheet<TimeOfDay>(
       context: ctx,
+      useRootNavigator: true,
       builder: (pickerContext) => StatefulBuilder(
         builder: (_, setPickerState) {
           return Container(
@@ -2134,6 +2138,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(

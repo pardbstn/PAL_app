@@ -331,6 +331,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
@@ -376,6 +377,7 @@ class _BodyCompositionTabState extends ConsumerState<_BodyCompositionTab> {
                 Navigator.pop(context);
                 showModalBottomSheet(
                   context: context,
+                  useRootNavigator: true,
                   isScrollControlled: true,
                   useSafeArea: true,
                   builder: (context) => const _AddBodyRecordSheet(),
@@ -2233,6 +2235,7 @@ class _ExerciseTimelineCard extends StatelessWidget {
   void _showExerciseDetailSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,

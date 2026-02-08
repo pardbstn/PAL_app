@@ -20,6 +20,7 @@ import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/glass_container.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
 import '../../../core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/widgets/add_body_record_sheet.dart';
@@ -63,22 +64,40 @@ class MemberHomeScreen extends ConsumerWidget {
     );
     final nextCurriculumAsync = ref.watch(nextCurriculumProvider(memberId));
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // 데이터 새로고침
-          ref.invalidate(weightChangeProvider(memberId));
-          ref.invalidate(nextMemberPtScheduleProvider(memberId));
-          ref.invalidate(weightHistoryProvider(memberId));
-        },
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      backgroundColor: isDarkMode ? null : Colors.transparent,
+      body: Container(
+        decoration: isDarkMode
+            ? null
+            : const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0055FF), // deep electric blue
+                    Color(0xFF4D8BFF), // medium blue
+                    Color(0xFFE0F0FF), // soft sky blue
+                    Colors.white,
+                  ],
+                  stops: [0.0, 0.3, 0.6, 1.0],
+                ),
+              ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // 데이터 새로고침
+            ref.invalidate(weightChangeProvider(memberId));
+            ref.invalidate(nextMemberPtScheduleProvider(memberId));
+            ref.invalidate(weightHistoryProvider(memberId));
+          },
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // 1. 블루 브랜딩 히어로 헤더
                 _BlueBrandingHeader(
                   userName: user?.name ?? (isPersonal ? '사용자' : '회원님'),
@@ -202,6 +221,7 @@ class MemberHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -223,7 +243,7 @@ class MemberHomeScreen extends ConsumerWidget {
               height: 32,
               width: 200,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -232,7 +252,7 @@ class MemberHomeScreen extends ConsumerWidget {
               height: 20,
               width: 120,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -241,7 +261,7 @@ class MemberHomeScreen extends ConsumerWidget {
             Container(
               height: 140,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -250,7 +270,7 @@ class MemberHomeScreen extends ConsumerWidget {
             Container(
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -259,7 +279,7 @@ class MemberHomeScreen extends ConsumerWidget {
             Container(
               height: 180,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -280,7 +300,7 @@ class MemberHomeScreen extends ConsumerWidget {
       child: Container(
         height: 120,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
         ),
       ),
@@ -298,7 +318,7 @@ class MemberHomeScreen extends ConsumerWidget {
       child: Container(
         height: 180,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
         ),
       ),
@@ -316,7 +336,7 @@ class MemberHomeScreen extends ConsumerWidget {
       child: Container(
         height: 100,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
         ),
       ),
@@ -514,13 +534,16 @@ class _BlueBrandingHeader extends StatelessWidget {
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.3,
+                  color: isDark ? null : Colors.white,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 _getTimeBasedGreeting(),
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: isDark
+                      ? theme.colorScheme.onSurfaceVariant
+                      : Colors.white.withValues(alpha: 0.85),
                 ),
               ),
             ],
@@ -529,14 +552,18 @@ class _BlueBrandingHeader extends StatelessWidget {
         IconButton(
           icon: Icon(
             Icons.notifications_none_rounded,
-            color: isDark ? AppColors.gray400 : AppColors.gray600,
+            color: isDark
+                ? AppColors.gray400
+                : Colors.white,
           ),
           onPressed: onNotification,
         ),
         IconButton(
           icon: Icon(
             Icons.settings_rounded,
-            color: isDark ? AppColors.gray400 : AppColors.gray600,
+            color: isDark
+                ? AppColors.gray400
+                : Colors.white,
           ),
           onPressed: onSettings,
         ),
@@ -627,33 +654,35 @@ class _PtProgressCardState extends State<_PtProgressCard>
   Widget build(BuildContext context) {
     final remaining = widget.total - widget.completed;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassContainer(
+      blurSigma: 20,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(20),
+      color: Colors.white.withValues(alpha: 0.25),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
             // TODO: PT 상세 페이지로 이동
           },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // 원형 프로그레스 - 애니메이션 적용
-                    SizedBox(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  // 원형 프로그레스 - 애니메이션 적용 + 글로우 효과
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0055FF).withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: SizedBox(
                       width: 80,
                       height: 80,
                       child: AnimatedBuilder(
@@ -668,12 +697,11 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 child: CircularProgressIndicator(
                                   value: _progressAnimation.value,
                                   strokeWidth: 8,
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.3,
-                                  ),
+                                  backgroundColor: const Color(0xFF0055FF)
+                                      .withValues(alpha: 0.15),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                        Color(0xFF0055FF),
                                       ),
                                   strokeCap: StrokeCap.round,
                                 ),
@@ -684,7 +712,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 duration: const Duration(milliseconds: 1200),
                                 suffix: '%',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xFF0A1A3F),
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -694,82 +722,82 @@ class _PtProgressCardState extends State<_PtProgressCard>
                         },
                       ),
                     ),
-                    const SizedBox(width: 20),
-                    // 텍스트 정보
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'PT 진행 현황',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
+                  ),
+                  const SizedBox(width: 20),
+                  // 텍스트 정보
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PT 진행 현황',
+                          style: TextStyle(
+                            color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // 회차 카운트업 애니메이션
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            AnimatedCounter(
+                              value: widget.completed,
+                              duration: const Duration(milliseconds: 1000),
+                              style: const TextStyle(
+                                color: Color(0xFF0A1A3F),
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          // 회차 카운트업 애니메이션
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              AnimatedCounter(
-                                value: widget.completed,
-                                duration: const Duration(milliseconds: 1000),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Text(
+                              ' / ${widget.total} 회차 완료',
+                              style: const TextStyle(
+                                color: Color(0xFF0A1A3F),
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                ' / ${widget.total} 회차 완료',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // 남은 회차 카운트업
+                        Row(
+                          children: [
+                            Text(
+                              '남은 회차: ',
+                              style: TextStyle(
+                                color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                                fontSize: 14,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          // 남은 회차 카운트업
-                          Row(
-                            children: [
-                              const Text(
-                                '남은 회차: ',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
+                            ),
+                            AnimatedCounter(
+                              value: remaining,
+                              duration: const Duration(milliseconds: 800),
+                              suffix: '회',
+                              style: TextStyle(
+                                color: const Color(0xFF0A1A3F).withValues(alpha: 0.6),
+                                fontSize: 14,
                               ),
-                              AnimatedCounter(
-                                value: remaining,
-                                duration: const Duration(milliseconds: 800),
-                                suffix: '회',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // 하단 프로그레스 바 추가
-                AnimatedProgressBar(
-                  progress: widget.progressRate,
-                  height: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  progressColor: Colors.white,
-                  duration: const Duration(milliseconds: 1200),
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // 하단 프로그레스 바 추가
+              AnimatedProgressBar(
+                progress: widget.progressRate,
+                height: 8,
+                backgroundColor: const Color(0xFF0055FF).withValues(alpha: 0.15),
+                progressColor: const Color(0xFF0055FF),
+                duration: const Duration(milliseconds: 1200),
+              ),
+            ],
           ),
         ),
       ),
@@ -822,23 +850,10 @@ class _NextClassCard extends StatelessWidget {
       dDayText = 'D-$daysUntil';
     }
 
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -846,10 +861,8 @@ class _NextClassCard extends StatelessWidget {
             // 캘린더 화면으로 이동
             context.go('/member/calendar');
           },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -950,56 +963,36 @@ class _NextClassCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildEmptyCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: AppShadows.md,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const EmptyState(
-              type: EmptyStateType.sessions,
-              customMessage: '트레이너에게 문의해보세요',
-              iconSize: 48,
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => context.go('/member/calendar'),
-              child: const Text('일정 보러 가기'),
-            ),
-          ],
-        ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const EmptyState(
+            type: EmptyStateType.sessions,
+            customMessage: '트레이너에게 문의해보세요',
+            iconSize: 48,
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => context.go('/member/calendar'),
+            child: const Text('일정 보러 가기'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildErrorCard(BuildContext context, String error) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: AppShadows.md,
-      ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
       child: ErrorState.fromError(error, onRetry: null),
     );
   }
@@ -1062,39 +1055,24 @@ class _WeightChangeCard extends StatelessWidget {
     final changeColor = isLoss ? AppTheme.secondary : AppTheme.error;
     final changeSign = isLoss ? '' : '+';
 
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: changeColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: changeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                       child: Icon(
                         isLoss ? Icons.trending_down : Icons.trending_up,
                         color: changeColor,
@@ -1177,7 +1155,6 @@ class _WeightChangeCard extends StatelessWidget {
             SizedBox(height: 80, child: _buildMiniChart(context, changeColor)),
           ],
         ),
-      ),
     );
   }
 
@@ -1278,24 +1255,10 @@ class _WeightChangeCard extends StatelessWidget {
   }
 
   Widget _buildEmptyCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
       child: EmptyState(
         type: EmptyStateType.bodyRecords,
         customTitle: '체중 기록이 부족합니다',
@@ -1307,18 +1270,10 @@ class _WeightChangeCard extends StatelessWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, String error) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: AppShadows.md,
-      ),
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
       child: ErrorState.fromError(error, onRetry: null),
     );
   }
@@ -1384,20 +1339,15 @@ class _QuickActionsSection extends ConsumerWidget {
         const SizedBox(height: 12),
         // 트레이너 평점 표시 카드 (PT 모드만) - 탭하면 상세 보기
         if (!isPersonal && trainerId.isNotEmpty && trainerRatingAsync != null)
-          GestureDetector(
-            onTap: () => context.push('/member/trainer-rating/$trainerId'),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GestureDetector(
+              onTap: () => context.push('/member/trainer-rating/$trainerId'),
+              child: GlassContainer(
+                blurSigma: 10,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.gray100,
-                ),
-                boxShadow: AppShadows.sm,
-              ),
-              child: trainerRatingAsync.when(
+                padding: const EdgeInsets.all(16),
+                child: trainerRatingAsync.when(
                 data: (rating) {
                   final overall = rating?.overall ?? 0.0;
                   final reviewCount = rating?.reviewCount ?? 0;
@@ -1503,6 +1453,7 @@ class _QuickActionsSection extends ConsumerWidget {
                 ),
                 error: (_, __) => const SizedBox.shrink(),
               ),
+              ),
             ),
           ),
         if (!isPersonal)
@@ -1556,17 +1507,9 @@ class _QuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: AppShadows.md,
-      ),
+    return GlassContainer(
+      blurSigma: 10,
+      borderRadius: BorderRadius.circular(16),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -1875,21 +1818,14 @@ class _NextCurriculumCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: AppShadows.md,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 헤더 (체중 변화 카드와 동일한 레이아웃)
+    return GlassContainer(
+      blurSigma: 15,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더 (체중 변화 카드와 동일한 레이아웃)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1994,7 +1930,6 @@ class _NextCurriculumCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }

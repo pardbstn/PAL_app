@@ -18,6 +18,7 @@ class AddBodyRecordSheet extends ConsumerStatefulWidget {
   static Future<bool?> show(BuildContext context, String memberId) {
     return showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,

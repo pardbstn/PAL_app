@@ -367,6 +367,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1146,6 +1147,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1361,6 +1363,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
@@ -1959,6 +1962,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     return showModalBottomSheet<TimeOfDay>(
       context: ctx,
+      useRootNavigator: true,
       builder: (pickerContext) => StatefulBuilder(
         builder: (_, setPickerState) {
           return Container(
@@ -2135,6 +2139,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(

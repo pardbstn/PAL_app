@@ -366,6 +366,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
 
     await showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
@@ -443,6 +444,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
     // 이미지 소스 선택
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
@@ -1172,6 +1174,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
   void _showDietItemDetail(DietAnalysisModel item, ColorScheme cs, TextTheme tt) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {

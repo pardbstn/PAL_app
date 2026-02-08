@@ -3152,6 +3152,7 @@ class _CurriculumCard extends ConsumerWidget {
   void _showEditOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

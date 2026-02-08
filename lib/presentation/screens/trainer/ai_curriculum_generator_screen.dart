@@ -752,6 +752,7 @@ class _AiCurriculumGeneratorScreenState
       // 템플릿 선택 다이얼로그
       showModalBottomSheet(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

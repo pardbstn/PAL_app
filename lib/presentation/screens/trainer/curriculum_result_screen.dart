@@ -269,6 +269,7 @@ class _CurriculumResultScreenState
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => _AlternativesBottomSheet(
         request: request,
         currentExercise: exercise,
@@ -292,6 +293,7 @@ class _CurriculumResultScreenState
   void _showAddExerciseSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (context) => _AddExerciseBottomSheet(
         onAdd: (exercise) {
@@ -676,6 +678,7 @@ class _CurriculumResultScreenState
   void _showSessionPicker(CurriculumGeneratorV2State state) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) {
         final theme = Theme.of(context);
         const emerald = Color(0xFF00C471);

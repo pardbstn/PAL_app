@@ -75,6 +75,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
 
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(

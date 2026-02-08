@@ -2703,7 +2703,7 @@ class _CurriculumTabState extends ConsumerState<_CurriculumTab> {
             bottom: 16,
             child: FloatingActionButton.extended(
               onPressed: () => _showAddCurriculumDialog(context, trainerId, maxSession),
-              backgroundColor: AppTheme.secondary,
+              backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('회차 추가'),
@@ -2720,8 +2720,8 @@ class _CurriculumTabState extends ConsumerState<_CurriculumTab> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.secondary,
-            AppTheme.secondary.withValues(alpha: 0.8),
+            AppTheme.primary,
+            AppTheme.primary.withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -3370,13 +3370,13 @@ class _CurriculumCard extends ConsumerWidget {
           height: 40,
           decoration: BoxDecoration(
             color: isCompleted
-                ? AppTheme.secondary.withValues(alpha: 0.1)
+                ? AppTheme.primary.withValues(alpha: 0.15)
                 : AppTheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: isCompleted
-                ? const Icon(Icons.check, color: AppTheme.secondary)
+                ? Icon(Icons.check, color: AppTheme.primary.withValues(alpha: 0.6))
                 : Text(
                     '${curriculum.sessionNumber}',
                     style: const TextStyle(
@@ -3404,38 +3404,20 @@ class _CurriculumCard extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? AppTheme.secondary.withValues(alpha: 0.1)
-                    : AppTheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                isCompleted ? '완료' : '진행중',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isCompleted ? AppTheme.secondary : AppTheme.primary,
-                ),
-              ),
-            ),
-            if (curriculum.isAiGenerated) ...[
+            if (isCompleted) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.tertiary.withValues(alpha: 0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'AI',
+                  '완료',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.tertiary,
+                    color: AppTheme.primary,
                   ),
                 ),
               ),

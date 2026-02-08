@@ -587,9 +587,6 @@ class _RequestList extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppTheme.secondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppTheme.secondary.withValues(alpha: 0.3),
-                      ),
                     ),
                     child: Text(request.response!),
                   ),

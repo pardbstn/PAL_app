@@ -46,7 +46,7 @@ class SelfTrainingHomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. 인사말 섹션
-              _GreetingSection(userName: user?.name ?? '회원님')
+              _GreetingSection(userName: user?.name ?? '사용자')
                   .animateListItem(0),
               const SizedBox(height: 20),
 

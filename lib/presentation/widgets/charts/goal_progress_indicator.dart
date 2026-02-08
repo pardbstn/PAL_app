@@ -21,8 +21,11 @@ class GoalProgressIndicator extends StatelessWidget {
     this.isDecreaseGoal = true,
   });
 
+  /// 실제 값 기반으로 감량/증량 자동 판별
+  bool get _isActuallyDecreasing => startValue > targetValue;
+
   double get progress {
-    if (isDecreaseGoal) {
+    if (_isActuallyDecreasing) {
       // 감량: 시작값에서 목표값까지 얼마나 감량했는지
       final totalToLose = startValue - targetValue;
       final actualLost = startValue - currentValue;
@@ -38,7 +41,7 @@ class GoalProgressIndicator extends StatelessWidget {
   }
 
   double get remaining {
-    if (isDecreaseGoal) {
+    if (_isActuallyDecreasing) {
       return currentValue - targetValue;
     } else {
       return targetValue - currentValue;
@@ -117,7 +120,7 @@ class GoalProgressIndicator extends StatelessWidget {
               ),
               const Divider(height: 24),
               _buildInfoRow(
-                isDecreaseGoal ? '남은 감량' : '남은 증량',
+                _isActuallyDecreasing ? '남은 감량' : '남은 증량',
                 '${remaining.abs().toStringAsFixed(1)}$unit',
                 remaining <= 0 ? AppTheme.secondary : AppTheme.tertiary,
                 isBold: true,

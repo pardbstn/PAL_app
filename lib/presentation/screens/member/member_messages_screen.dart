@@ -326,9 +326,11 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
             children: [
               Text(
                 trainerName,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  color: isDark ? Colors.white : const Color(0xFF191F28),
                 ),
               ),
               Text(
@@ -381,9 +383,11 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
       ),
       title: Text(
         '담당 트레이너 없음',
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: colorScheme.onSurface,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+          color: isDark ? Colors.white : const Color(0xFF191F28),
         ),
       ),
       bottom: PreferredSize(

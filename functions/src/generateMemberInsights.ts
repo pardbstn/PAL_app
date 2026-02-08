@@ -1034,6 +1034,11 @@ function generateGoalProgress(
     currentMuscle = currentMuscle || latest.muscleMass;
   }
 
+  // startWeight로 currentWeight 보완
+  if (!currentWeight && member.startWeight) {
+    currentWeight = member.startWeight;
+  }
+
   // 목표 설정
   const targetWeight = member.targetWeight;
   const targetBodyFat = member.targetBodyFat;
@@ -1049,27 +1054,28 @@ function generateGoalProgress(
     const isWeightLoss = member.goal === "diet" || targetWeight < currentWeight;
 
     if (isWeightLoss) {
-      // 시작 체중 추정 (가장 높은 기록)
-      const maxWeight = Math.max(
-        ...bodyRecords.map((r) => r.weight || 0),
-        ...inbodyRecords.map((r) => r.weight || 0),
+      // startWeight가 있으면 사용, 없으면 가장 높은 기록 사용
+      const startWeight = member.startWeight || Math.max(
+        ...bodyRecords.filter((r) => r.weight).map((r) => r.weight!),
+        ...inbodyRecords.filter((r) => r.weight).map((r) => r.weight!),
         currentWeight
       );
-      const totalToLose = maxWeight - targetWeight;
-      const alreadyLost = maxWeight - currentWeight;
+      const totalToLose = startWeight - targetWeight;
+      const alreadyLost = startWeight - currentWeight;
 
       if (totalToLose > 0) {
         progressPercent = Math.min(100, Math.round((alreadyLost / totalToLose) * 100));
       }
     } else {
-      // 체중 증량 목표
-      const minWeight = Math.min(
+      // startWeight가 있으면 사용, 없으면 가장 낮은 기록 사용
+      const weightValues = [
         ...bodyRecords.filter((r) => r.weight).map((r) => r.weight!),
         ...inbodyRecords.filter((r) => r.weight).map((r) => r.weight!),
-        currentWeight
-      );
-      const totalToGain = targetWeight - minWeight;
-      const alreadyGained = currentWeight - minWeight;
+        currentWeight,
+      ];
+      const startWeight = member.startWeight || Math.min(...weightValues);
+      const totalToGain = targetWeight - startWeight;
+      const alreadyGained = currentWeight - startWeight;
 
       if (totalToGain > 0) {
         progressPercent = Math.min(100, Math.round((alreadyGained / totalToGain) * 100));

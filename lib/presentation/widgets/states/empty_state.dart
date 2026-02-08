@@ -57,6 +57,7 @@ class EmptyState extends StatelessWidget {
               customTitle ?? config.title,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                fontSize: 18,
               ),
               textAlign: TextAlign.center,
             ),
@@ -66,6 +67,7 @@ class EmptyState extends StatelessWidget {
               customMessage ?? config.message,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 15,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

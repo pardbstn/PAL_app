@@ -668,7 +668,20 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('식단 기록'), centerTitle: true, elevation: 0, scrolledUnderElevation: 1),
+      appBar: AppBar(
+        title: Text(
+          '식단 기록',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF191F28),
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+      ),
       body: MeshGradientBackground(
         child: Stack(
           children: [
@@ -714,7 +727,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
                       foregroundColor: Colors.white,
                       elevation: 2,
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('AI 분석'),
+                      label: const Text('AI 촬영'),
                     )
                       .animate(onPlay: (controller) => controller.repeat(reverse: true))
                       .shimmer(
@@ -924,9 +937,9 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
       children: [
         Expanded(child: _buildNutrientCard('탄수화물', summary.totalCarbs, _targetCarbs, 'g', const Color(0xFF5B8DEF), cs, tt)),
         const SizedBox(width: 8),
-        Expanded(child: _buildNutrientCard('단백질', summary.totalProtein, _targetProtein, 'g', const Color(0xFFFF8A00), cs, tt)),
+        Expanded(child: _buildNutrientCard('단백질', summary.totalProtein, _targetProtein, 'g', const Color(0xFF10B981), cs, tt)),
         const SizedBox(width: 8),
-        Expanded(child: _buildNutrientCard('지방', summary.totalFat, _targetFat, 'g', const Color(0xFFFFB347), cs, tt)),
+        Expanded(child: _buildNutrientCard('지방', summary.totalFat, _targetFat, 'g', const Color(0xFFF59E0B), cs, tt)),
       ],
     );
   }
@@ -1257,9 +1270,9 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
                       children: [
                         _buildNutrientRow('탄수화물', '${item.carbs.toStringAsFixed(1)}g', const Color(0xFF5B8DEF), colorScheme),
                         const SizedBox(height: 12),
-                        _buildNutrientRow('단백질', '${item.protein.toStringAsFixed(1)}g', const Color(0xFFFF8A00), colorScheme),
+                        _buildNutrientRow('단백질', '${item.protein.toStringAsFixed(1)}g', const Color(0xFF10B981), colorScheme),
                         const SizedBox(height: 12),
-                        _buildNutrientRow('지방', '${item.fat.toStringAsFixed(1)}g', const Color(0xFFFFB347), colorScheme),
+                        _buildNutrientRow('지방', '${item.fat.toStringAsFixed(1)}g', const Color(0xFFF59E0B), colorScheme),
                       ],
                     ),
                   ),

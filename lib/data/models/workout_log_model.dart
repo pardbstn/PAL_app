@@ -44,6 +44,8 @@ sealed class WorkoutExercise with _$WorkoutExercise {
 /// 운동 기록 모델
 @freezed
 sealed class WorkoutLogModel with _$WorkoutLogModel {
+  const WorkoutLogModel._();
+
   const factory WorkoutLogModel({
     /// Firestore 문서 ID
     @Default('') String id,
@@ -70,5 +72,18 @@ sealed class WorkoutLogModel with _$WorkoutLogModel {
   factory WorkoutLogModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return WorkoutLogModel.fromJson({...data, 'id': doc.id});
+  }
+
+  /// Firestore 저장용 Map 변환 (id 제거 + exercises 직렬화)
+  Map<String, dynamic> toFirestore() {
+    return {
+      'userId': userId,
+      'trainerId': trainerId,
+      'workoutDate': Timestamp.fromDate(workoutDate),
+      'exercises': exercises.map((e) => e.toJson()).toList(),
+      'durationMinutes': durationMinutes,
+      'memo': memo,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
   }
 }

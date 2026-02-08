@@ -17,6 +17,7 @@ import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 트레이너 인사이트 화면
 class TrainerInsightsScreen extends ConsumerStatefulWidget {
@@ -40,23 +41,11 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final insightsAsync = ref.watch(trainerInsightsProvider);
     final unreadCount = ref.watch(unreadInsightCountProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.1),
-              colorScheme.surface,
-              colorScheme.secondary.withValues(alpha: 0.05),
-            ],
-          ),
-        ),
+      body: MeshGradientBackground(
         child: SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -211,9 +200,6 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
               end: Alignment.bottomRight,
             ),
             borderRadius: AppRadius.lgBorderRadius,
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.2),
-            ),
           ),
           child: Row(
             children: [
@@ -458,7 +444,6 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
   Widget _buildSkeletonCard(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -470,9 +455,6 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: AppRadius.lgBorderRadius,
-            border: Border.all(
-              color: isDark ? AppColors.gray700 : AppColors.gray200,
-            ),
             boxShadow: AppShadows.sm,
           ),
         ),
@@ -706,9 +688,6 @@ class _InsightCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.gray100,
-            ),
             boxShadow: AppShadows.sm,
           ),
           child: Stack(
@@ -1192,9 +1171,6 @@ class _InsightDetailSheet extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.08),
                           borderRadius: AppRadius.mdBorderRadius,
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.2),
-                          ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,

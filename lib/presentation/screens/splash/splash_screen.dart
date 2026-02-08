@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 
-/// 스플래시 화면
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -19,7 +18,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 최소 대기 후 로그인 화면으로 이동 (라우터 redirect가 처리)
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && !_navigated) {
         _navigated = true;
@@ -30,15 +28,74 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 네이티브 스플래시와 동일한 배경색 사용으로 전환 시 깜빡임 방지
-    // 네이티브 스플래시 이미지와 일치하는 단색 배경
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground  // 다크모드: 네이티브 darkbackground.png와 일치
-          : const Color(0xFFDBE1FE), // 라이트모드: 네이티브 background.png와 일치
-      body: const SizedBox.shrink(), // 배경색만 표시 (로고 없음)
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0055FF),
+                    Color(0xFF4D8BFF),
+                    Color(0xFF7EB3FF),
+                    Color(0xFFE0F0FF),
+                  ],
+                  stops: [0.0, 0.3, 0.6, 1.0],
+                ),
+          color: isDark ? AppColors.darkBackground : null,
+        ),
+        foregroundDecoration: isDark
+            ? null
+            : const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x26FFFFFF),
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 1.0],
+                ),
+              ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'PAL',
+                style: const TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 8,
+                  color: Colors.white,
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                  .scale(
+                    begin: const Offset(0.8, 0.8),
+                    end: const Offset(1.0, 1.0),
+                    duration: 600.ms,
+                    curve: Curves.easeOut,
+                  ),
+              const SizedBox(height: 8),
+              Text(
+                '기록하고, 분석하고, 성장하다',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  letterSpacing: 1,
+                ),
+              ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

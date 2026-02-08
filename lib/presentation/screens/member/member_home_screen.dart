@@ -671,7 +671,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
       blurSigma: 20,
       borderRadius: BorderRadius.circular(24),
       padding: const EdgeInsets.all(20),
-      color: Colors.white.withValues(alpha: 0.25),
+      color: const Color(0xFF1A56DB).withValues(alpha: 0.55),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -745,8 +745,9 @@ class _PtProgressCardState extends State<_PtProgressCard>
                         Text(
                           'PT 진행 현황',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: Colors.white.withValues(alpha: 1.0),
                             fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -781,7 +782,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                             Text(
                               '남은 회차: ',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 14,
                               ),
                             ),
@@ -790,7 +791,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                               duration: const Duration(milliseconds: 800),
                               suffix: '회',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 14,
                               ),
                             ),
@@ -980,24 +981,36 @@ class _NextClassCard extends StatelessWidget {
   }
 
   Widget _buildEmptyCard(BuildContext context) {
-    return GlassContainer(
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: double.infinity,
+      child: GlassContainer(
       blurSigma: 15,
       borderRadius: BorderRadius.circular(24),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         children: [
-          const EmptyState(
-            type: EmptyStateType.sessions,
-            customMessage: '트레이너에게 문의해보세요',
-            iconSize: 48,
+          Text(
+            '예정된 수업이 없어요',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
+          Text(
+            '트레이너에게 문의해보세요',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
           TextButton(
             onPressed: () => context.go('/member/calendar'),
             child: const Text('일정 보러 가기'),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -1583,28 +1596,11 @@ class _EmptyInsightSection extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  size: 20,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'AI 인사이트',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            'AI 인사이트',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
           Icon(
@@ -1727,39 +1723,22 @@ class _InsightCardsSection extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      size: 20,
-                      color: AppTheme.primary,
+                  Text(
+                    'AI 인사이트',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI 인사이트',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                  if (isPersonal)
+                    Text(
+                      '꾸준한 기록이 최고의 트레이너에요',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      if (isPersonal)
-                        Text(
-                          '꾸준한 기록이 최고의 트레이너에요',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
               // 새로고침 버튼

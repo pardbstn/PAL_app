@@ -7,8 +7,10 @@ import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
+import 'package:flutter_pal_app/data/models/workout_log_model.dart';
+import 'package:flutter_pal_app/data/repositories/workout_log_repository.dart';
 import 'package:flutter_pal_app/presentation/widgets/skeleton/skeletons.dart';
-import 'package:flutter_pal_app/presentation/widgets/states/states.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
@@ -37,6 +39,11 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   final Map<String, List<ScheduleModel>> _schedulesPerDayCache = {};
   final Set<String> _loadingMonths = {};
   bool _isLoading = false;
+
+  // 운동 기록 캐시: 월별 (YYYY-MM 형식)
+  final Map<String, List<WorkoutLogModel>> _workoutsCache = {};
+  // 날짜별 운동 캐시: (YYYY-MM-DD 형식)
+  final Map<String, List<WorkoutLogModel>> _workoutsPerDayCache = {};
 
   // PageController 설정 (무한 스와이프)
   late final PageController _monthPageController;
@@ -118,14 +125,31 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     });
   }
 
+  /// 월별 운동 기록을 날짜별 캐시로 분배
+  void _populateWorkoutDayCache(String monthKey, List<WorkoutLogModel> workouts) {
+    _workoutsPerDayCache.removeWhere((key, _) => key.startsWith(monthKey));
+
+    final Map<String, List<WorkoutLogModel>> grouped = {};
+    for (final workout in workouts) {
+      final dayKey = _getDayKey(workout.workoutDate);
+      grouped.putIfAbsent(dayKey, () => []).add(workout);
+    }
+
+    grouped.forEach((dayKey, dayWorkouts) {
+      dayWorkouts.sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+      _workoutsPerDayCache[dayKey] = dayWorkouts;
+    });
+  }
+
   /// 특정 월의 일정 로드
   /// [showLoading] - true면 로딩 인디케이터 표시 (현재 월에만 사용)
   Future<void> _loadSchedulesForMonth(DateTime month,
       {bool showLoading = true}) async {
     final monthKey = _getMonthKey(month);
 
-    // 이미 캐시에 있으면 스킵
-    if (_schedulesCache.containsKey(monthKey)) return;
+    // 이미 캐시에 있으면 스킵 (일정 + 운동 모두 캐시됨)
+    if (_schedulesCache.containsKey(monthKey) &&
+        _workoutsCache.containsKey(monthKey)) return;
 
     // 이미 로드 중이면 스킵
     if (_loadingMonths.contains(monthKey)) return;
@@ -148,6 +172,21 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
         // 캐시 업데이트 (setState 없이)
         _schedulesCache[monthKey] = schedules;
         _populateDayCache(monthKey, schedules);
+
+        // 운동 기록도 함께 로드
+        try {
+          final workoutRepo = ref.read(workoutLogRepositoryProvider);
+          final workouts = await workoutRepo.getMonthlySummary(
+            member.id,
+            month.year,
+            month.month,
+          );
+          _workoutsCache[monthKey] = workouts;
+          _populateWorkoutDayCache(monthKey, workouts);
+        } catch (e) {
+          debugPrint('운동 기록 로드 실패: $e');
+          _workoutsCache[monthKey] = [];
+        }
 
         // 로딩 중이었으면 상태 업데이트
         if (showLoading) {
@@ -181,6 +220,12 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   List<ScheduleModel> _getSchedulesForDate(DateTime date) {
     final dayKey = _getDayKey(date);
     return _schedulesPerDayCache[dayKey] ?? [];
+  }
+
+  /// 특정 날짜의 운동 기록 조회
+  List<WorkoutLogModel> _getWorkoutsForDate(DateTime date) {
+    final dayKey = _getDayKey(date);
+    return _workoutsPerDayCache[dayKey] ?? [];
   }
 
   /// 오늘로 이동
@@ -236,6 +281,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
     // 캐시 비우고 현재 월 다시 로드 (로딩 인디케이터 없이 - 성능 최적화)
     _schedulesCache.clear();
     _schedulesPerDayCache.clear();
+    _workoutsCache.clear();
+    _workoutsPerDayCache.clear();
     await _loadSchedulesForMonth(_focusedMonth, showLoading: false);
     _preloadAdjacentMonths(_focusedMonth);
     // 데이터 로드 후 UI 업데이트
@@ -315,19 +362,53 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
           Positioned(
             right: 16,
             bottom: AppNavGlass.fabBottomPadding,
-            child: FloatingActionButton.extended(
-              onPressed: () => _showAddScheduleBottomSheet(),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('일정 추가'),
-            )
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                .shimmer(
-                  duration: 2000.ms,
-                  color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3),
-                ),
+            child: Builder(
+              builder: (context) {
+                final authState = ref.watch(authProvider);
+                final isPersonal = authState.userRole == UserRole.personal;
+
+                if (isPersonal) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 운동 기록 FAB
+                      FloatingActionButton.small(
+                        heroTag: 'workout_fab',
+                        onPressed: () => context.push('/member/add-workout'),
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        child: const Icon(Icons.fitness_center),
+                      ),
+                      const SizedBox(height: 8),
+                      // 일정 추가 FAB
+                      FloatingActionButton.extended(
+                        heroTag: 'schedule_fab',
+                        onPressed: () => _showAddScheduleBottomSheet(),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('일정 추가'),
+                      ),
+                    ],
+                  );
+                }
+
+                return FloatingActionButton.extended(
+                  onPressed: () => _showAddScheduleBottomSheet(),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('일정 추가'),
+                )
+                    .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                    .shimmer(
+                      duration: 2000.ms,
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3),
+                    );
+              },
+            ),
           ),
         ],
       ),
@@ -557,6 +638,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   schedules.any((s) => s.scheduleType == ScheduleType.pt);
               final hasPersonalSchedules =
                   schedules.any((s) => s.scheduleType == ScheduleType.personal);
+              final hasWorkouts = _getWorkoutsForDate(date).isNotEmpty;
 
               return GestureDetector(
                 onTap: () {
@@ -590,9 +672,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      // 일정 도트 (PT: 파란색, 개인: 주황색)
+                      // 일정 도트 (PT: 파란색, 개인: 주황색, 운동: 초록색)
                       if (isCurrentMonth &&
-                          (hasPtSchedules || hasPersonalSchedules))
+                          (hasPtSchedules || hasPersonalSchedules || hasWorkouts))
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -623,6 +705,21 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                       ? theme.colorScheme.onPrimary
                                           .withValues(alpha: 0.7)
                                       : AppTheme.tertiary,
+                                ),
+                              ),
+                            if (hasWorkouts)
+                              Container(
+                                width: 5,
+                                height: 5,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? theme.colorScheme.onPrimary
+                                          .withValues(alpha: 0.7)
+                                      : const Color(0xFF10B981),
                                 ),
                               ),
                           ],
@@ -1060,6 +1157,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   Widget _buildScheduleList(List<ScheduleModel> schedules) {
     final weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
     final weekday = weekdayNames[_selectedDate.weekday - 1];
+    final workouts = _getWorkoutsForDate(_selectedDate);
+    final totalCount = schedules.length + workouts.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1077,7 +1176,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              if (schedules.isNotEmpty)
+              if (totalCount > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -1088,7 +1187,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${schedules.length}건',
+                    '$totalCount건',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ),
@@ -1135,6 +1234,20 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     isPersonal ? '일정' : '개인 일정',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '운동 기록',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
                 ],
               );
             },
@@ -1148,17 +1261,19 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: const ScheduleListSkeleton(itemCount: 5),
                 )
-              : schedules.isEmpty
+              : (schedules.isEmpty && workouts.isEmpty)
                   ? SingleChildScrollView(child: _buildEmptyState())
-                  : ListView.builder(
+                  : ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: schedules.length,
-                      itemBuilder: (context, index) {
-                        return _ScheduleCard(
-                          schedule: schedules[index],
-                          onTap: () => _showScheduleDetail(schedules[index]),
-                        );
-                      },
+                      children: [
+                        // 일정 카드들
+                        ...schedules.map((schedule) => _ScheduleCard(
+                          schedule: schedule,
+                          onTap: () => _showScheduleDetail(schedule),
+                        )),
+                        // 운동 기록 카드들
+                        ...workouts.map((workout) => _WorkoutCard(workout: workout)),
+                      ],
                     ),
         ),
       ],
@@ -1169,14 +1284,33 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   Widget _buildEmptyState() {
     final authState = ref.watch(authProvider);
     final isPersonal = authState.userRole == UserRole.personal;
+    final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: EmptyState(
-        type: EmptyStateType.sessions,
-        customTitle: isPersonal ? '예정된 일정이 없어요' : null,
-        customMessage: isPersonal ? '이 날짜에는 일정이 없어요' : null,
-        iconSize: 48,
+    return Center(
+      child: Padding(
+      padding: const EdgeInsets.only(top: 40, bottom: 80),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            isPersonal ? '일정이나 운동 기록이 없어요' : '예정된 수업이 없어요',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isPersonal ? '이 날짜에는 일정이나 운동 기록이 없어요' : '이 날짜에는 수업이 없어요',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
       ),
     );
   }
@@ -2738,4 +2872,111 @@ class _ScheduleOverlapInfo {
     required this.overlapIndex,
     required this.overlapCount,
   });
+}
+
+// ============================================================
+// 운동 기록 카드 위젯
+// ============================================================
+
+/// 운동 기록 카드
+class _WorkoutCard extends StatelessWidget {
+  final WorkoutLogModel workout;
+
+  const _WorkoutCard({required this.workout});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // 운동 부위 요약
+    final categories = workout.exercises
+        .map((e) => e.category)
+        .toSet()
+        .map((c) => _categoryName(c))
+        .join(', ');
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // 운동 아이콘
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.fitness_center,
+                size: 20,
+                color: Color(0xFF10B981),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // 운동 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    categories.isNotEmpty ? categories : '운동 기록',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${workout.exercises.length}개 운동 · ${workout.durationMinutes}분',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 운동 수
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${workout.exercises.length}종목',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _categoryName(WorkoutCategory category) {
+    switch (category) {
+      case WorkoutCategory.chest: return '가슴';
+      case WorkoutCategory.back: return '등';
+      case WorkoutCategory.shoulder: return '어깨';
+      case WorkoutCategory.arm: return '팔';
+      case WorkoutCategory.leg: return '하체';
+      case WorkoutCategory.core: return '코어';
+      case WorkoutCategory.cardio: return '유산소';
+      case WorkoutCategory.other: return '기타';
+    }
+  }
 }

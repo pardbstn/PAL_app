@@ -217,7 +217,7 @@ class InsightMiniChart extends StatelessWidget {
     return PieChart(
       PieChartData(
         sectionsSpace: 2,
-        centerSpaceRadius: height * 0.3, // 도넛 구멍 크기
+        centerSpaceRadius: height * 0.22, // 도넛 구멍 크기
         pieTouchData: PieTouchData(enabled: false),
         sections: data.asMap().entries.map((entry) {
           final index = entry.key;
@@ -235,7 +235,7 @@ class InsightMiniChart extends StatelessWidget {
           return PieChartSectionData(
             value: value,
             color: sectionColor,
-            radius: height * 0.35,
+            radius: height * 0.25,
             title: '',
             showTitle: false,
           );

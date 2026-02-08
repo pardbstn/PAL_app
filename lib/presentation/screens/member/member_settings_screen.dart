@@ -11,6 +11,7 @@ import 'package:flutter_pal_app/presentation/widgets/common/app_list_tile.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_section.dart';
 import 'package:flutter_pal_app/data/repositories/trainer_repository.dart';
 import 'package:flutter_pal_app/data/repositories/member_repository.dart';
+import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:flutter_pal_app/data/repositories/user_repository.dart';
 import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
@@ -554,7 +555,7 @@ class MemberSettingsScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      authState.displayName ?? '회원',
+                      authState.displayName ?? (authState.userRole == UserRole.personal ? '사용자' : '회원'),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -590,9 +591,9 @@ class MemberSettingsScreen extends ConsumerWidget {
                     color: AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: AppRadius.mdBorderRadius,
                   ),
-                  child: const Text(
-                    '회원',
-                    style: TextStyle(
+                  child: Text(
+                    authState.userRole == UserRole.personal ? '개인' : '회원',
+                    style: const TextStyle(
                       color: AppColors.secondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -938,7 +939,7 @@ class MemberSettingsScreen extends ConsumerWidget {
                   targetWeight = double.tryParse(weightText);
                   if (targetWeight == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('올바른 체중을 입력해주세요')),
+                      const SnackBar(content: Text('올바른 목표 체중을 입력해주세요')),
                     );
                     return;
                   }
@@ -948,17 +949,32 @@ class MemberSettingsScreen extends ConsumerWidget {
 
                 try {
                   final memberRepository = ref.read(memberRepositoryProvider);
+                  final bodyRecordRepo = ref.read(bodyRecordRepositoryProvider);
+
+                  // 최신 체성분 기록에서 현재 체중 자동 가져오기
+                  double? latestWeight;
+                  try {
+                    final latestRecord = await bodyRecordRepo.getLatestByMemberId(member.id);
+                    latestWeight = latestRecord?.weight;
+                  } catch (_) {}
 
                   // 목표 및 목표 체중 업데이트
                   await memberRepository.update(member.id, {
                     'goal': selectedGoal.name,
                     if (targetWeight != null) 'targetWeight': targetWeight,
+                    if (latestWeight != null) 'startWeight': latestWeight,
                   });
 
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('목표가 설정됐어요')),
-                    );
+                    if (targetWeight != null && latestWeight == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('목표가 설정됐어요. 체성분을 기록하면 달성률을 볼 수 있어요')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('목표가 설정됐어요')),
+                      );
+                    }
                   }
                 } catch (e) {
                   if (context.mounted) {

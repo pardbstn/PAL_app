@@ -52,7 +52,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     return Scaffold(
       body: Container(
-        color: isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0055FF),
+                    Color(0xFF4D8BFF),
+                    Color(0xFF7EB3FF),
+                    Color(0xFFE0F0FF),
+                  ],
+                  stops: [0.0, 0.3, 0.6, 1.0],
+                ),
+          color: isDark ? AppColors.appBackgroundDark : null,
+        ),
+        foregroundDecoration: isDark
+            ? null
+            : const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x26FFFFFF),
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 1.0],
+                ),
+              ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -71,7 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       'PAL',
                       style: textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
+                        color: isDark ? AppTheme.primary : Colors.white,
                         letterSpacing: 4,
                       ),
                     ).animateSlideDown(delay: const Duration(milliseconds: 100)),
@@ -79,7 +107,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     Text(
                       '기록하고, 분석하고, 성장하다',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: isDark
+                            ? colorScheme.onSurface.withValues(alpha: 0.6)
+                            : Colors.white.withValues(alpha: 0.7),
                       ),
                     ).animateFadeIn(delay: const Duration(milliseconds: 200)),
 

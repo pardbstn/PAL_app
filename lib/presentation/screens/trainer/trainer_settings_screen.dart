@@ -7,6 +7,7 @@ import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/theme_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_list_tile.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_section.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/mesh_gradient_background.dart';
 
 /// 소셜 로그인 임시 이메일 체크 및 표시
 String _getDisplayEmail(String? email) {
@@ -36,7 +37,8 @@ class TrainerSettingsScreen extends ConsumerWidget {
           onPressed: () => context.go('/trainer/home'),
         ),
       ),
-      body: ListView(
+      body: MeshGradientBackground(
+        child: ListView(
         children: [
           // 프로필 섹션
           _buildProfileSection(context, authState)
@@ -135,9 +137,6 @@ class TrainerSettingsScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.05),
                 borderRadius: AppRadius.lgBorderRadius,
-                border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.2),
-                ),
               ),
               child: InkWell(
                 onTap: () => _showLogoutDialog(context, ref),
@@ -186,6 +185,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
+      ),
       ),
     );
   }

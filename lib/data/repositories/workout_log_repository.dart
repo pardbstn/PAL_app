@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/data/models/workout_log_model.dart';
 import 'package:flutter_pal_app/data/repositories/base_repository.dart';
@@ -30,7 +29,7 @@ class WorkoutLogRepository extends BaseRepository<WorkoutLogModel> {
 
   @override
   Future<String> create(WorkoutLogModel log) async {
-    final docRef = await collection.add(log.toJson());
+    final docRef = await collection.add(log.toFirestore());
     return docRef.id;
   }
 
@@ -61,40 +60,41 @@ class WorkoutLogRepository extends BaseRepository<WorkoutLogModel> {
     });
   }
 
-  /// 사용자의 운동 기록 목록 (최신순)
+  /// 사용자의 운동 기록 목록 (최신순, 클라이언트 사이드 정렬)
   Future<List<WorkoutLogModel>> getByUserId(String userId, {int? limit}) async {
-    var query = collection
+    final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .orderBy('workoutDate', descending: true);
-
-    if (limit != null) {
-      query = query.limit(limit);
-    }
-
-    final snapshot = await query.get();
-    return snapshot.docs
+        .get();
+    final logs = snapshot.docs
         .map((doc) => WorkoutLogModel.fromFirestore(doc))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+
+    if (limit != null && logs.length > limit) {
+      return logs.sublist(0, limit);
+    }
+    return logs;
   }
 
-  /// 사용자의 운동 기록 실시간 감시 (최신순)
+  /// 사용자의 운동 기록 실시간 감시 (최신순, 클라이언트 사이드 정렬)
   Stream<List<WorkoutLogModel>> watchByUserId(String userId, {int? limit}) {
-    var query = collection
+    return collection
         .where('userId', isEqualTo: userId)
-        .orderBy('workoutDate', descending: true);
-
-    if (limit != null) {
-      query = query.limit(limit);
-    }
-
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
+        .snapshots()
+        .map((snapshot) {
+      final logs = snapshot.docs
           .map((doc) => WorkoutLogModel.fromFirestore(doc))
-          .toList();
+          .toList()
+        ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+
+      if (limit != null && logs.length > limit) {
+        return logs.sublist(0, limit);
+      }
+      return logs;
     });
   }
 
-  /// 날짜 범위로 운동 기록 조회
+  /// 날짜 범위로 운동 기록 조회 (클라이언트 사이드 필터링/정렬)
   Future<List<WorkoutLogModel>> getByDateRange(
     String userId,
     DateTime startDate,
@@ -102,36 +102,33 @@ class WorkoutLogRepository extends BaseRepository<WorkoutLogModel> {
   ) async {
     final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .where(
-          'workoutDate',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-        )
-        .where('workoutDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-        .orderBy('workoutDate')
         .get();
-    return snapshot.docs
+    final logs = snapshot.docs
         .map((doc) => WorkoutLogModel.fromFirestore(doc))
-        .toList();
+        .where((log) =>
+            !log.workoutDate.isBefore(startDate) &&
+            !log.workoutDate.isAfter(endDate))
+        .toList()
+      ..sort((a, b) => a.workoutDate.compareTo(b.workoutDate));
+    return logs;
   }
 
-  /// 특정 날짜의 운동 기록 가져오기
+  /// 특정 날짜의 운동 기록 가져오기 (클라이언트 사이드 필터링)
   Future<List<WorkoutLogModel>> getByDate(String userId, DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
     final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .where(
-          'workoutDate',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
-        )
-        .where('workoutDate', isLessThan: Timestamp.fromDate(endOfDay))
-        .orderBy('workoutDate', descending: true)
         .get();
-
-    return snapshot.docs
+    final logs = snapshot.docs
         .map((doc) => WorkoutLogModel.fromFirestore(doc))
-        .toList();
+        .where((log) =>
+            !log.workoutDate.isBefore(startOfDay) &&
+            log.workoutDate.isBefore(endOfDay))
+        .toList()
+      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    return logs;
   }
 
   /// 이번 주 운동 기록 가져오기

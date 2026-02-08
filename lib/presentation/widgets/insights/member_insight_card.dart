@@ -241,9 +241,11 @@ class MemberInsightCard extends StatelessWidget {
             // 하단: 미니 차트 (데이터가 있는 경우)
             if (insight.graphData != null && insight.graphType != null) ...[
               const SizedBox(height: 8),
-              SizedBox(
-                height: 60,
-                child: _buildChart(),
+              ClipRect(
+                child: SizedBox(
+                  height: 56,
+                  child: _buildChart(),
+                ),
               ),
             ],
           ],
@@ -313,7 +315,7 @@ class MemberInsightCard extends StatelessWidget {
       data: insight.graphData!,
       primaryColor: insight.priorityColor,
       width: double.infinity,
-      height: 80,
+      height: 56,
     );
   }
 }

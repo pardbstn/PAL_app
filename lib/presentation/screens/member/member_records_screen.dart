@@ -59,8 +59,6 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isPersonal = ref.watch(userRoleProvider) == UserRole.personal;
 
     return Scaffold(
@@ -71,25 +69,9 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
             SliverAppBar(
               pinned: true,
               floating: true,
-              expandedHeight: 120,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Text(
-                  '내 기록',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                titlePadding:
-                    const EdgeInsets.only(left: AppSpacing.md, bottom: 72),
-                background: Container(
-                  color: Colors.transparent,
-                ),
-              ),
+              toolbarHeight: 0,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(64),
+                preferredSize: const Size.fromHeight(52),
                 child: _buildPremiumTabBar(context),
               ),
             ),

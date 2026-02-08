@@ -14,6 +14,7 @@ import {getOpenAIClient} from "./services/ai-service";
 
 // 인바디 분석 결과 인터페이스
 interface InbodyAnalysisResult {
+  isInbodySheet?: boolean;
   weight: number | null;
   skeletalMuscleMass: number | null;
   bodyFatMass: number | null;
@@ -80,12 +81,17 @@ export const analyzeInbody = functions
       // 4. GPT-4o-mini Vision API 호출
       const openai = getOpenAIClient();
 
-      const prompt = `이 이미지는 인바디(InBody) 체성분 분석 결과지입니다.
-결과지에서 다음 수치들을 추출해주세요.
+      const prompt = `이 이미지를 분석해주세요.
+
+먼저, 이 이미지가 인바디(InBody) 체성분 분석 결과지인지 판별해주세요.
+인바디 결과지가 아니라면 isInbodySheet를 false로 설정하고, 나머지 값은 모두 null로 반환하세요.
+
+인바디 결과지가 맞다면 isInbodySheet를 true로 설정하고, 아래 수치들을 추출해주세요.
 읽을 수 없거나 해당 항목이 없으면 null로 표시하세요.
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 반환하세요.
 
 추출할 항목:
+- isInbodySheet: 인바디 결과지 여부 (true/false)
 - weight: 체중 (kg)
 - skeletalMuscleMass: 골격근량 (kg)
 - bodyFatMass: 체지방량 (kg)
@@ -99,7 +105,7 @@ export const analyzeInbody = functions
 - inbodyScore: 인바디 점수 (숫자)
 
 응답 형식:
-{"weight": 70.5, "skeletalMuscleMass": 32.1, "bodyFatMass": 15.2, "bodyFatPercent": 21.5, "bmi": 23.4, "basalMetabolicRate": 1650, "totalBodyWater": 40.2, "protein": 11.5, "minerals": 3.8, "visceralFatLevel": 8, "inbodyScore": 75}`;
+{"isInbodySheet": true, "weight": 70.5, "skeletalMuscleMass": 32.1, "bodyFatMass": 15.2, "bodyFatPercent": 21.5, "bmi": 23.4, "basalMetabolicRate": 1650, "totalBodyWater": 40.2, "protein": 11.5, "minerals": 3.8, "visceralFatLevel": 8, "inbodyScore": 75}`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -147,7 +153,15 @@ export const analyzeInbody = functions
         );
       }
 
-      // 6. 필수 필드 확인 (최소한 체중은 있어야 함)
+      // 6. 인바디 결과지 여부 확인
+      if (analysis.isInbodySheet === false) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "인바디 결과지가 아닙니다. 인바디 결과지 사진을 올려주세요."
+        );
+      }
+
+      // 7. 필수 필드 확인 (최소한 체중은 있어야 함)
       if (analysis.weight === null || analysis.weight === undefined) {
         throw new functions.https.HttpsError(
           "failed-precondition",
@@ -155,7 +169,7 @@ export const analyzeInbody = functions
         );
       }
 
-      // 7. Firestore에 저장
+      // 8. Firestore에 저장
       const now = admin.firestore.Timestamp.now();
       const inbodyRecord = {
         memberId,

@@ -159,6 +159,46 @@ class DietRecordRepository extends BaseRepository<DietRecordModel> {
         .toList();
   }
 
+  /// 여러 회원의 최근 식단 기록 조회 (배치 쿼리)
+  /// Firestore whereIn 10개 제한 대응: 10개씩 나눠서 쿼리
+  Future<List<DietRecordModel>> getRecentByMemberIds(
+    List<String> memberIds, {
+    required DateTime since,
+    int? limit,
+  }) async {
+    if (memberIds.isEmpty) return [];
+
+    final List<DietRecordModel> allRecords = [];
+
+    // whereIn은 최대 10개까지만 가능 → 10개씩 나눠서 쿼리
+    for (var i = 0; i < memberIds.length; i += 10) {
+      final chunk = memberIds.sublist(
+        i,
+        i + 10 > memberIds.length ? memberIds.length : i + 10,
+      );
+
+      final snapshot = await collection
+          .where('memberId', whereIn: chunk)
+          .where('recordDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(since))
+          .orderBy('recordDate', descending: true)
+          .get();
+
+      allRecords.addAll(
+        snapshot.docs.map((doc) => DietRecordModel.fromFirestore(doc)),
+      );
+    }
+
+    // 전체 결과를 createdAt 내림차순 정렬
+    allRecords.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (limit != null && allRecords.length > limit) {
+      return allRecords.sublist(0, limit);
+    }
+
+    return allRecords;
+  }
+
   /// AI 분석 결과 업데이트
   Future<void> updateAiAnalysis(String id, AiAnalysis analysis) async {
     await collection.doc(id).update({

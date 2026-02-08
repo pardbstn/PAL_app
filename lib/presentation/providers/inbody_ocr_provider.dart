@@ -12,6 +12,8 @@ import 'package:flutter_pal_app/core/constants/api_constants.dart';
 import 'package:flutter_pal_app/data/models/inbody_ocr_result.dart';
 import 'package:flutter_pal_app/data/models/body_record_model.dart';
 import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
+import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/inbody_provider.dart';
 
 // ============================================================
 // OCR 분석 상태
@@ -89,8 +91,8 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
   /// 이미지 분석 전체 플로우
   ///
   /// [imageFile] 분석할 인바디 이미지 파일
-  /// [userId] 사용자 ID
-  Future<void> analyzeImage(File imageFile, String userId) async {
+  /// [memberId] 회원 ID
+  Future<void> analyzeImage(File imageFile, String memberId) async {
     try {
       // 1. 업로드 시작
       state = state.copyWith(
@@ -101,10 +103,10 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
 
       // 2. Supabase Storage에 이미지 업로드
       final fileName =
-          '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+          'inbody/$memberId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imageBytes = await imageFile.readAsBytes();
 
-      await _supabase.storage.from('inbody-images').uploadBinary(
+      await _supabase.storage.from('pal-storage').uploadBinary(
             fileName,
             imageBytes,
             fileOptions: const FileOptions(contentType: 'image/jpeg'),
@@ -115,7 +117,7 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
 
       // 3. 공개 URL 가져오기
       final imageUrl = _supabase.storage
-          .from('inbody-images')
+          .from('pal-storage')
           .getPublicUrl(fileName);
 
       state = state.copyWith(imageUrl: imageUrl);
@@ -127,7 +129,7 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
       final callable = _functions.httpsCallable(CloudFunctions.analyzeInbody);
       final response = await callable.call<Map<String, dynamic>>({
         'imageUrl': imageUrl,
-        'userId': userId,
+        'memberId': memberId,
       });
 
       final data = response.data;
@@ -141,14 +143,22 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
         return;
       }
 
-      // 7. 결과 파싱
-      final result = InbodyOcrResult.fromJson(data);
+      // 7. 결과 파싱 (analysis 필드에서 추출)
+      final analysisData = data['analysis'] as Map<String, dynamic>;
+      final result = InbodyOcrResult.fromJson(analysisData);
 
       // 8. 성공 상태 업데이트
       state = state.copyWith(
         status: InbodyOcrStatus.success,
         result: result,
       );
+
+      // 9. 자동으로 body_records에도 저장 (CF는 이미 inbody_records에 저장함)
+      await _autoSaveToBodyRecords(memberId, result);
+
+      // 10. 관련 provider invalidate하여 차트/히스토리 갱신
+      ref.invalidate(bodyRecordsProvider(memberId));
+      ref.invalidate(inbodyHistoryProvider(memberId));
     } on FirebaseFunctionsException catch (e) {
       state = state.copyWith(
         status: InbodyOcrStatus.error,
@@ -159,6 +169,31 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
         status: InbodyOcrStatus.error,
         errorMessage: '이미지 업로드 또는 분석 중 문제가 생겼어요: $e',
       );
+    }
+  }
+
+  /// 분석 결과를 body_records에 자동 저장
+  Future<void> _autoSaveToBodyRecords(String memberId, InbodyOcrResult result) async {
+    try {
+      final repository = ref.read(bodyRecordRepositoryProvider);
+
+      final bodyRecord = BodyRecordModel(
+        id: '',
+        memberId: memberId,
+        recordDate: DateTime.now(),
+        weight: result.weight ?? 0.0,
+        bodyFatPercent: result.bodyFatPercent,
+        muscleMass: result.skeletalMuscle,
+        bmi: result.bmi,
+        bmr: result.basalMetabolicRate,
+        source: RecordSource.inbodyApi,
+        note: 'AI 사진 분석으로 자동 기록',
+        createdAt: DateTime.now(),
+      );
+
+      await repository.create(bodyRecord);
+    } catch (e) {
+      // 자동저장 실패해도 분석 결과는 유지 (inbody_records에는 이미 저장됨)
     }
   }
 
@@ -216,6 +251,10 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
 
       // Firestore에 저장
       await repository.create(bodyRecord);
+
+      // provider invalidate하여 차트/히스토리 갱신
+      ref.invalidate(bodyRecordsProvider(memberId));
+      ref.invalidate(inbodyHistoryProvider(memberId));
 
       // 성공 후 상태 초기화
       reset();

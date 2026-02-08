@@ -9,6 +9,7 @@ import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/data/models/workout_log_model.dart';
 import 'package:flutter_pal_app/data/repositories/workout_log_repository.dart';
+import 'package:flutter_pal_app/presentation/providers/workout_log_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/skeleton/skeletons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
@@ -149,7 +150,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     // 이미 캐시에 있으면 스킵 (일정 + 운동 모두 캐시됨)
     if (_schedulesCache.containsKey(monthKey) &&
-        _workoutsCache.containsKey(monthKey)) return;
+        _workoutsCache.containsKey(monthKey)) {
+      return;
+    }
 
     // 이미 로드 중이면 스킵
     if (_loadingMonths.contains(monthKey)) return;
@@ -368,29 +371,14 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                 final isPersonal = authState.userRole == UserRole.personal;
 
                 if (isPersonal) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 운동 기록 FAB
-                      FloatingActionButton.small(
-                        heroTag: 'workout_fab',
-                        onPressed: () => context.push('/member/add-workout'),
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        child: const Icon(Icons.fitness_center),
-                      ),
-                      const SizedBox(height: 8),
-                      // 일정 추가 FAB
-                      FloatingActionButton.extended(
-                        heroTag: 'schedule_fab',
-                        onPressed: () => _showAddScheduleBottomSheet(),
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('일정 추가'),
-                      ),
-                    ],
+                  return FloatingActionButton.extended(
+                    heroTag: 'schedule_fab',
+                    onPressed: () => _showAddScheduleBottomSheet(),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('일정 추가'),
                   );
                 }
 
@@ -650,9 +638,24 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     color: isSelected
                         ? AppTheme.primary
                         : isToday
-                            ? AppTheme.primary.withValues(alpha: 0.15)
+                            ? AppTheme.primary.withValues(alpha: 0.08)
                             : null,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: isToday && !isSelected
+                        ? Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.5),
+                            width: 1.5,
+                          )
+                        : null,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -850,15 +853,30 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppTheme.primary
                             : isToday
-                                ? AppTheme.primary.withValues(alpha: 0.15)
+                                ? AppTheme.primary.withValues(alpha: 0.08)
                                 : null,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
+                        border: isToday && !isSelected
+                            ? Border.all(
+                                color: AppTheme.primary.withValues(alpha: 0.5),
+                                width: 1.5,
+                              )
+                            : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Builder(
                         builder: (context) {
@@ -1272,7 +1290,10 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                           onTap: () => _showScheduleDetail(schedule),
                         )),
                         // 운동 기록 카드들
-                        ...workouts.map((workout) => _WorkoutCard(workout: workout)),
+                        ...workouts.map((workout) => _WorkoutCard(
+                          workout: workout,
+                          onTap: () => _showWorkoutDetail(workout),
+                        )),
                       ],
                     ),
         ),
@@ -1313,6 +1334,309 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       ),
       ),
     );
+  }
+
+  // ============================================================
+  // 운동 기록 상세 바텀시트
+  // ============================================================
+
+  void _showWorkoutDetail(WorkoutLogModel workout) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SafeArea(
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 드래그 핸들
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 헤더
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '운동 기록',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (workout.durationMinutes > 0)
+                      Text(
+                        '${workout.durationMinutes}분',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 제목
+                if (workout.title.isNotEmpty) ...[
+                  Text(
+                    workout.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // 오운완 사진
+                if (workout.imageUrl != null && workout.imageUrl!.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      workout.imageUrl!,
+                      width: double.infinity,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // 운동 목록
+                Text(
+                  '운동 목록 (${workout.exercises.length}종목)',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...workout.exercises.map((exercise) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _workoutCategoryColor(exercise.category),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            exercise.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          exercise.weight > 0
+                              ? '${exercise.sets}세트 × ${exercise.reps}회 · ${exercise.weight.toStringAsFixed(0)}kg'
+                              : '${exercise.sets}세트 × ${exercise.reps}회',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+
+                // 메모
+                if (workout.memo.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.sticky_note_2_outlined, size: 18, color: colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            workout.memo,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colorScheme.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+
+                // 수정/삭제 버튼
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _editWorkout(workout);
+                        },
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('수정'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _deleteWorkout(workout);
+                        },
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('삭제'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFEF4444),
+                          side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 운동 기록 수정
+  void _editWorkout(WorkoutLogModel workout) async {
+    final result = await context.push<bool>(
+      '/member/add-workout',
+      extra: workout,
+    );
+    // 수정 완료 시 캐시 초기화 후 새로고침
+    if (result == true && mounted) {
+      _workoutsCache.clear();
+      _workoutsPerDayCache.clear();
+      await _loadSchedulesForMonth(_focusedMonth, showLoading: false);
+      if (mounted) setState(() {});
+    }
+  }
+
+  /// 운동 기록 삭제
+  void _deleteWorkout(WorkoutLogModel workout) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('운동 기록 삭제'),
+        content: const Text('이 운동 기록을 삭제할까요?\n삭제된 기록은 복구할 수 없어요.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              try {
+                await ref
+                    .read(workoutLogNotifierProvider.notifier)
+                    .deleteWorkoutLog(workout.id);
+                // 캐시 초기화 후 새로고침
+                _workoutsCache.clear();
+                _workoutsPerDayCache.clear();
+                await _loadSchedulesForMonth(_focusedMonth, showLoading: false);
+                if (mounted) {
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('운동 기록을 삭제했어요')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('삭제 실패: $e')),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _workoutCategoryColor(WorkoutCategory category) {
+    return switch (category) {
+      WorkoutCategory.chest => const Color(0xFFF04452),
+      WorkoutCategory.back => const Color(0xFF3B82F6),
+      WorkoutCategory.shoulder => const Color(0xFF8B5CF6),
+      WorkoutCategory.arm => const Color(0xFFFF8A00),
+      WorkoutCategory.leg => const Color(0xFF00C471),
+      WorkoutCategory.core => const Color(0xFF06B6D4),
+      WorkoutCategory.cardio => const Color(0xFFEC4899),
+      WorkoutCategory.other => const Color(0xFF6B7280),
+    };
   }
 
   // ============================================================
@@ -1549,10 +1873,6 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          // PT 일정은 제목 필요 없음, 개인 일정은 제목 필수
-          final bool canSave = scheduleType == ScheduleType.pt ||
-              personalTitle.trim().isNotEmpty;
-
           return Container(
             height: MediaQuery.of(builderContext).size.height * 0.75,
             decoration: BoxDecoration(
@@ -1730,18 +2050,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
                         // 제목 입력 (개인 일정일 때만 표시)
                         if (scheduleType == ScheduleType.personal) ...[
-                          Row(
-                            children: [
-                              Text(
-                                '제목',
-                                style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
-                              ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                '*',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
+                          Text(
+                            '제목 (선택)',
+                            style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                           ),
                           const SizedBox(height: 8),
                           TextField(
@@ -1749,7 +2060,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               setDialogState(() => personalTitle = v);
                             },
                             decoration: InputDecoration(
-                              hintText: '일정 제목을 입력해주세요',
+                              hintText: '미입력 시 "개인 일정"으로 저장됩니다',
                               filled: true,
                               fillColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                               border: OutlineInputBorder(
@@ -2038,8 +2349,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: canSave
-                                ? () => _saveSchedule(
+                            onPressed: () => _saveSchedule(
                                       builderContext,
                                       scheduleType,
                                       personalTitle,
@@ -2048,8 +2358,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                       endTime,
                                       memo,
                                       repeatWeeks,
-                                    )
-                                : null,
+                                    ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: scheduleType == ScheduleType.pt
                                   ? AppTheme.primary
@@ -2214,7 +2523,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
           duration: duration > 0 ? duration : 60,
           status: ScheduleStatus.scheduled,
           scheduleType: scheduleType,
-          title: scheduleType == ScheduleType.personal ? personalTitle : null,
+          title: scheduleType == ScheduleType.personal
+              ? (personalTitle.trim().isNotEmpty ? personalTitle.trim() : '개인 일정')
+              : null,
           note: memo.isNotEmpty ? memo : null,
           groupId: groupId,
           createdAt: DateTime.now(),
@@ -2881,12 +3192,14 @@ class _ScheduleOverlapInfo {
 /// 운동 기록 카드
 class _WorkoutCard extends StatelessWidget {
   final WorkoutLogModel workout;
+  final VoidCallback? onTap;
 
-  const _WorkoutCard({required this.workout});
+  const _WorkoutCard({required this.workout, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     // 운동 부위 요약
     final categories = workout.exercises
         .map((e) => e.category)
@@ -2903,65 +3216,72 @@ class _WorkoutCard extends StatelessWidget {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // 운동 아이콘
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.fitness_center,
-                size: 20,
-                color: Color(0xFF10B981),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // 운동 정보
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    categories.isNotEmpty ? categories : '운동 기록',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              // 운동 정보
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      workout.title.isNotEmpty
+                          ? workout.title
+                          : categories.isNotEmpty
+                              ? categories
+                              : '운동 기록',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${workout.exercises.length}개 운동 · ${workout.durationMinutes}분',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 2),
+                    Text(
+                      workout.durationMinutes > 0
+                          ? '${workout.exercises.length}개 운동 · ${workout.durationMinutes}분'
+                          : '${workout.exercises.length}개 운동',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            // 운동 수
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${workout.exercises.length}종목',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF10B981),
+                    if (workout.memo.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        workout.memo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
-          ],
+              // 운동 수
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${workout.exercises.length}종목',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -10,9 +10,9 @@ abstract class InbodyOcrResult with _$InbodyOcrResult {
     /// 체중 (kg)
     double? weight,
     /// 골격근량 (kg)
-    double? skeletalMuscle,
+    @JsonKey(name: 'skeletalMuscleMass') double? skeletalMuscle,
     /// 체지방량 (kg)
-    double? bodyFat,
+    @JsonKey(name: 'bodyFatMass') double? bodyFat,
     /// 체지방률 (%)
     double? bodyFatPercent,
     /// BMI

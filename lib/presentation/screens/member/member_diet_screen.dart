@@ -18,6 +18,7 @@ import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/diet_analysis_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../widgets/diet/food_search_bottom_sheet.dart';
+import '../../widgets/common/glass_icon.dart';
 import '../../widgets/common/mesh_gradient_background.dart';
 
 /// 회원 식단 기록 화면 (AI 분석 기능 포함)
@@ -1343,28 +1344,12 @@ class _MealTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 식사 유형별 그라데이션 색상
-    final gradients = {
-      MealType.breakfast: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFFF8A00), Color(0xFFFFB84D)],
-      ),
-      MealType.lunch: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFFFD700), Color(0xFFFFF176)],
-      ),
-      MealType.dinner: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF5C6BC0), Color(0xFF7986CB)],
-      ),
-      MealType.snack: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF66BB6A), Color(0xFFA5D6A7)],
-      ),
+    // 식사 유형별 색상
+    final colors = {
+      MealType.breakfast: const Color(0xFFFF8A00),
+      MealType.lunch: const Color(0xFFFFD700),
+      MealType.dinner: const Color(0xFF5C6BC0),
+      MealType.snack: const Color(0xFF66BB6A),
     };
 
     // 식사 유형별 아이콘
@@ -1375,24 +1360,13 @@ class _MealTypeIcon extends StatelessWidget {
       MealType.snack: Icons.eco_rounded,
     };
 
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        gradient: gradients[mealType],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icons[mealType],
-          color: Colors.white,
-          size: 22,
-        ),
-      ),
+    return GlassIcon(
+      icon: icons[mealType] ?? Icons.restaurant,
+      size: 40,
+      iconSize: 22,
+      color: colors[mealType],
+      iconColor: Colors.white,
+      blurSigma: 6,
     );
   }
 }

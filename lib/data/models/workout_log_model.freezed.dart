@@ -307,11 +307,13 @@ mixin _$WorkoutLogModel {
 /// Firestore 문서 ID
  String get id;/// 사용자 ID
  String get userId;/// 트레이너 ID (개인모드면 빈 문자열)
- String get trainerId;/// 운동 날짜
+ String get trainerId;/// 운동 제목 (예: '상체 운동', '등 데이')
+ String get title;/// 운동 날짜
 @TimestampConverter() DateTime get workoutDate;/// 운동 목록
  List<WorkoutExercise> get exercises;/// 총 운동 시간 (분)
  int get durationMinutes;/// 전체 메모
- String get memo;/// 생성일
+ String get memo;/// 오운완 사진 URL (Supabase Storage)
+ String? get imageUrl;/// 생성일
 @TimestampConverter() DateTime get createdAt;
 /// Create a copy of WorkoutLogModel
 /// with the given fields replaced by the non-null parameter values.
@@ -325,16 +327,16 @@ $WorkoutLogModelCopyWith<WorkoutLogModel> get copyWith => _$WorkoutLogModelCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.workoutDate, workoutDate) || other.workoutDate == workoutDate)&&const DeepCollectionEquality().equals(other.exercises, exercises)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.workoutDate, workoutDate) || other.workoutDate == workoutDate)&&const DeepCollectionEquality().equals(other.exercises, exercises)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,trainerId,workoutDate,const DeepCollectionEquality().hash(exercises),durationMinutes,memo,createdAt);
+int get hashCode => Object.hash(runtimeType,id,userId,trainerId,title,workoutDate,const DeepCollectionEquality().hash(exercises),durationMinutes,memo,imageUrl,createdAt);
 
 @override
 String toString() {
-  return 'WorkoutLogModel(id: $id, userId: $userId, trainerId: $trainerId, workoutDate: $workoutDate, exercises: $exercises, durationMinutes: $durationMinutes, memo: $memo, createdAt: $createdAt)';
+  return 'WorkoutLogModel(id: $id, userId: $userId, trainerId: $trainerId, title: $title, workoutDate: $workoutDate, exercises: $exercises, durationMinutes: $durationMinutes, memo: $memo, imageUrl: $imageUrl, createdAt: $createdAt)';
 }
 
 
@@ -345,7 +347,7 @@ abstract mixin class $WorkoutLogModelCopyWith<$Res>  {
   factory $WorkoutLogModelCopyWith(WorkoutLogModel value, $Res Function(WorkoutLogModel) _then) = _$WorkoutLogModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String userId, String trainerId,@TimestampConverter() DateTime workoutDate, List<WorkoutExercise> exercises, int durationMinutes, String memo,@TimestampConverter() DateTime createdAt
+ String id, String userId, String trainerId, String title,@TimestampConverter() DateTime workoutDate, List<WorkoutExercise> exercises, int durationMinutes, String memo, String? imageUrl,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -362,16 +364,18 @@ class _$WorkoutLogModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutLogModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? trainerId = null,Object? workoutDate = null,Object? exercises = null,Object? durationMinutes = null,Object? memo = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? trainerId = null,Object? title = null,Object? workoutDate = null,Object? exercises = null,Object? durationMinutes = null,Object? memo = null,Object? imageUrl = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,workoutDate: null == workoutDate ? _self.workoutDate : workoutDate // ignore: cast_nullable_to_non_nullable
 as DateTime,exercises: null == exercises ? _self.exercises : exercises // ignore: cast_nullable_to_non_nullable
 as List<WorkoutExercise>,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
 as int,memo: null == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
@@ -454,10 +458,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  String trainerId, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  String trainerId,  String title, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo,  String? imageUrl, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkoutLogModel() when $default != null:
-return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.createdAt);case _:
+return $default(_that.id,_that.userId,_that.trainerId,_that.title,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.imageUrl,_that.createdAt);case _:
   return orElse();
 
 }
@@ -475,10 +479,10 @@ return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.ex
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  String trainerId, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  String trainerId,  String title, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo,  String? imageUrl, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutLogModel():
-return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.createdAt);}
+return $default(_that.id,_that.userId,_that.trainerId,_that.title,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.imageUrl,_that.createdAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -492,10 +496,10 @@ return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.ex
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  String trainerId, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  String trainerId,  String title, @TimestampConverter()  DateTime workoutDate,  List<WorkoutExercise> exercises,  int durationMinutes,  String memo,  String? imageUrl, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutLogModel() when $default != null:
-return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.createdAt);case _:
+return $default(_that.id,_that.userId,_that.trainerId,_that.title,_that.workoutDate,_that.exercises,_that.durationMinutes,_that.memo,_that.imageUrl,_that.createdAt);case _:
   return null;
 
 }
@@ -506,8 +510,8 @@ return $default(_that.id,_that.userId,_that.trainerId,_that.workoutDate,_that.ex
 /// @nodoc
 @JsonSerializable()
 
-class _WorkoutLogModel implements WorkoutLogModel {
-  const _WorkoutLogModel({this.id = '', required this.userId, this.trainerId = '', @TimestampConverter() required this.workoutDate, required final  List<WorkoutExercise> exercises, this.durationMinutes = 0, this.memo = '', @TimestampConverter() required this.createdAt}): _exercises = exercises;
+class _WorkoutLogModel extends WorkoutLogModel {
+  const _WorkoutLogModel({this.id = '', required this.userId, this.trainerId = '', this.title = '', @TimestampConverter() required this.workoutDate, required final  List<WorkoutExercise> exercises, this.durationMinutes = 0, this.memo = '', this.imageUrl, @TimestampConverter() required this.createdAt}): _exercises = exercises,super._();
   factory _WorkoutLogModel.fromJson(Map<String, dynamic> json) => _$WorkoutLogModelFromJson(json);
 
 /// Firestore 문서 ID
@@ -516,6 +520,8 @@ class _WorkoutLogModel implements WorkoutLogModel {
 @override final  String userId;
 /// 트레이너 ID (개인모드면 빈 문자열)
 @override@JsonKey() final  String trainerId;
+/// 운동 제목 (예: '상체 운동', '등 데이')
+@override@JsonKey() final  String title;
 /// 운동 날짜
 @override@TimestampConverter() final  DateTime workoutDate;
 /// 운동 목록
@@ -531,6 +537,8 @@ class _WorkoutLogModel implements WorkoutLogModel {
 @override@JsonKey() final  int durationMinutes;
 /// 전체 메모
 @override@JsonKey() final  String memo;
+/// 오운완 사진 URL (Supabase Storage)
+@override final  String? imageUrl;
 /// 생성일
 @override@TimestampConverter() final  DateTime createdAt;
 
@@ -547,16 +555,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.workoutDate, workoutDate) || other.workoutDate == workoutDate)&&const DeepCollectionEquality().equals(other._exercises, _exercises)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.workoutDate, workoutDate) || other.workoutDate == workoutDate)&&const DeepCollectionEquality().equals(other._exercises, _exercises)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,trainerId,workoutDate,const DeepCollectionEquality().hash(_exercises),durationMinutes,memo,createdAt);
+int get hashCode => Object.hash(runtimeType,id,userId,trainerId,title,workoutDate,const DeepCollectionEquality().hash(_exercises),durationMinutes,memo,imageUrl,createdAt);
 
 @override
 String toString() {
-  return 'WorkoutLogModel(id: $id, userId: $userId, trainerId: $trainerId, workoutDate: $workoutDate, exercises: $exercises, durationMinutes: $durationMinutes, memo: $memo, createdAt: $createdAt)';
+  return 'WorkoutLogModel(id: $id, userId: $userId, trainerId: $trainerId, title: $title, workoutDate: $workoutDate, exercises: $exercises, durationMinutes: $durationMinutes, memo: $memo, imageUrl: $imageUrl, createdAt: $createdAt)';
 }
 
 
@@ -567,7 +575,7 @@ abstract mixin class _$WorkoutLogModelCopyWith<$Res> implements $WorkoutLogModel
   factory _$WorkoutLogModelCopyWith(_WorkoutLogModel value, $Res Function(_WorkoutLogModel) _then) = __$WorkoutLogModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String userId, String trainerId,@TimestampConverter() DateTime workoutDate, List<WorkoutExercise> exercises, int durationMinutes, String memo,@TimestampConverter() DateTime createdAt
+ String id, String userId, String trainerId, String title,@TimestampConverter() DateTime workoutDate, List<WorkoutExercise> exercises, int durationMinutes, String memo, String? imageUrl,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -584,16 +592,18 @@ class __$WorkoutLogModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutLogModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? trainerId = null,Object? workoutDate = null,Object? exercises = null,Object? durationMinutes = null,Object? memo = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? trainerId = null,Object? title = null,Object? workoutDate = null,Object? exercises = null,Object? durationMinutes = null,Object? memo = null,Object? imageUrl = freezed,Object? createdAt = null,}) {
   return _then(_WorkoutLogModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: null == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,workoutDate: null == workoutDate ? _self.workoutDate : workoutDate // ignore: cast_nullable_to_non_nullable
 as DateTime,exercises: null == exercises ? _self._exercises : exercises // ignore: cast_nullable_to_non_nullable
 as List<WorkoutExercise>,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
 as int,memo: null == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }

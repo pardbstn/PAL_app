@@ -21,8 +21,8 @@ class _MemberShellState extends ConsumerState<MemberShell> {
   /// 탭 전환 방향 (true = 오른쪽 탭으로 이동)
   bool _slideForward = true;
 
-  /// 탭 라우트 목록 (순서대로)
-  static const _routes = [
+  /// 회원 모드 탭 라우트 (5개 탭)
+  static const _memberRoutes = [
     AppRoutes.memberHome,
     AppRoutes.memberRecords,
     AppRoutes.memberCalendar,
@@ -30,8 +30,28 @@ class _MemberShellState extends ConsumerState<MemberShell> {
     AppRoutes.memberMessages,
   ];
 
+  /// 개인 모드 탭 라우트 (4개 탭, 메시지 없음)
+  static const _personalRoutes = [
+    AppRoutes.personalHome,
+    AppRoutes.personalRecords,
+    AppRoutes.personalCalendar,
+    AppRoutes.personalDiet,
+  ];
+
+  /// 현재 경로가 개인 모드인지 확인
+  bool _isPersonalMode(String location) {
+    return location.startsWith('/personal');
+  }
+
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
+    if (_isPersonalMode(location)) {
+      if (location.startsWith('/personal/home')) return 0;
+      if (location.startsWith('/personal/records')) return 1;
+      if (location.startsWith('/personal/calendar')) return 2;
+      if (location.startsWith('/personal/diet')) return 3;
+      return 0;
+    }
     if (location.startsWith('/member/home')) return 0;
     if (location.startsWith('/member/records')) return 1;
     if (location.startsWith('/member/calendar')) return 2;
@@ -41,18 +61,25 @@ class _MemberShellState extends ConsumerState<MemberShell> {
   }
 
   void _navigateToIndex(int index, BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    final routes = _isPersonalMode(location) ? _personalRoutes : _memberRoutes;
     final currentIndex = _calculateSelectedIndex(context);
-    if (currentIndex == index || index < 0 || index >= _routes.length) return;
+    if (currentIndex == index || index < 0 || index >= routes.length) return;
     _slideForward = index > currentIndex;
-    context.go(_routes[index]);
+    context.go(routes[index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentIndex = _calculateSelectedIndex(context);
     final currentPath = GoRouterState.of(context).uri.path;
+    final isPersonal = _isPersonalMode(currentPath);
+
+    // 개인 모드에서는 메시지 탭이 없으므로 unreadCount 불필요
+    final unreadCount = isPersonal
+        ? 0
+        : (ref.watch(totalUnreadCountProvider).value ?? 0);
 
     return Scaffold(
       extendBody: true,
@@ -127,12 +154,14 @@ class _MemberShellState extends ConsumerState<MemberShell> {
             activeIcon: Icons.restaurant_rounded,
             label: '식단',
           ),
-          LiquidGlassNavItem(
-            icon: Icons.chat_bubble_outline_rounded,
-            activeIcon: Icons.chat_bubble_rounded,
-            label: '메시지',
-            badge: unreadCount > 0 ? unreadCount : null,
-          ),
+          // 개인 모드에서는 메시지 탭 숨김
+          if (!isPersonal)
+            LiquidGlassNavItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              activeIcon: Icons.chat_bubble_rounded,
+              label: '메시지',
+              badge: unreadCount > 0 ? unreadCount : null,
+            ),
         ],
       ),
     );

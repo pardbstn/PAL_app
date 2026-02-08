@@ -88,13 +88,14 @@ class MemberHomeScreen extends ConsumerWidget {
             ? null
             : const BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
+                  center: Alignment(-0.1, -0.95),
+                  radius: 0.6,
                   colors: [
-                    Color(0x26FFFFFF), // white at 15% opacity
+                    Color(0x4DFFFFFF), // white at 30% - 집중된 spotlight
+                    Color(0x1AFFFFFF), // white at 10%
                     Colors.transparent,
                   ],
-                  stops: [0.0, 1.0],
+                  stops: [0.0, 0.4, 1.0],
                 ),
               ),
         child: RefreshIndicator(
@@ -129,11 +130,6 @@ class MemberHomeScreen extends ConsumerWidget {
                   ReregistrationBanner(memberId: memberId),
                   const SizedBox(height: 16),
                 ],
-
-                // 개인 모드: 오늘 운동 요약 카드 (TODO: 구현 필요)
-                // if (isPersonal)
-                //   _TodayWorkoutSummaryCard(userId: authState.userId!)
-                //       .animateListItem(1),
 
                 // PT 모드: PT 진행 현황 카드
                 if (!isPersonal) ...[
@@ -666,12 +662,18 @@ class _PtProgressCardState extends State<_PtProgressCard>
   @override
   Widget build(BuildContext context) {
     final remaining = widget.total - widget.completed;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const accentBlue = Color(0xFF2563EB);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textSecondary = isDark ? Colors.white70 : const Color(0xFF64748B);
 
     return GlassContainer(
       blurSigma: 20,
       borderRadius: BorderRadius.circular(24),
       padding: const EdgeInsets.all(20),
-      color: const Color(0xFF1A56DB).withValues(alpha: 0.55),
+      color: isDark
+          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+          : Colors.white.withValues(alpha: 0.95),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -683,15 +685,20 @@ class _PtProgressCardState extends State<_PtProgressCard>
             children: [
               Row(
                 children: [
-                  // 원형 프로그레스 - 애니메이션 적용 + 글로우 효과
+                  // 원형 프로그레스 - 네온 블루 글로우
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0055FF).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                          color: accentBlue.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: accentBlue.withValues(alpha: 0.15),
+                          blurRadius: 40,
+                          spreadRadius: 8,
                         ),
                       ],
                     ),
@@ -710,11 +717,12 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 child: CircularProgressIndicator(
                                   value: _progressAnimation.value,
                                   strokeWidth: 8,
-                                  backgroundColor: const Color(0xFF0055FF)
-                                      .withValues(alpha: 0.15),
+                                  backgroundColor: isDark
+                                      ? Colors.white.withValues(alpha: 0.15)
+                                      : const Color(0xFFE2E8F0),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF0055FF),
+                                        accentBlue,
                                       ),
                                   strokeCap: StrokeCap.round,
                                 ),
@@ -725,7 +733,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                                 duration: const Duration(milliseconds: 1200),
                                 suffix: '%',
                                 style: const TextStyle(
-                                  color: Color(0xFFFFFFFF),
+                                  color: accentBlue,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -737,7 +745,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                     ),
                   ),
                   const SizedBox(width: 20),
-                  // 텍스트 정보
+                  // 텍스트 정보 - 검은색
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -745,7 +753,7 @@ class _PtProgressCardState extends State<_PtProgressCard>
                         Text(
                           'PT 진행 현황',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 1.0),
+                            color: textSecondary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -759,43 +767,55 @@ class _PtProgressCardState extends State<_PtProgressCard>
                             AnimatedCounter(
                               value: widget.completed,
                               duration: const Duration(milliseconds: 1000),
-                              style: const TextStyle(
-                                color: Color(0xFFFFFFFF),
+                              style: TextStyle(
+                                color: textPrimary,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               ' / ${widget.total} 회차 완료',
-                              style: const TextStyle(
-                                color: Color(0xFFFFFFFF),
+                              style: TextStyle(
+                                color: textPrimary,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        // 남은 회차 카운트업
-                        Row(
-                          children: [
-                            Text(
-                              '남은 회차: ',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 14,
+                        const SizedBox(height: 6),
+                        // 남은 회차 강조 배지
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accentBlue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '남은 회차 ',
+                                style: TextStyle(
+                                  color: textSecondary,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                            AnimatedCounter(
-                              value: remaining,
-                              duration: const Duration(milliseconds: 800),
-                              suffix: '회',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 14,
+                              AnimatedCounter(
+                                value: remaining,
+                                duration: const Duration(milliseconds: 800),
+                                suffix: '회',
+                                style: const TextStyle(
+                                  color: accentBlue,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -803,12 +823,14 @@ class _PtProgressCardState extends State<_PtProgressCard>
                 ],
               ),
               const SizedBox(height: 16),
-              // 하단 프로그레스 바 추가
+              // 하단 프로그레스 바 - 파란색
               AnimatedProgressBar(
                 progress: widget.progressRate,
                 height: 8,
-                backgroundColor: Colors.white.withValues(alpha: 0.15),
-                progressColor: const Color(0xFF4D9AFF),
+                backgroundColor: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : const Color(0xFFE2E8F0),
+                progressColor: accentBlue,
                 duration: const Duration(milliseconds: 1200),
               ),
             ],
@@ -909,24 +931,31 @@ class _NextClassCard extends StatelessWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 14,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            (daysUntil == 0
+                        color: daysUntil == 0
+                            ? AppTheme.secondary
+                            : theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (daysUntil == 0
                                     ? AppTheme.secondary
                                     : theme.colorScheme.primary)
-                                .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
+                                .withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(
                         dDayText,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: daysUntil == 0
-                              ? AppTheme.secondary
-                              : theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -1693,6 +1722,10 @@ class _InsightCardsSection extends ConsumerWidget {
         continue;
       }
       seen.add(insight.title);
+      // 목표 달성 관련 인사이트 제외 (추후 구현 예정)
+      if (insight.type == 'goalProgress' || insight.type == 'goal_progress') {
+        continue;
+      }
       // 만료된 인사이트 제외
       if (insight.expiresAt != null &&
           insight.expiresAt!.isBefore(DateTime.now())) {

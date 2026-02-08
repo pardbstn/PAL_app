@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_pal_app/core/constants/exercise_constants.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
@@ -139,38 +143,39 @@ class _SelectedExercise {
 // 메인 화면
 // ---------------------------------------------------------------------------
 
-/// 운동 추가 화면 (Toss 스타일 2단계 UX)
+/// 운동 추가/수정 화면 (Toss 스타일 2단계 UX)
 class AddWorkoutScreen extends ConsumerStatefulWidget {
-  const AddWorkoutScreen({super.key});
+  /// 수정 모드일 때 기존 운동 기록
+  final WorkoutLogModel? existingWorkout;
+
+  const AddWorkoutScreen({super.key, this.existingWorkout});
 
   @override
   ConsumerState<AddWorkoutScreen> createState() => _AddWorkoutScreenState();
 }
 
 class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
-  // Step 관리: 0 = 운동 선택, 1 = 세부 설정
-  int _currentStep = 0;
-
-  // 검색
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  // 근육 그룹 필터
-  String? _selectedMuscleGroup;
-
   // 선택된 운동 목록
   final List<_SelectedExercise> _selectedExercises = [];
+
+  // 제목
+  final _titleController = TextEditingController();
 
   // 메모
   final _memoController = TextEditingController();
   bool _showMemo = false;
 
-  // 운동 시간 타이머
-  DateTime? _startTime;
-  int _elapsedMinutes = 0;
+  // 운동 시간 (분) - 수동 입력
+  int _durationMinutes = 0;
 
   // 저장 중 상태
   bool _isSaving = false;
+
+  // 오운완 사진
+  Uint8List? _imageBytes;
+
+  // 수정 모드 여부
+  bool get _isEditMode => widget.existingWorkout != null;
 
   // 근육 그룹 필터 목록
   static const List<_MuscleGroup> _muscleGroups = [
@@ -186,69 +191,37 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    _startTime = DateTime.now();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.trim();
-      });
-    });
-    // 1분마다 경과 시간 업데이트
-    Future.delayed(const Duration(minutes: 1), _updateElapsedTime);
-  }
 
-  void _updateElapsedTime() {
-    if (!mounted || _startTime == null) return;
-    setState(() {
-      _elapsedMinutes = DateTime.now().difference(_startTime!).inMinutes;
-    });
-    Future.delayed(const Duration(minutes: 1), _updateElapsedTime);
+    // 수정 모드: 기존 데이터 로드
+    if (_isEditMode) {
+      final workout = widget.existingWorkout!;
+      _titleController.text = workout.title;
+      _memoController.text = workout.memo;
+      _durationMinutes = workout.durationMinutes;
+      _showMemo = workout.memo.isNotEmpty;
+
+      // 기존 운동 목록 복원
+      for (final exercise in workout.exercises) {
+        final categoryLabel = _categoryLabel(exercise.category);
+        _selectedExercises.add(_SelectedExercise(
+          id: '${exercise.name}_${exercise.category.name}',
+          nameKo: exercise.name,
+          equipment: '',
+          primaryMuscle: categoryLabel,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: exercise.weight,
+        ));
+      }
+
+    }
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _titleController.dispose();
     _memoController.dispose();
     super.dispose();
-  }
-
-  // ---------------------------------------------------------------------------
-  // 운동 검색 및 필터링
-  // ---------------------------------------------------------------------------
-
-  /// ExerciseConstants에서 필터링된 운동 목록 반환
-  List<Map<String, dynamic>> _getFilteredExercises() {
-    var list = ExerciseConstants.exercises;
-
-    // 근육 그룹 필터
-    if (_selectedMuscleGroup != null) {
-      list = list
-          .where((e) => e['primaryMuscle'] == _selectedMuscleGroup)
-          .toList();
-    }
-
-    // 검색어 필터
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      list = list
-          .where((e) =>
-              (e['nameKo'] as String).toLowerCase().contains(query))
-          .toList();
-
-      // 정렬: 정확 일치 > 시작 일치 > 포함
-      list.sort((a, b) {
-        final aName = (a['nameKo'] as String).toLowerCase();
-        final bName = (b['nameKo'] as String).toLowerCase();
-        final aExact = aName == query;
-        final bExact = bName == query;
-        if (aExact != bExact) return aExact ? -1 : 1;
-        final aStarts = aName.startsWith(query);
-        final bStarts = bName.startsWith(query);
-        if (aStarts != bStarts) return aStarts ? -1 : 1;
-        return aName.compareTo(bName);
-      });
-    }
-
-    return list;
   }
 
   /// 운동이 이미 선택되었는지 확인
@@ -274,21 +247,287 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
     });
   }
 
-  /// Step 2로 이동
-  void _goToDetails() {
-    if (_selectedExercises.isEmpty) return;
-    HapticUtils.medium();
-    setState(() {
-      _currentStep = 1;
+  /// 운동 추가 바텀시트 표시
+  void _showExercisePickerSheet() {
+    final sheetSearchController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        String sheetSearchQuery = '';
+        String? sheetSelectedMuscle;
+
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheetState) {
+            // 필터링
+            var list = ExerciseConstants.exercises;
+            if (sheetSelectedMuscle != null) {
+              list = list
+                  .where((e) => e['primaryMuscle'] == sheetSelectedMuscle)
+                  .toList();
+            }
+            if (sheetSearchQuery.isNotEmpty) {
+              final query = sheetSearchQuery.toLowerCase();
+              list = list
+                  .where((e) =>
+                      (e['nameKo'] as String).toLowerCase().contains(query))
+                  .toList();
+            }
+
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.85,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.appBackgroundDark
+                    : AppColors.appBackground,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  // 핸들바
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.gray500 : AppColors.gray300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // 타이틀
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding,
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '운동 추가',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: const Text(
+                            '완료',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 검색바
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding,
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkSurface
+                            : AppColors.gray100,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: TextField(
+                        controller: sheetSearchController,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                        ),
+                        onChanged: (value) {
+                          setSheetState(() {
+                            sheetSearchQuery = value.trim();
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: '운동을 검색해보세요',
+                          hintStyle: TextStyle(
+                            fontSize: 15,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            size: 20,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 근육 그룹 필터 칩
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenPadding,
+                      ),
+                      itemCount: _muscleGroups.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: AppSpacing.sm),
+                      itemBuilder: (_, index) {
+                        final group = _muscleGroups[index];
+                        final isActive =
+                            sheetSelectedMuscle == group.filterKey;
+                        return _FilterChip(
+                          label: group.label,
+                          icon: group.icon,
+                          isActive: isActive,
+                          isDark: isDark,
+                          onTap: () {
+                            HapticUtils.selection();
+                            setSheetState(() {
+                              sheetSelectedMuscle =
+                                  sheetSelectedMuscle == group.filterKey
+                                      ? null
+                                      : group.filterKey;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // 운동 목록
+                  Expanded(
+                    child: list.isEmpty
+                        ? _EmptySearchResult(isDark: isDark)
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.screenPadding,
+                            ),
+                            itemCount: list.length,
+                            itemBuilder: (_, index) {
+                              final exercise = list[index];
+                              final id = exercise['id'] as String;
+                              final isSelected = _isExerciseSelected(id);
+                              return _ExercisePickerTile(
+                                exercise: exercise,
+                                isSelected: isSelected,
+                                isDark: isDark,
+                                onTap: () {
+                                  _toggleExercise(exercise);
+                                  setSheetState(() {});
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      sheetSearchController.dispose();
     });
   }
 
-  /// Step 1로 돌아가기
-  void _goBackToPicker() {
-    HapticUtils.light();
-    setState(() {
-      _currentStep = 0;
-    });
+  // ---------------------------------------------------------------------------
+  // 사진
+  // ---------------------------------------------------------------------------
+
+  /// 오운완 사진 선택 (카메라/갤러리)
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+      if (pickedFile == null) return;
+      final bytes = await pickedFile.readAsBytes();
+      setState(() => _imageBytes = bytes);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사진 선택 실패: $e')),
+      );
+    }
+  }
+
+  /// 사진 제거
+  void _removeImage() {
+    setState(() => _imageBytes = null);
+  }
+
+  /// 사진 선택 바텀시트
+  void _showImagePickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: const Text('카메라로 촬영'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('갤러리에서 선택'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Supabase에 이미지 업로드 후 URL 반환
+  Future<String?> _uploadImage(String userId) async {
+    if (_imageBytes == null) return null;
+    final fileName =
+        'workout/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final supabase = Supabase.instance.client;
+    await supabase.storage.from('pal-storage').uploadBinary(
+          fileName,
+          _imageBytes!,
+          fileOptions: const FileOptions(contentType: 'image/jpeg'),
+        );
+    return supabase.storage.from('pal-storage').getPublicUrl(fileName);
   }
 
   // ---------------------------------------------------------------------------
@@ -298,7 +537,9 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
   Future<void> _saveWorkout() async {
     if (_selectedExercises.isEmpty) return;
 
-    final userId = ref.read(authProvider).userId;
+    // 회원 ID 우선 사용 (캘린더 조회와 통일), 없으면 Firebase UID 폴백
+    final member = ref.read(currentMemberProvider);
+    final userId = member?.id ?? ref.read(authProvider).userId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('로그인이 필요해요')),
@@ -308,31 +549,62 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
 
     setState(() => _isSaving = true);
 
-    final exercises =
-        _selectedExercises.map((e) => e.toWorkoutExercise()).toList();
-
-    final workoutLog = WorkoutLogModel(
-      userId: userId,
-      workoutDate: DateTime.now(),
-      exercises: exercises,
-      durationMinutes: _elapsedMinutes,
-      memo: _memoController.text.trim(),
-      createdAt: DateTime.now(),
-    );
-
     try {
-      await ref
-          .read(workoutLogNotifierProvider.notifier)
-          .addWorkoutLog(workoutLog);
+      // 사진이 있으면 먼저 업로드
+      final imageUrl = await _uploadImage(userId);
 
-      if (!mounted) return;
-      HapticUtils.success();
+      final exercises =
+          _selectedExercises.map((e) => e.toWorkoutExercise()).toList();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('운동을 저장했어요')),
-      );
+      if (_isEditMode) {
+        // 수정 모드
+        final existingWorkout = widget.existingWorkout!;
+        final updateData = <String, dynamic>{
+          'title': _titleController.text.trim(),
+          'exercises': exercises.map((e) => e.toJson()).toList(),
+          'durationMinutes': _durationMinutes,
+          'memo': _memoController.text.trim(),
+        };
+        if (imageUrl != null) {
+          updateData['imageUrl'] = imageUrl;
+        }
 
-      context.pop();
+        await ref
+            .read(workoutLogNotifierProvider.notifier)
+            .updateWorkoutLog(existingWorkout.id, updateData);
+
+        if (!mounted) return;
+        HapticUtils.success();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('운동 기록을 수정했어요')),
+        );
+      } else {
+        // 새로 추가
+        final workoutLog = WorkoutLogModel(
+          userId: userId,
+          title: _titleController.text.trim(),
+          workoutDate: DateTime.now(),
+          exercises: exercises,
+          durationMinutes: _durationMinutes,
+          memo: _memoController.text.trim(),
+          imageUrl: imageUrl,
+          createdAt: DateTime.now(),
+        );
+
+        await ref
+            .read(workoutLogNotifierProvider.notifier)
+            .addWorkoutLog(workoutLog);
+
+        if (!mounted) return;
+        HapticUtils.success();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('운동을 저장했어요')),
+        );
+      }
+
+      context.pop(true); // true를 반환하여 캘린더에서 새로고침 트리거
     } catch (e) {
       if (!mounted) return;
       HapticUtils.error();
@@ -357,62 +629,32 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
       backgroundColor:
           isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
       appBar: _buildAppBar(theme, isDark),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          // Step 전환 시 슬라이드 애니메이션
-          final offset = _currentStep == 1
-              ? Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-              : Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero);
-          return SlideTransition(
-            position: offset.animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            ),
-            child: child,
-          );
+      body: _StepSetDetails(
+        selectedExercises: _selectedExercises,
+        titleController: _titleController,
+        memoController: _memoController,
+        showMemo: _showMemo,
+        isSaving: _isSaving,
+        isEditMode: _isEditMode,
+        imageBytes: _imageBytes,
+        durationMinutes: _durationMinutes,
+        onDurationChanged: (value) {
+          setState(() => _durationMinutes = value);
         },
-        child: _currentStep == 0
-            ? _StepPickExercises(
-                key: const ValueKey('step0'),
-                searchController: _searchController,
-                searchQuery: _searchQuery,
-                selectedMuscleGroup: _selectedMuscleGroup,
-                muscleGroups: _muscleGroups,
-                filteredExercises: _getFilteredExercises(),
-                selectedExercises: _selectedExercises,
-                onMuscleGroupSelected: (group) {
-                  HapticUtils.selection();
-                  setState(() {
-                    _selectedMuscleGroup =
-                        _selectedMuscleGroup == group ? null : group;
-                  });
-                },
-                isExerciseSelected: _isExerciseSelected,
-                onToggleExercise: _toggleExercise,
-                onNext: _goToDetails,
-              )
-            : _StepSetDetails(
-                key: const ValueKey('step1'),
-                selectedExercises: _selectedExercises,
-                memoController: _memoController,
-                showMemo: _showMemo,
-                isSaving: _isSaving,
-                onToggleMemo: () {
-                  setState(() => _showMemo = !_showMemo);
-                },
-                onExerciseChanged: () => setState(() {}),
-                onRemoveExercise: (index) {
-                  HapticUtils.light();
-                  setState(() {
-                    _selectedExercises.removeAt(index);
-                    // 운동이 모두 삭제되면 Step 1로 돌아감
-                    if (_selectedExercises.isEmpty) {
-                      _currentStep = 0;
-                    }
-                  });
-                },
-                onSave: _saveWorkout,
-              ),
+        onToggleMemo: () {
+          setState(() => _showMemo = !_showMemo);
+        },
+        onExerciseChanged: () => setState(() {}),
+        onRemoveExercise: (index) {
+          HapticUtils.light();
+          setState(() {
+            _selectedExercises.removeAt(index);
+          });
+        },
+        onSave: _saveWorkout,
+        onPickImage: _showImagePickerSheet,
+        onRemoveImage: _removeImage,
+        onAddExercise: _showExercisePickerSheet,
       ),
     );
   }
@@ -425,199 +667,62 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
       elevation: 0,
       leading: IconButton(
         icon: Icon(
-          _currentStep == 0 ? Icons.close : Icons.arrow_back,
+          Icons.close,
           color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
         ),
-        onPressed: () {
-          if (_currentStep == 1) {
-            _goBackToPicker();
-          } else {
-            context.pop();
-          }
-        },
+        onPressed: () => context.pop(),
       ),
       title: Text(
-        _currentStep == 0 ? '운동 추가' : '세부 설정',
+        _isEditMode ? '운동 수정' : '운동 추가',
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.bold,
         ),
       ),
       centerTitle: true,
-      actions: [
-        // 경과 시간 표시
-        if (_elapsedMinutes > 0)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.md),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    size: 16,
-                    color: AppTheme.secondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$_elapsedMinutes분',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
 
 // =============================================================================
-// Step 1: 운동 선택 화면
-// =============================================================================
-
-class _StepPickExercises extends StatelessWidget {
-  final TextEditingController searchController;
-  final String searchQuery;
-  final String? selectedMuscleGroup;
-  final List<_MuscleGroup> muscleGroups;
-  final List<Map<String, dynamic>> filteredExercises;
-  final List<_SelectedExercise> selectedExercises;
-  final ValueChanged<String> onMuscleGroupSelected;
-  final bool Function(String id) isExerciseSelected;
-  final ValueChanged<Map<String, dynamic>> onToggleExercise;
-  final VoidCallback onNext;
-
-  const _StepPickExercises({
-    super.key,
-    required this.searchController,
-    required this.searchQuery,
-    required this.selectedMuscleGroup,
-    required this.muscleGroups,
-    required this.filteredExercises,
-    required this.selectedExercises,
-    required this.onMuscleGroupSelected,
-    required this.isExerciseSelected,
-    required this.onToggleExercise,
-    required this.onNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Column(
-      children: [
-        // 검색바
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenPadding,
-            vertical: AppSpacing.sm,
-          ),
-          child: _SearchBar(
-            controller: searchController,
-            isDark: isDark,
-          ),
-        ),
-
-        // 근육 그룹 필터 칩
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenPadding,
-            ),
-            itemCount: muscleGroups.length,
-            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
-            itemBuilder: (context, index) {
-              final group = muscleGroups[index];
-              final isActive = selectedMuscleGroup == group.filterKey;
-              return _FilterChip(
-                label: group.label,
-                icon: group.icon,
-                isActive: isActive,
-                isDark: isDark,
-                onTap: () => onMuscleGroupSelected(group.filterKey),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(height: AppSpacing.sm),
-
-        // 운동 목록
-        Expanded(
-          child: filteredExercises.isEmpty
-              ? _EmptySearchResult(isDark: isDark)
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenPadding,
-                  ),
-                  itemCount: filteredExercises.length,
-                  itemBuilder: (context, index) {
-                    final exercise = filteredExercises[index];
-                    final id = exercise['id'] as String;
-                    final isSelected = isExerciseSelected(id);
-                    return _ExercisePickerTile(
-                      exercise: exercise,
-                      isSelected: isSelected,
-                      isDark: isDark,
-                      onTap: () => onToggleExercise(exercise),
-                    )
-                        .animate()
-                        .fadeIn(
-                          duration: 150.ms,
-                          delay: (index.clamp(0, 15) * 20).ms,
-                        )
-                        .slideY(
-                          begin: 0.02,
-                          end: 0,
-                          duration: 150.ms,
-                          delay: (index.clamp(0, 15) * 20).ms,
-                        );
-                  },
-                ),
-        ),
-
-        // 하단 선택 바
-        _BottomSelectionBar(
-          count: selectedExercises.length,
-          isDark: isDark,
-          onNext: onNext,
-        ),
-      ],
-    );
-  }
-}
-
-// =============================================================================
-// Step 2: 세부 설정 화면
+// 세부 설정 화면
 // =============================================================================
 
 class _StepSetDetails extends StatelessWidget {
   final List<_SelectedExercise> selectedExercises;
+  final TextEditingController titleController;
   final TextEditingController memoController;
   final bool showMemo;
   final bool isSaving;
+  final bool isEditMode;
+  final Uint8List? imageBytes;
+  final int durationMinutes;
+  final ValueChanged<int> onDurationChanged;
   final VoidCallback onToggleMemo;
   final VoidCallback onExerciseChanged;
   final ValueChanged<int> onRemoveExercise;
   final VoidCallback onSave;
+  final VoidCallback onPickImage;
+  final VoidCallback onRemoveImage;
+  final VoidCallback onAddExercise;
 
   const _StepSetDetails({
     super.key,
     required this.selectedExercises,
+    required this.titleController,
     required this.memoController,
     required this.showMemo,
     required this.isSaving,
+    required this.isEditMode,
+    this.imageBytes,
+    required this.durationMinutes,
+    required this.onDurationChanged,
     required this.onToggleMemo,
     required this.onExerciseChanged,
     required this.onRemoveExercise,
     required this.onSave,
+    required this.onPickImage,
+    required this.onRemoveImage,
+    required this.onAddExercise,
   });
 
   @override
@@ -625,6 +730,9 @@ class _StepSetDetails extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    // 리스트 항목: 제목+운동시간 + 운동들 + 운동추가버튼 + 메모 + 사진
+    final extraItems = 4; // 제목+운동시간, 운동추가버튼, 메모, 사진
 
     return Column(
       children: [
@@ -637,33 +745,95 @@ class _StepSetDetails extends StatelessWidget {
               AppSpacing.screenPadding,
               AppSpacing.xl,
             ),
-            itemCount: selectedExercises.length + 1, // +1 메모 영역
+            itemCount: selectedExercises.length + extraItems,
             itemBuilder: (context, index) {
-              if (index < selectedExercises.length) {
+              // 제목 + 운동 시간 입력
+              if (index == 0) {
+                return _TitleAndDurationSection(
+                  titleController: titleController,
+                  durationMinutes: durationMinutes,
+                  isDark: isDark,
+                  onDurationChanged: onDurationChanged,
+                );
+              }
+              final exerciseIndex = index - 1;
+              if (exerciseIndex < selectedExercises.length) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.compact),
                   child: _ExerciseDetailCard(
-                    exercise: selectedExercises[index],
+                    exercise: selectedExercises[exerciseIndex],
                     isDark: isDark,
                     onChanged: onExerciseChanged,
-                    onRemove: () => onRemoveExercise(index),
+                    onRemove: () => onRemoveExercise(exerciseIndex),
                   )
                       .animate()
-                      .fadeIn(duration: 200.ms, delay: (index * 50).ms)
+                      .fadeIn(duration: 200.ms, delay: (exerciseIndex * 50).ms)
                       .slideY(
                         begin: 0.03,
                         end: 0,
                         duration: 200.ms,
-                        delay: (index * 50).ms,
+                        delay: (exerciseIndex * 50).ms,
                       ),
                 );
               }
-              // 메모 영역
-              return _MemoSection(
-                controller: memoController,
-                showMemo: showMemo,
+              // 운동 추가 버튼
+              if (exerciseIndex == selectedExercises.length) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.compact),
+                  child: GestureDetector(
+                    onTap: onAddExercise,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurface : Colors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.borderDark
+                              : AppColors.gray200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '운동 추가',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              if (exerciseIndex == selectedExercises.length + 1) {
+                // 메모 영역
+                return _MemoSection(
+                  controller: memoController,
+                  showMemo: showMemo,
+                  isDark: isDark,
+                  onToggle: onToggleMemo,
+                );
+              }
+              // 오운완 사진 영역
+              return _PhotoSection(
+                imageBytes: imageBytes,
                 isDark: isDark,
-                onToggle: onToggleMemo,
+                onPickImage: onPickImage,
+                onRemoveImage: onRemoveImage,
               );
             },
           ),
@@ -690,7 +860,11 @@ class _StepSetDetails extends StatelessWidget {
             width: double.infinity,
             height: 56,
             child: _PrimaryButton(
-              label: isSaving ? '저장 중...' : '저장하기',
+              label: isSaving
+                  ? '저장 중...'
+                  : isEditMode
+                      ? '수정하기'
+                      : '저장하기',
               isEnabled: !isSaving && selectedExercises.isNotEmpty,
               isLoading: isSaving,
               onTap: onSave,
@@ -705,64 +879,6 @@ class _StepSetDetails extends StatelessWidget {
 // =============================================================================
 // 공용 서브 위젯
 // =============================================================================
-
-/// 검색바
-class _SearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isDark;
-
-  const _SearchBar({required this.controller, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.gray100,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: TextField(
-        controller: controller,
-        style: TextStyle(
-          fontSize: 15,
-          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          hintText: '운동을 검색해보세요',
-          hintStyle: TextStyle(
-            fontSize: 15,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            size: 20,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-          suffixIcon: controller.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    size: 18,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
-                  ),
-                  onPressed: () {
-                    controller.clear();
-                    HapticUtils.light();
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: 14,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// 근육 그룹 필터 칩 (커스텀 스타일)
 class _FilterChip extends StatelessWidget {
@@ -985,78 +1101,6 @@ class _SmallBadge extends StatelessWidget {
   }
 }
 
-/// 하단 선택 바 (Step 1)
-class _BottomSelectionBar extends StatelessWidget {
-  final int count;
-  final bool isDark;
-  final VoidCallback onNext;
-
-  const _BottomSelectionBar({
-    required this.count,
-    required this.isDark,
-    required this.onNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final isActive = count > 0;
-
-    return AnimatedSlide(
-      offset: isActive ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      child: AnimatedOpacity(
-        opacity: isActive ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.screenPadding,
-            AppSpacing.compact,
-            AppSpacing.screenPadding,
-            bottomPadding + AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
-            border: Border(
-              top: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.border,
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              // 선택 개수
-              Expanded(
-                child: Text(
-                  '$count개 운동 선택됨',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              // 다음 버튼
-              SizedBox(
-                height: 48,
-                child: _PrimaryButton(
-                  label: '다음',
-                  isEnabled: isActive,
-                  onTap: onNext,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 검색 결과 없음
 class _EmptySearchResult extends StatelessWidget {
   final bool isDark;
@@ -1192,6 +1236,22 @@ class _ExerciseDetailCard extends StatelessWidget {
                       onChanged();
                     }
                   },
+                  onValueTap: () async {
+                    final result = await _showNumberEditDialog(
+                      context: context,
+                      title: '세트 수 입력',
+                      unit: '세트',
+                      currentValue: exercise.sets.toDouble(),
+                      min: 1,
+                      max: 20,
+                      isDark: isDark,
+                    );
+                    if (result != null) {
+                      exercise.sets = result.toInt();
+                      HapticUtils.light();
+                      onChanged();
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -1212,6 +1272,22 @@ class _ExerciseDetailCard extends StatelessWidget {
                   onIncrement: () {
                     if (exercise.reps < 100) {
                       exercise.reps++;
+                      HapticUtils.light();
+                      onChanged();
+                    }
+                  },
+                  onValueTap: () async {
+                    final result = await _showNumberEditDialog(
+                      context: context,
+                      title: '반복 횟수 입력',
+                      unit: '회',
+                      currentValue: exercise.reps.toDouble(),
+                      min: 1,
+                      max: 100,
+                      isDark: isDark,
+                    );
+                    if (result != null) {
+                      exercise.reps = result.toInt();
                       HapticUtils.light();
                       onChanged();
                     }
@@ -1238,6 +1314,23 @@ class _ExerciseDetailCard extends StatelessWidget {
                       onChanged();
                     }
                   },
+                  onValueTap: () async {
+                    final result = await _showNumberEditDialog(
+                      context: context,
+                      title: '무게 입력',
+                      unit: 'kg',
+                      currentValue: exercise.weight,
+                      min: 0,
+                      max: 500,
+                      isDark: isDark,
+                      isInteger: false,
+                    );
+                    if (result != null) {
+                      exercise.weight = result;
+                      HapticUtils.light();
+                      onChanged();
+                    }
+                  },
                 ),
               ),
             ],
@@ -1248,6 +1341,115 @@ class _ExerciseDetailCard extends StatelessWidget {
   }
 }
 
+/// 숫자 직접 입력 다이얼로그
+Future<double?> _showNumberEditDialog({
+  required BuildContext context,
+  required String title,
+  required String unit,
+  required double currentValue,
+  required double min,
+  required double max,
+  required bool isDark,
+  bool isInteger = true,
+}) async {
+  final controller = TextEditingController(
+    text: isInteger
+        ? currentValue.toInt().toString()
+        : (currentValue % 1 == 0
+            ? currentValue.toInt().toString()
+            : currentValue.toStringAsFixed(1)),
+  );
+
+  return showDialog<double>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: isInteger
+              ? TextInputType.number
+              : const TextInputType.numberWithOptions(decimal: true),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            suffixText: unit,
+            suffixStyle: TextStyle(
+              fontSize: 16,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          onSubmitted: (value) {
+            final parsed = double.tryParse(value);
+            if (parsed != null) {
+              Navigator.of(ctx).pop(parsed.clamp(min, max));
+            } else {
+              Navigator.of(ctx).pop();
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final parsed = double.tryParse(controller.text);
+              if (parsed != null) {
+                Navigator.of(ctx).pop(parsed.clamp(min, max));
+              } else {
+                Navigator.of(ctx).pop();
+              }
+            },
+            child: const Text(
+              '확인',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// 스텝퍼 컨트롤 (세트, 반복)
 class _StepperControl extends StatelessWidget {
   final String label;
@@ -1256,6 +1458,7 @@ class _StepperControl extends StatelessWidget {
   final bool isDark;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
+  final VoidCallback? onValueTap;
 
   const _StepperControl({
     required this.label,
@@ -1264,6 +1467,7 @@ class _StepperControl extends StatelessWidget {
     required this.isDark,
     required this.onDecrement,
     required this.onIncrement,
+    this.onValueTap,
   });
 
   @override
@@ -1295,17 +1499,21 @@ class _StepperControl extends StatelessWidget {
                 isDark: isDark,
                 onTap: onDecrement,
               ),
-              // 값 표시
+              // 값 표시 (탭하면 직접 입력)
               Expanded(
-                child: Center(
-                  child: Text(
-                    '$value',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
+                child: GestureDetector(
+                  onTap: onValueTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Text(
+                      '$value',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ),
@@ -1338,12 +1546,14 @@ class _WeightControl extends StatelessWidget {
   final bool isDark;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
+  final VoidCallback? onValueTap;
 
   const _WeightControl({
     required this.weight,
     required this.isDark,
     required this.onDecrement,
     required this.onIncrement,
+    this.onValueTap,
   });
 
   @override
@@ -1379,15 +1589,19 @@ class _WeightControl extends StatelessWidget {
                 onTap: onDecrement,
               ),
               Expanded(
-                child: Center(
-                  child: Text(
-                    weightText,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
+                child: GestureDetector(
+                  onTap: onValueTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Text(
+                      weightText,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ),
@@ -1440,6 +1654,185 @@ class _StepperButton extends StatelessWidget {
             color: isDark ? AppColors.textSecondaryDark : AppColors.gray500,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 제목 + 운동 시간 입력 섹션
+class _TitleAndDurationSection extends StatelessWidget {
+  final TextEditingController titleController;
+  final int durationMinutes;
+  final bool isDark;
+  final ValueChanged<int> onDurationChanged;
+
+  const _TitleAndDurationSection({
+    required this.titleController,
+    required this.durationMinutes,
+    required this.isDark,
+    required this.onDurationChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제목 입력
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: titleController,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: '운동 제목 (예: 상체 운동, 등 데이)',
+                hintStyle: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                prefixIcon: Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.compact),
+
+          // 운동 시간 입력
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.timer_outlined,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '운동 시간',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                // 시간 스텝퍼
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBackground : AppColors.gray50,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _StepperButton(
+                        icon: Icons.remove,
+                        isDark: isDark,
+                        onTap: () {
+                          if (durationMinutes >= 5) {
+                            HapticUtils.light();
+                            onDurationChanged(durationMinutes - 5);
+                          }
+                        },
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          final result = await _showNumberEditDialog(
+                            context: context,
+                            title: '운동 시간 입력',
+                            unit: '분',
+                            currentValue: durationMinutes.toDouble(),
+                            min: 0,
+                            max: 300,
+                            isDark: isDark,
+                          );
+                          if (result != null) {
+                            HapticUtils.light();
+                            onDurationChanged(result.toInt());
+                          }
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: SizedBox(
+                          width: 56,
+                          child: Center(
+                            child: Text(
+                              '$durationMinutes분',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      _StepperButton(
+                        icon: Icons.add,
+                        isDark: isDark,
+                        onTap: () {
+                          if (durationMinutes < 300) {
+                            HapticUtils.light();
+                            onDurationChanged(durationMinutes + 5);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1538,6 +1931,120 @@ class _MemoSection extends StatelessWidget {
                 showMemo ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 오운완 사진 섹션
+// =============================================================================
+
+class _PhotoSection extends StatelessWidget {
+  final Uint8List? imageBytes;
+  final bool isDark;
+  final VoidCallback onPickImage;
+  final VoidCallback onRemoveImage;
+
+  const _PhotoSection({
+    required this.imageBytes,
+    required this.isDark,
+    required this.onPickImage,
+    required this.onRemoveImage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '오운완 사진',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (imageBytes != null)
+            // 사진 미리보기
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Image.memory(
+                    imageBytes!,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: onRemoveImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            // 사진 추가 버튼
+            GestureDetector(
+              onTap: onPickImage,
+              child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: isDark ? AppColors.borderDark : AppColors.border,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.camera_alt_rounded,
+                      size: 32,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '오늘의 운동 사진을 남겨보세요',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -44,7 +44,7 @@ sealed class WorkoutExercise with _$WorkoutExercise {
 /// 운동 기록 모델
 @freezed
 sealed class WorkoutLogModel with _$WorkoutLogModel {
-  const WorkoutLogModel._();
+  const WorkoutLogModel._(); // ignore: unused_element
 
   const factory WorkoutLogModel({
     /// Firestore 문서 ID
@@ -53,6 +53,8 @@ sealed class WorkoutLogModel with _$WorkoutLogModel {
     required String userId,
     /// 트레이너 ID (개인모드면 빈 문자열)
     @Default('') String trainerId,
+    /// 운동 제목 (예: '상체 운동', '등 데이')
+    @Default('') String title,
     /// 운동 날짜
     @TimestampConverter() required DateTime workoutDate,
     /// 운동 목록
@@ -61,6 +63,8 @@ sealed class WorkoutLogModel with _$WorkoutLogModel {
     @Default(0) int durationMinutes,
     /// 전체 메모
     @Default('') String memo,
+    /// 오운완 사진 URL (Supabase Storage)
+    String? imageUrl,
     /// 생성일
     @TimestampConverter() required DateTime createdAt,
   }) = _WorkoutLogModel;
@@ -79,10 +83,12 @@ sealed class WorkoutLogModel with _$WorkoutLogModel {
     return {
       'userId': userId,
       'trainerId': trainerId,
+      'title': title,
       'workoutDate': Timestamp.fromDate(workoutDate),
       'exercises': exercises.map((e) => e.toJson()).toList(),
       'durationMinutes': durationMinutes,
       'memo': memo,
+      if (imageUrl != null) 'imageUrl': imageUrl,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

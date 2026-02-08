@@ -44,12 +44,14 @@ _WorkoutLogModel _$WorkoutLogModelFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String? ?? '',
       userId: json['userId'] as String,
       trainerId: json['trainerId'] as String? ?? '',
+      title: json['title'] as String? ?? '',
       workoutDate: const TimestampConverter().fromJson(json['workoutDate']),
       exercises: (json['exercises'] as List<dynamic>)
           .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
           .toList(),
       durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 0,
       memo: json['memo'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
 
@@ -58,9 +60,11 @@ Map<String, dynamic> _$WorkoutLogModelToJson(_WorkoutLogModel instance) =>
       'id': instance.id,
       'userId': instance.userId,
       'trainerId': instance.trainerId,
+      'title': instance.title,
       'workoutDate': const TimestampConverter().toJson(instance.workoutDate),
       'exercises': instance.exercises,
       'durationMinutes': instance.durationMinutes,
       'memo': instance.memo,
+      'imageUrl': instance.imageUrl,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
     };

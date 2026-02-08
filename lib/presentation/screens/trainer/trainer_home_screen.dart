@@ -18,6 +18,9 @@ import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/widgets/trainer/reregistration_alert_card.dart';
 import 'package:flutter_pal_app/presentation/providers/reregistration_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/trainer_diet_feed_provider.dart';
+import 'package:flutter_pal_app/data/models/diet_record_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// 트레이너 홈 (대시보드) 화면
 /// 프리미엄 화이트 + 쉐도우 스타일의 깔끔한 UI 제공
@@ -115,6 +118,12 @@ class TrainerHomeScreen extends ConsumerWidget {
                       .fadeIn(delay: 100.ms, duration: 200.ms)
                       .slideY(begin: 0.02, duration: 200.ms),
                   const SizedBox(height: 28),
+
+                  // TODO: 식단 피드 기능 임시 비활성화 - 추후 개선 예정
+                  // const _RecentDietPhotosSection()
+                  //     .animate()
+                  //     .fadeIn(delay: 112.ms, duration: 200.ms)
+                  //     .slideY(begin: 0.02, duration: 200.ms),
 
                   // 내 평점 (순차 등장 - 250ms)
                   _TrainerRatingSection(
@@ -1099,9 +1108,6 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
               },
             ),
           ),
-          // 모든 인사이트 보기 버튼
-          const SizedBox(height: 12),
-          _buildSeeMoreButton(context, unreadCountAsync),
         ],
       ],
     );
@@ -1195,7 +1201,7 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     _previousErrorMessage = errorMessage;
   }
 
-  /// 섹션 헤더 (타이틀 + 배지)
+  /// 섹션 헤더 (타이틀 + 새로고침) - 회원 앱과 동일
   Widget _buildSectionHeader(
     BuildContext context, {
     required int unreadCount,
@@ -1203,52 +1209,29 @@ class _AiInsightSectionState extends ConsumerState<_AiInsightSection> {
     required String? trainerId,
   }) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // 타이틀
         const Text(
           'AI 인사이트',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        const SizedBox(width: 8),
-        // 읽지 않은 개수 배지
-        if (unreadCount > 0)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.error,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$unreadCount',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        const Spacer(),
-        // 모두 보기 버튼
-        TextButton(
-          onPressed: () => context.push('/trainer/insights'),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '모두 보기',
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: AppTheme.primary,
-              ),
-            ],
-          ),
+        // 새로고침 버튼
+        IconButton(
+          icon: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh, size: 20),
+          onPressed: isLoading || trainerId == null
+              ? null
+              : () {
+                  ref
+                      .read(insightsGenerationProvider.notifier)
+                      .generate(trainerId: trainerId);
+                },
+          tooltip: '인사이트 새로고침',
         ),
       ],
     ).animate().fadeIn(delay: 250.ms, duration: 200.ms);
@@ -2067,6 +2050,342 @@ class _BlueBrandingHeader extends StatelessWidget {
       return '오늘도 화이팅! 멋진 하루 보내세요!';
     } else {
       return '좋은 저녁이에요! 오늘 하루도 수고하셨어요!';
+    }
+  }
+}
+
+/// 최근 회원 식단 사진 섹션
+class _RecentDietPhotosSection extends ConsumerWidget {
+  const _RecentDietPhotosSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feedAsync = ref.watch(recentMemberDietPhotosProvider);
+
+    return feedAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (error, _) => const SizedBox.shrink(),
+      data: (feedItems) {
+        if (feedItems.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '회원 식단 기록',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildPhotoFeed(context, feedItems),
+            const SizedBox(height: 28),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPhotoFeed(
+    BuildContext context,
+    List<DietPhotoFeedItem> items,
+  ) {
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          return _buildPhotoCard(context, items[index], index);
+        },
+      ),
+    );
+  }
+
+  Widget _buildPhotoCard(
+    BuildContext context,
+    DietPhotoFeedItem item,
+    int index,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final record = item.record;
+    final mealColor = _getMealTypeColor(record.mealType);
+
+    return GestureDetector(
+      onTap: () => context.push('/trainer/members/${item.memberId}'),
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppShadows.md,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 음식 사진
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: record.imageUrl!,
+                    width: 160,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: 160,
+                      height: 120,
+                      color: isDark
+                          ? const Color(0xFF424242)
+                          : const Color(0xFFE0E0E0),
+                      child: const Center(
+                        child: Icon(
+                          Icons.restaurant,
+                          color: Colors.grey,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 160,
+                      height: 120,
+                      color: isDark
+                          ? const Color(0xFF424242)
+                          : const Color(0xFFE0E0E0),
+                      child: const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // 식사 타입 배지 (오른쪽 상단)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: mealColor.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      record.mealTypeLabel,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                // 회원 아바타 (왼쪽 하단)
+                Positioned(
+                  bottom: -12,
+                  left: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? AppColors.darkSurface : Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 14,
+                      backgroundColor:
+                          AppTheme.primary.withValues(alpha: 0.2),
+                      child: Text(
+                        item.memberName.isNotEmpty
+                            ? item.memberName[0]
+                            : '?',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // 하단 정보
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 16, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 회원 이름
+                    Text(
+                      item.memberName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    // 음식명 + 시간
+                    Text(
+                      '${record.displayFoodName} · ${_getRelativeTime(record.createdAt)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    )
+        .animate(delay: Duration(milliseconds: 50 * index))
+        .fadeIn(duration: 200.ms)
+        .slideX(begin: 0.05);
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppShadows.md,
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.restaurant_outlined,
+              size: 48,
+              color: isDark ? Colors.grey[500] : Colors.grey[400],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '아직 회원들의 식단 사진이 없어요',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '회원들이 식단을 기록하면 여기에 표시돼요',
+              style: TextStyle(
+                color: isDark ? Colors.grey[500] : Colors.grey[500],
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmer(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          return Container(
+            width: 160,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: AppShadows.md,
+            ),
+            child: Shimmer.fromColors(
+              baseColor: isDark
+                  ? const Color(0xFF424242)
+                  : const Color(0xFFE0E0E0),
+              highlightColor: isDark
+                  ? const Color(0xFF616161)
+                  : const Color(0xFFF5F5F5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 160,
+                    height: 120,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 16, 10, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 13,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: 120,
+                          height: 11,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Color _getMealTypeColor(MealType type) {
+    return switch (type) {
+      MealType.breakfast => const Color(0xFFFF9800),
+      MealType.lunch => const Color(0xFF4CAF50),
+      MealType.dinner => const Color(0xFF2196F3),
+      MealType.snack => const Color(0xFF9C27B0),
+    };
+  }
+
+  String _getRelativeTime(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}분 전';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}시간 전';
+    } else {
+      return '${diff.inDays}일 전';
     }
   }
 }

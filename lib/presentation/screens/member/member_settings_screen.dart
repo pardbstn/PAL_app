@@ -11,7 +11,6 @@ import 'package:flutter_pal_app/presentation/widgets/common/app_list_tile.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/app_section.dart';
 import 'package:flutter_pal_app/data/repositories/trainer_repository.dart';
 import 'package:flutter_pal_app/data/repositories/member_repository.dart';
-import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:flutter_pal_app/data/repositories/user_repository.dart';
 import 'package:flutter_pal_app/data/models/trainer_model.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
@@ -120,44 +119,44 @@ class MemberSettingsScreen extends ConsumerWidget {
                 // 트레이너 평가 (PT 모드만)
                 if (!isPersonal)
                   _buildTrainerReviewTile(context, ref, member),
-                // PT 일정 (PT 모드만)
-                if (!isPersonal)
-                  AppListTile(
-                    leading: const Icon(Icons.calendar_month_outlined),
-                    title: 'PT 일정',
-                    subtitle: member != null
-                        ? '${member.ptInfo.completedSessions}/${member.ptInfo.totalSessions}회 진행'
-                        : '-',
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      // TODO: PT 일정 화면
-                    },
-                    animate: true,
-                    animationDelay: const Duration(milliseconds: 300),
-                  ),
+                // PT 일정 (임시 비활성화)
+                // if (!isPersonal)
+                //   AppListTile(
+                //     leading: const Icon(Icons.calendar_month_outlined),
+                //     title: 'PT 일정',
+                //     subtitle: member != null
+                //         ? '${member.ptInfo.completedSessions}/${member.ptInfo.totalSessions}회 진행'
+                //         : '-',
+                //     trailing: const Icon(Icons.chevron_right),
+                //     onTap: () {
+                //       // TODO: PT 일정 화면
+                //     },
+                //     animate: true,
+                //     animationDelay: const Duration(milliseconds: 300),
+                //   ),
                 // 목표 설정
                 AppListTile(
                   leading: const Icon(Icons.flag_outlined),
                   title: '목표 설정',
                   subtitle: member != null
-                      ? '${member.goalLabel}${member.targetWeight != null ? ' • 목표 ${member.targetWeight}kg' : ''}'
+                      ? member.goalLabel
                       : '목표 없음',
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showGoalSettingDialog(context, ref, member),
                   animate: true,
                   animationDelay: const Duration(milliseconds: 350),
                 ),
-                // 내 데이터 관리 (PT 모드만)
-                if (!isPersonal)
-                  AppListTile(
-                    leading: const Icon(Icons.folder_outlined),
-                    title: '내 데이터 관리',
-                    subtitle: '과거 트레이너 데이터 관리',
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/member/data-management'),
-                    animate: true,
-                    animationDelay: const Duration(milliseconds: 400),
-                  ),
+                // 내 데이터 관리 (임시 비활성화)
+                // if (!isPersonal)
+                //   AppListTile(
+                //     leading: const Icon(Icons.folder_outlined),
+                //     title: '내 데이터 관리',
+                //     subtitle: '과거 트레이너 데이터 관리',
+                //     trailing: const Icon(Icons.chevron_right),
+                //     onTap: () => context.push('/member/data-management'),
+                //     animate: true,
+                //     animationDelay: const Duration(milliseconds: 400),
+                //   ),
               ],
             ),
           ),
@@ -850,9 +849,6 @@ class MemberSettingsScreen extends ConsumerWidget {
     }
 
     FitnessGoal selectedGoal = member.goal;
-    final targetWeightController = TextEditingController(
-      text: member.targetWeight?.toString() ?? '',
-    );
 
     showDialog(
       context: context,
@@ -900,28 +896,6 @@ class MemberSettingsScreen extends ConsumerWidget {
                     }
                   },
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                // 목표 체중
-                const Text(
-                  '목표 체중 (kg)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: targetWeightController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: '예: 70.0',
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
               ],
             ),
           ),
@@ -932,49 +906,20 @@ class MemberSettingsScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                // 목표 체중 파싱
-                double? targetWeight;
-                final weightText = targetWeightController.text.trim();
-                if (weightText.isNotEmpty) {
-                  targetWeight = double.tryParse(weightText);
-                  if (targetWeight == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('올바른 목표 체중을 입력해주세요')),
-                    );
-                    return;
-                  }
-                }
-
                 Navigator.pop(dialogContext);
 
                 try {
                   final memberRepository = ref.read(memberRepositoryProvider);
-                  final bodyRecordRepo = ref.read(bodyRecordRepositoryProvider);
 
-                  // 최신 체성분 기록에서 현재 체중 자동 가져오기
-                  double? latestWeight;
-                  try {
-                    final latestRecord = await bodyRecordRepo.getLatestByMemberId(member.id);
-                    latestWeight = latestRecord?.weight;
-                  } catch (_) {}
-
-                  // 목표 및 목표 체중 업데이트
+                  // 운동 목표 업데이트
                   await memberRepository.update(member.id, {
                     'goal': selectedGoal.name,
-                    if (targetWeight != null) 'targetWeight': targetWeight,
-                    if (latestWeight != null) 'startWeight': latestWeight,
                   });
 
                   if (context.mounted) {
-                    if (targetWeight != null && latestWeight == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('목표가 설정됐어요. 체성분을 기록하면 달성률을 볼 수 있어요')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('목표가 설정됐어요')),
-                      );
-                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('목표가 설정됐어요')),
+                    );
                   }
                 } catch (e) {
                   if (context.mounted) {

@@ -21,7 +21,10 @@ import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
 /// 2. AI 분석 (업로드 + OCR)
 /// 3. 결과 확인 및 수정
 class InbodyOcrScreen extends ConsumerStatefulWidget {
-  const InbodyOcrScreen({super.key});
+  /// 트레이너가 접근할 때 회원 ID를 직접 전달
+  final String? memberId;
+
+  const InbodyOcrScreen({super.key, this.memberId});
 
   @override
   ConsumerState<InbodyOcrScreen> createState() => _InbodyOcrScreenState();
@@ -107,7 +110,7 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
           _buildStepLine(currentStep >= 2, colorScheme),
           _buildStepCircle(2, '분석', currentStep >= 2, colorScheme),
           _buildStepLine(currentStep >= 3, colorScheme),
-          _buildStepCircle(3, '확인', currentStep >= 3, colorScheme),
+          _buildStepCircle(3, '완료', currentStep >= 3, colorScheme),
         ],
       ),
     ).animate().fadeIn(duration: 200.ms);
@@ -436,6 +439,54 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 저장 완료 배지
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+            borderRadius: AppRadius.lgBorderRadius,
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF10B981),
+                size: 24,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '자동 저장 완료!',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '체성분 기록과 그래프에 반영되었어요',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.1, end: 0),
+
+        const SizedBox(height: AppSpacing.lg),
+
         // 신뢰도 표시
         if (result.confidence > 0)
           _buildConfidenceCard(result.confidence, colorScheme, theme),
@@ -549,13 +600,16 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        // 저장 버튼
+        // 확인 버튼 (돌아가기)
         AppButton(
-          label: '체성분 기록에 저장하기',
-          onPressed: _saveToRecords,
+          label: '확인',
+          onPressed: () {
+            HapticUtils.success();
+            context.pop();
+          },
           size: AppButtonSize.lg,
           isFullWidth: true,
-          icon: Icons.check_circle_outline,
+          icon: Icons.check,
         ).animate().fadeIn(delay: 800.ms, duration: 200.ms),
 
         const SizedBox(height: AppSpacing.md),
@@ -692,21 +746,23 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
 
   /// 에러 화면
   Widget _buildErrorView(String? errorMessage, ColorScheme colorScheme, ThemeData theme) {
+    final isNotInbody = errorMessage?.contains('인바디 결과지가 아닙니다') == true;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: AppSpacing.xxl),
 
         Icon(
-          Icons.error_outline,
+          isNotInbody ? Icons.image_not_supported_outlined : Icons.error_outline,
           size: 80,
-          color: colorScheme.error,
+          color: isNotInbody ? colorScheme.tertiary : colorScheme.error,
         ).animate().fadeIn(duration: 200.ms).scale(delay: 100.ms, duration: 200.ms),
 
         const SizedBox(height: AppSpacing.xl),
 
         Text(
-          '분석에 실패했어요',
+          isNotInbody ? '인바디 결과지가 아니에요' : '분석에 실패했어요',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -716,7 +772,9 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
         const SizedBox(height: AppSpacing.md),
 
         Text(
-          errorMessage ?? '알 수 없는 문제가 생겼어요',
+          isNotInbody
+              ? '인바디 체성분 분석 결과지 사진을 올려주세요'
+              : (errorMessage ?? '알 수 없는 문제가 생겼어요'),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -726,7 +784,7 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
         const SizedBox(height: AppSpacing.xxl),
 
         AppButton(
-          label: '다시 시도하기',
+          label: isNotInbody ? '인바디 사진 올리기' : '다시 시도하기',
           onPressed: () {
             setState(() {
               _selectedImage = null;
@@ -760,6 +818,8 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
         setState(() {
           _selectedImage = File(image.path);
         });
+        // 이미지 선택 후 자동으로 분석 시작
+        _startAnalysis();
       }
     } catch (e) {
       if (!mounted) return;
@@ -773,8 +833,8 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
   Future<void> _startAnalysis() async {
     if (_selectedImage == null) return;
 
-    final member = ref.read(currentMemberProvider);
-    if (member == null) {
+    final memberId = widget.memberId ?? ref.read(currentMemberProvider)?.id;
+    if (memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('사용자 정보를 불러올 수 없어요')),
       );
@@ -785,7 +845,7 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
 
     await ref.read(inbodyOcrProvider.notifier).analyzeImage(
           _selectedImage!,
-          member.id,
+          memberId,
         );
   }
 
@@ -870,8 +930,8 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
 
   /// 체성분 기록에 저장
   Future<void> _saveToRecords() async {
-    final member = ref.read(currentMemberProvider);
-    if (member == null) {
+    final memberId = widget.memberId ?? ref.read(currentMemberProvider)?.id;
+    if (memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('사용자 정보를 불러올 수 없어요')),
       );
@@ -881,7 +941,7 @@ class _InbodyOcrScreenState extends ConsumerState<InbodyOcrScreen> {
     try {
       HapticUtils.success();
 
-      await ref.read(inbodyOcrProvider.notifier).saveToBodyRecords(member.id);
+      await ref.read(inbodyOcrProvider.notifier).saveToBodyRecords(memberId);
 
       if (!mounted) return;
 

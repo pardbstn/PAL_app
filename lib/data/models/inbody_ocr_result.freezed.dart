@@ -17,8 +17,8 @@ mixin _$InbodyOcrResult {
 
 /// 체중 (kg)
  double? get weight;/// 골격근량 (kg)
- double? get skeletalMuscle;/// 체지방량 (kg)
- double? get bodyFat;/// 체지방률 (%)
+@JsonKey(name: 'skeletalMuscleMass') double? get skeletalMuscle;/// 체지방량 (kg)
+@JsonKey(name: 'bodyFatMass') double? get bodyFat;/// 체지방률 (%)
  double? get bodyFatPercent;/// BMI
  double? get bmi;/// 기초대사량 (kcal)
  double? get basalMetabolicRate;/// 측정 날짜 (문자열)
@@ -58,7 +58,7 @@ abstract mixin class $InbodyOcrResultCopyWith<$Res>  {
   factory $InbodyOcrResultCopyWith(InbodyOcrResult value, $Res Function(InbodyOcrResult) _then) = _$InbodyOcrResultCopyWithImpl;
 @useResult
 $Res call({
- double? weight, double? skeletalMuscle, double? bodyFat, double? bodyFatPercent, double? bmi, double? basalMetabolicRate, String? measureDate, double confidence, String rawText, String? errorMessage
+ double? weight,@JsonKey(name: 'skeletalMuscleMass') double? skeletalMuscle,@JsonKey(name: 'bodyFatMass') double? bodyFat, double? bodyFatPercent, double? bmi, double? basalMetabolicRate, String? measureDate, double confidence, String rawText, String? errorMessage
 });
 
 
@@ -172,7 +172,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double? weight,  double? skeletalMuscle,  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double? weight, @JsonKey(name: 'skeletalMuscleMass')  double? skeletalMuscle, @JsonKey(name: 'bodyFatMass')  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InbodyOcrResult() when $default != null:
 return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.measureDate,_that.confidence,_that.rawText,_that.errorMessage);case _:
@@ -193,7 +193,7 @@ return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPer
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double? weight,  double? skeletalMuscle,  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double? weight, @JsonKey(name: 'skeletalMuscleMass')  double? skeletalMuscle, @JsonKey(name: 'bodyFatMass')  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _InbodyOcrResult():
 return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.measureDate,_that.confidence,_that.rawText,_that.errorMessage);case _:
@@ -213,7 +213,7 @@ return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPer
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double? weight,  double? skeletalMuscle,  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double? weight, @JsonKey(name: 'skeletalMuscleMass')  double? skeletalMuscle, @JsonKey(name: 'bodyFatMass')  double? bodyFat,  double? bodyFatPercent,  double? bmi,  double? basalMetabolicRate,  String? measureDate,  double confidence,  String rawText,  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _InbodyOcrResult() when $default != null:
 return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPercent,_that.bmi,_that.basalMetabolicRate,_that.measureDate,_that.confidence,_that.rawText,_that.errorMessage);case _:
@@ -228,15 +228,15 @@ return $default(_that.weight,_that.skeletalMuscle,_that.bodyFat,_that.bodyFatPer
 @JsonSerializable()
 
 class _InbodyOcrResult implements InbodyOcrResult {
-  const _InbodyOcrResult({this.weight, this.skeletalMuscle, this.bodyFat, this.bodyFatPercent, this.bmi, this.basalMetabolicRate, this.measureDate, this.confidence = 0.0, this.rawText = '', this.errorMessage});
+  const _InbodyOcrResult({this.weight, @JsonKey(name: 'skeletalMuscleMass') this.skeletalMuscle, @JsonKey(name: 'bodyFatMass') this.bodyFat, this.bodyFatPercent, this.bmi, this.basalMetabolicRate, this.measureDate, this.confidence = 0.0, this.rawText = '', this.errorMessage});
   factory _InbodyOcrResult.fromJson(Map<String, dynamic> json) => _$InbodyOcrResultFromJson(json);
 
 /// 체중 (kg)
 @override final  double? weight;
 /// 골격근량 (kg)
-@override final  double? skeletalMuscle;
+@override@JsonKey(name: 'skeletalMuscleMass') final  double? skeletalMuscle;
 /// 체지방량 (kg)
-@override final  double? bodyFat;
+@override@JsonKey(name: 'bodyFatMass') final  double? bodyFat;
 /// 체지방률 (%)
 @override final  double? bodyFatPercent;
 /// BMI
@@ -285,7 +285,7 @@ abstract mixin class _$InbodyOcrResultCopyWith<$Res> implements $InbodyOcrResult
   factory _$InbodyOcrResultCopyWith(_InbodyOcrResult value, $Res Function(_InbodyOcrResult) _then) = __$InbodyOcrResultCopyWithImpl;
 @override @useResult
 $Res call({
- double? weight, double? skeletalMuscle, double? bodyFat, double? bodyFatPercent, double? bmi, double? basalMetabolicRate, String? measureDate, double confidence, String rawText, String? errorMessage
+ double? weight,@JsonKey(name: 'skeletalMuscleMass') double? skeletalMuscle,@JsonKey(name: 'bodyFatMass') double? bodyFat, double? bodyFatPercent, double? bmi, double? basalMetabolicRate, String? measureDate, double confidence, String rawText, String? errorMessage
 });
 
 

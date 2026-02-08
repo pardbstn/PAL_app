@@ -381,16 +381,16 @@ class MemberInbodyScreen extends ConsumerWidget {
       final supabase = Supabase.instance.client;
       final Uint8List imageBytes = await image.readAsBytes();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '$memberId/$timestamp.jpg';
+      final fileName = 'inbody/$memberId/$timestamp.jpg';
 
-      await supabase.storage.from('inbody-images').uploadBinary(
+      await supabase.storage.from('pal-storage').uploadBinary(
             fileName,
             imageBytes,
             fileOptions: const FileOptions(contentType: 'image/jpeg'),
           );
 
       final imageUrl =
-          supabase.storage.from('inbody-images').getPublicUrl(fileName);
+          supabase.storage.from('pal-storage').getPublicUrl(fileName);
 
       // 2. AI 분석 호출
       final notifier = ref.read(inbodyAnalysisProvider.notifier);

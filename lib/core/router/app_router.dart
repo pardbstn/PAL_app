@@ -47,8 +47,8 @@ import 'package:flutter_pal_app/presentation/screens/member/monthly_report_scree
 import 'package:flutter_pal_app/presentation/screens/member/trainer_question_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_requests_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_rating_detail_screen.dart';
-import 'package:flutter_pal_app/presentation/screens/member/workout_log_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/add_workout_screen.dart';
+import 'package:flutter_pal_app/data/models/workout_log_model.dart';
 import 'package:flutter_pal_app/presentation/screens/member/data_management_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/inbody_ocr_screen.dart';
 
@@ -65,7 +65,6 @@ CustomTransitionPage<void> buildFadeTransitionPage({
     key: key,
     child: child,
     opaque: true,
-    maintainState: false, // 이전 페이지 상태 유지 안함
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(
         opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
@@ -85,11 +84,9 @@ CustomTransitionPage<void> buildSlideTransitionPage({
     key: key,
     child: child,
     opaque: true,
-    maintainState: false, // 이전 페이지 상태 유지 안함
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
           .chain(CurveTween(curve: Curves.easeInOut));
-      // 배경색으로 이전 페이지 잔상 방지
       return ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SlideTransition(
@@ -111,15 +108,20 @@ CustomTransitionPage<void> buildInstantTransitionPage({
     key: key,
     child: child,
     opaque: true,
-    maintainState: false,
     transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
     transitionDuration: Duration.zero,
   );
 }
 
+// ShellRoute별 고유 NavigatorKey (GlobalKey 충돌 방지)
+final _memberNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'memberNav');
+final _personalNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'personalNav');
+
 /// GoRouter Provider
+/// 주의: ref.watch(authProvider)를 사용하면 auth 변경 시 GoRouter가 통째로 재생성되어
+/// 두 Navigator가 동시에 존재하면서 GlobalKey 충돌이 발생함.
+/// 대신 refreshListenable로 redirect만 재평가하고, redirect 내부에서 ref.read로 읽음.
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
   final refreshListenable = ref.watch(authRefreshListenableProvider);
 
   return GoRouter(
@@ -129,6 +131,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     // 리다이렉트 가드
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isLoggedIn = authState.isAuthenticated;
       final isPendingRoleSelection = authState.isPendingRoleSelection;
       final currentPath = state.matchedLocation;
@@ -177,10 +180,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 트레이너가 회원 경로 접근 시도시 트레이너 홈으로
+      // (인바디 OCR 등 트레이너가 접근 필요한 공용 기능은 예외)
       if (isLoggedIn &&
           !isPendingRoleSelection &&
           userRole == UserRole.trainer &&
-          currentPath.startsWith('/member')) {
+          currentPath.startsWith('/member') &&
+          currentPath != AppRoutes.memberInbodyOcr) {
         return AppRoutes.trainerHome;
       }
 
@@ -418,6 +423,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 회원 라우트 (ShellRoute로 Bottom Navigation 유지)
       ShellRoute(
+        navigatorKey: _memberNavigatorKey,
         builder: (context, state, child) => MemberShell(child: child),
         routes: [
           GoRoute(
@@ -549,23 +555,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const TrainerQuestionScreen(),
         ),
       ),
-      // 운동 기록 (개인 모드)
-      GoRoute(
-        path: '/member/workout-log',
-        name: 'memberWorkoutLog',
-        pageBuilder: (context, state) => buildSlideTransitionPage(
-          key: state.pageKey,
-          child: const WorkoutLogScreen(),
-        ),
-      ),
-      // 운동 추가 (개인 모드)
+      // 운동 추가/수정 (개인 모드)
       GoRoute(
         path: '/member/add-workout',
         name: 'memberAddWorkout',
-        pageBuilder: (context, state) => buildSlideTransitionPage(
-          key: state.pageKey,
-          child: const AddWorkoutScreen(),
-        ),
+        pageBuilder: (context, state) {
+          final existingWorkout = state.extra as WorkoutLogModel?;
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: AddWorkoutScreen(existingWorkout: existingWorkout),
+          );
+        },
       ),
       // 인바디 OCR (사진 분석)
       GoRoute(
@@ -573,7 +573,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: RouteNames.memberInbodyOcr,
         pageBuilder: (context, state) => buildSlideTransitionPage(
           key: state.pageKey,
-          child: const InbodyOcrScreen(),
+          child: InbodyOcrScreen(memberId: state.extra as String?),
         ),
       ),
       // 데이터 관리
@@ -588,6 +588,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 개인모드 라우트 (회원 화면 재사용, 트레이너 관련 기능 숨김)
       ShellRoute(
+        navigatorKey: _personalNavigatorKey,
         builder: (context, state, child) => MemberShell(child: child),
         routes: [
           GoRoute(

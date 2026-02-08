@@ -9,8 +9,8 @@ part of 'inbody_ocr_result.dart';
 _InbodyOcrResult _$InbodyOcrResultFromJson(Map<String, dynamic> json) =>
     _InbodyOcrResult(
       weight: (json['weight'] as num?)?.toDouble(),
-      skeletalMuscle: (json['skeletalMuscle'] as num?)?.toDouble(),
-      bodyFat: (json['bodyFat'] as num?)?.toDouble(),
+      skeletalMuscle: (json['skeletalMuscleMass'] as num?)?.toDouble(),
+      bodyFat: (json['bodyFatMass'] as num?)?.toDouble(),
       bodyFatPercent: (json['bodyFatPercent'] as num?)?.toDouble(),
       bmi: (json['bmi'] as num?)?.toDouble(),
       basalMetabolicRate: (json['basalMetabolicRate'] as num?)?.toDouble(),
@@ -23,8 +23,8 @@ _InbodyOcrResult _$InbodyOcrResultFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$InbodyOcrResultToJson(_InbodyOcrResult instance) =>
     <String, dynamic>{
       'weight': instance.weight,
-      'skeletalMuscle': instance.skeletalMuscle,
-      'bodyFat': instance.bodyFat,
+      'skeletalMuscleMass': instance.skeletalMuscle,
+      'bodyFatMass': instance.bodyFat,
       'bodyFatPercent': instance.bodyFatPercent,
       'bmi': instance.bmi,
       'basalMetabolicRate': instance.basalMetabolicRate,

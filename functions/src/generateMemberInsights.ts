@@ -644,8 +644,8 @@ function generateNutritionBalance(
   if (mostDeficient.percent < 70) {
     const deficitAmount = Math.round(
       mostDeficient.name === "단백질" ? targetProtein - avgProtein :
-      mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
-      targetFat - avgFat
+        mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
+          targetFat - avgFat
     );
     message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(
       mostDeficient.name,
@@ -656,8 +656,8 @@ function generateNutritionBalance(
   } else if (mostDeficient.percent < 90) {
     const deficitAmount = Math.round(
       mostDeficient.name === "단백질" ? targetProtein - avgProtein :
-      mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
-      targetFat - avgFat
+        mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
+          targetFat - avgFat
     );
     message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(
       mostDeficient.name,
@@ -1554,12 +1554,12 @@ async function generateBenchmarking(
     priority = "medium";
   } else if (topPercent >= 40) {
     message = `${groupDesc} 중 평균 수준이에요. 출석률 ${attendanceRate}%에서 ` +
-      `10%만 더 높이면 상위권 진입이에요!`;
+      "10%만 더 높이면 상위권 진입이에요!";
     priority = "medium";
   } else {
     const needAttendance = Math.max(0, 80 - attendanceRate);
     message = `다른 ${groupDesc}보다 뒤처져 있어요. 출석률 ${needAttendance}% 더 높이면 ` +
-      `평균 이상 될 수 있어요 - 함께 해봐요!`;
+      "평균 이상 될 수 있어요 - 함께 해봐요!";
     priority = "low";
   }
 

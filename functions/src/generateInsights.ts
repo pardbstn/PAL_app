@@ -153,7 +153,7 @@ function analyzeAttendancePattern(
         TRAINER_MESSAGE_TEMPLATES.attendanceAlert.drop(memberName, dropRate, recentWeeks, previousWeeks),
         INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
       ),
-      actionSuggestion: `이번 주 중 격려 메시지를 보내보세요. 예: "요즘 어떠세요? 함께 목표 달성해봐요!"`,
+      actionSuggestion: "이번 주 중 격려 메시지를 보내보세요. 예: \"요즘 어떠세요? 함께 목표 달성해봐요!\"",
       data: {
         dropRate,
         recentCount: recentWeeks,
@@ -348,7 +348,7 @@ function analyzeWeightProgress(
         TRAINER_MESSAGE_TEMPLATES.weightProgress.reverseGoal(memberName, weightChange, "다이어트"),
         INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
       ),
-      actionSuggestion: `식단 점검 필요: "최근 식단이 어떤가요? 함께 체크해봐요" 메시지 추천`,
+      actionSuggestion: "식단 점검 필요: \"최근 식단이 어떤가요? 함께 체크해봐요\" 메시지 추천",
       data: {
         previousWeight,
         currentWeight: latestWeight,
@@ -624,7 +624,7 @@ function analyzeChurnRisk(
   } else {
     const mainIssue = riskFactors[0] || "관심 필요";
     churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.medium(member.name, mainIssue);
-    actionSuggestion = `체크인 메시지: "운동 어떠세요? 궁금한 점 있으면 언제든 연락주세요"`;
+    actionSuggestion = "체크인 메시지: \"운동 어떠세요? 궁금한 점 있으면 언제든 연락주세요\"";
   }
 
   return {
@@ -834,7 +834,7 @@ function analyzeRenewalLikelihood(
   }
 
   const actionMessage = renewalLikelihood >= 80
-    ? `재등록 확률 높음 - "목표까지 함께 완주해요! 다음 단계 프로그램 준비했어요" 제안 추천`
+    ? "재등록 확률 높음 - \"목표까지 함께 완주해요! 다음 단계 프로그램 준비했어요\" 제안 추천"
     : `재등록 타이밍 - "지금까지 ${goalAchievement}% 달성! 목표 완성까지 함께 가요" 메시지 추천`;
 
   return {

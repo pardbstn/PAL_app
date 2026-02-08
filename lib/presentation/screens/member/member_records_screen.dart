@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -14,6 +13,7 @@ import '../../../data/models/body_composition_prediction_model.dart';
 import '../../../data/models/body_record_model.dart';
 import '../../../data/models/curriculum_model.dart';
 import '../../../data/models/session_signature_model.dart';
+import '../../../data/models/workout_log_model.dart';
 import '../../../data/repositories/body_record_repository.dart';
 import '../../../data/repositories/session_signature_repository.dart';
 import '../../../presentation/widgets/states/states.dart';
@@ -21,6 +21,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/body_composition_prediction_provider.dart';
 import '../../providers/body_records_provider.dart';
 import '../../providers/curriculums_provider.dart';
+import '../../providers/workout_log_provider.dart';
 import '../../widgets/common/mesh_gradient_background.dart';
 
 /// 회원의 서명 기록 Provider
@@ -30,7 +31,7 @@ final memberSignaturesProvider = StreamProvider.family<List<SessionSignatureMode
 });
 
 /// 회원 내 기록 화면 - 프리미엄 UI
-/// [체성분] [운동기록] [서명기록] 3탭 구조
+/// [체성분] [운동] [서명기록] 3탭 구조
 class MemberRecordsScreen extends ConsumerStatefulWidget {
   const MemberRecordsScreen({super.key});
 
@@ -116,11 +117,11 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
       tabs: isPersonal
           ? const [
               Tab(text: '체성분'),
-              Tab(text: '운동기록'),
+              Tab(text: '운동'),
             ]
           : const [
               Tab(text: '체성분'),
-              Tab(text: '운동기록'),
+              Tab(text: '운동'),
               Tab(text: '서명기록'),
             ],
     );
@@ -692,28 +693,6 @@ class _AIPredictionCard extends ConsumerWidget {
                 Colors.orange,
                 Icons.water_drop_rounded,
               ),
-            if (prediction.analysisMessage.isNotEmpty) ...[
-              const Divider(height: 24),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline_rounded,
-                    size: AppIconSize.xs,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      prediction.analysisMessage,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),
@@ -1966,28 +1945,28 @@ class _BodyRecordCard extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
+              // ref/context를 pop 전에 저장 (unmount 후 사용 방지)
+              final repository = ref.read(bodyRecordRepositoryProvider);
+              final container = ProviderScope.containerOf(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
-                final repository = ref.read(bodyRecordRepositoryProvider);
                 await repository.delete(record.id);
-                ref.invalidate(bodyRecordsProvider(memberId));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('기록이 삭제됐어요'),
-                      backgroundColor: AppColors.secondary,
-                    ),
-                  );
-                }
+                // 위젯이 unmount 되어도 안전한 container 사용
+                container.invalidate(bodyRecordsProvider(memberId));
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('기록이 삭제됐어요'),
+                    backgroundColor: AppColors.secondary,
+                  ),
+                );
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('삭제 실패: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('삭제 실패: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
               }
             },
             child: Text(
@@ -2038,8 +2017,109 @@ class _RecordItem extends StatelessWidget {
 }
 
 /// 운동기록 탭
-class _ExerciseRecordsTab extends ConsumerWidget {
+class _ExerciseRecordsTab extends ConsumerStatefulWidget {
   const _ExerciseRecordsTab();
+
+  @override
+  ConsumerState<_ExerciseRecordsTab> createState() => _ExerciseRecordsTabState();
+}
+
+class _ExerciseRecordsTabState extends ConsumerState<_ExerciseRecordsTab>
+    with SingleTickerProviderStateMixin {
+  TabController? _innerTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    final isPersonal = ref.read(userRoleProvider) == UserRole.personal;
+    // 개인모드에서는 탭 불필요 (개인운동만 표시)
+    if (!isPersonal) {
+      _innerTabController = TabController(length: 2, vsync: this);
+    }
+  }
+
+  @override
+  void dispose() {
+    _innerTabController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPersonal = ref.watch(userRoleProvider) == UserRole.personal;
+
+    // 개인모드: 커리큘럼 없이 개인운동만 바로 표시
+    if (isPersonal) {
+      return const _PersonalWorkoutSubTab();
+    }
+
+    return Column(
+      children: [
+        // 세그먼트 탭 (커리큘럼 / 개인운동)
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TabBar(
+            controller: _innerTabController,
+            indicator: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            labelColor: isDark ? Colors.white : const Color(0xFF0064FF),
+            unselectedLabelColor: isDark
+                ? Colors.white.withValues(alpha: 0.5)
+                : Colors.grey.shade500,
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+            tabs: const [
+              Tab(text: '커리큘럼'),
+              Tab(text: '개인운동'),
+            ],
+          ),
+        ),
+        // 탭 내용
+        Expanded(
+          child: TabBarView(
+            controller: _innerTabController,
+            children: const [
+              _CurriculumSubTab(),
+              _PersonalWorkoutSubTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 커리큘럼 서브탭
+class _CurriculumSubTab extends ConsumerWidget {
+  const _CurriculumSubTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2055,7 +2135,6 @@ class _ExerciseRecordsTab extends ConsumerWidget {
         onRetry: () => ref.invalidate(curriculumsProvider(memberId)),
       ),
       data: (curriculums) {
-        // 전체 커리큘럼을 회차순으로 정렬
         final allCurriculums = List<CurriculumModel>.from(curriculums)
           ..sort((a, b) => a.sessionNumber.compareTo(b.sessionNumber));
 
@@ -2063,77 +2142,17 @@ class _ExerciseRecordsTab extends ConsumerWidget {
         final totalCount = allCurriculums.length;
 
         if (allCurriculums.isEmpty) {
-          // Personal mode: show workout logging
           if (isPersonal) {
-            return EmptyState(
+            return const EmptyState(
               type: EmptyStateType.curriculums,
-              customTitle: '운동을 기록해보세요',
-              customMessage: '직접 운동을 기록하고\n진행 상황을 확인해보세요',
-              actionLabel: '운동 기록하기',
-              onAction: () => context.push('/member/workout-log'),
+              customTitle: '배정된 커리큘럼이 없어요',
+              customMessage: '트레이너와 연결하면\n커리큘럼이 여기에 표시됩니다',
             );
           }
-
-          // 회원용 빈 상태 - 트레이너가 커리큘럼을 생성해야 함
           return const EmptyState(
             type: EmptyStateType.curriculums,
             customTitle: '배정된 커리큘럼이 없어요',
             customMessage: '트레이너가 커리큘럼을 생성하면\n여기에 표시됩니다',
-            actionLabel: null, // 버튼 숨김 (회원은 커리큘럼 생성 불가)
-          );
-        }
-
-        // For personal mode, add FAB for workout logging
-        if (isPersonal) {
-          return Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(curriculumsProvider(memberId));
-                },
-                child: CustomScrollView(
-                  slivers: [
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 16),
-                    ),
-                    SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: '전체 커리큘럼',
-                        subtitle: '$completedCount / $totalCount 완료',
-                      ),
-                    ),
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 16),
-                    ),
-                    // 타임라인 리스트
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _ExerciseTimelineCard(
-                            curriculum: allCurriculums[index],
-                            index: index,
-                            isLast: index == allCurriculums.length - 1,
-                          ),
-                          childCount: allCurriculums.length,
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 100),
-                    ),
-                  ],
-                ),
-              ),
-              // FAB for personal mode workout logging
-              Positioned(
-                right: 16,
-                bottom: AppNavGlass.fabBottomPadding,
-                child: _AddRecordFAB(
-                  onPressed: () => context.push('/member/workout-log'),
-                ),
-              ),
-            ],
           );
         }
 
@@ -2143,19 +2162,14 @@ class _ExerciseRecordsTab extends ConsumerWidget {
           },
           child: CustomScrollView(
             slivers: [
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 16),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               SliverToBoxAdapter(
                 child: _SectionHeader(
                   title: '전체 커리큘럼',
                   subtitle: '$completedCount / $totalCount 완료',
                 ),
               ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 16),
-              ),
-              // 타임라인 리스트
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 sliver: SliverList(
@@ -2169,14 +2183,525 @@ class _ExerciseRecordsTab extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 32),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
         );
       },
     );
+  }
+}
+
+/// 개인운동 서브탭
+class _PersonalWorkoutSubTab extends ConsumerWidget {
+  const _PersonalWorkoutSubTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final member = ref.watch(currentMemberProvider);
+    final memberId = member?.id ?? '';
+    final userId = ref.watch(authProvider).userId ?? '';
+    final effectiveId = memberId.isNotEmpty ? memberId : userId;
+    final workoutLogsAsync = ref.watch(workoutLogsProvider(effectiveId));
+
+    return workoutLogsAsync.when(
+      loading: () => const _ExerciseRecordsShimmer(),
+      error: (error, stack) => ErrorState.fromError(
+        error,
+        onRetry: () => ref.invalidate(workoutLogsProvider(effectiveId)),
+      ),
+      data: (logs) {
+        if (logs.isEmpty) {
+          return _buildEmptyWorkoutState(context);
+        }
+
+        // 날짜별 그룹화 (최신순)
+        final sortedLogs = List<WorkoutLogModel>.from(logs)
+          ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+
+        final logsByDate = <String, List<WorkoutLogModel>>{};
+        for (final log in sortedLogs) {
+          final dateKey =
+              '${log.workoutDate.year}-${log.workoutDate.month.toString().padLeft(2, '0')}-${log.workoutDate.day.toString().padLeft(2, '0')}';
+          logsByDate.putIfAbsent(dateKey, () => []).add(log);
+        }
+
+        return Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(workoutLogsProvider(effectiveId));
+              },
+              child: CustomScrollView(
+                slivers: [
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  SliverToBoxAdapter(
+                    child: _SectionHeader(
+                      title: '개인운동 기록',
+                      subtitle: '총 ${logs.length}개',
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final dateKey = logsByDate.keys.elementAt(index);
+                          final dateLogs = logsByDate[dateKey]!;
+                          final date = dateLogs.first.workoutDate;
+
+                          return _WorkoutDateGroup(
+                            date: date,
+                            logs: dateLogs,
+                          );
+                        },
+                        childCount: logsByDate.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 16,
+              bottom: AppNavGlass.fabBottomPadding,
+              child: _AddRecordFAB(
+                onPressed: () => context.push('/member/add-workout'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyWorkoutState(BuildContext context) {
+    return Stack(
+      children: [
+        EmptyState(
+          type: EmptyStateType.curriculums,
+          customTitle: '개인운동을 기록해보세요',
+          customMessage: '직접 운동을 기록하고\n진행 상황을 확인해보세요',
+          actionLabel: '운동 기록하기',
+          onAction: () => context.push('/member/add-workout'),
+        ),
+        Positioned(
+          right: 16,
+          bottom: AppNavGlass.fabBottomPadding,
+          child: _AddRecordFAB(
+            onPressed: () => context.push('/member/add-workout'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 날짜별 운동 그룹
+class _WorkoutDateGroup extends StatelessWidget {
+  const _WorkoutDateGroup({
+    required this.date,
+    required this.logs,
+  });
+
+  final DateTime date;
+  final List<WorkoutLogModel> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 날짜 헤더
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            _formatDate(date),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        // 해당 날짜의 운동 카드들
+        ...logs.map((log) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _PersonalWorkoutCard(workout: log),
+            )),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final diff = targetDate.difference(today).inDays;
+
+    if (diff == 0) return '오늘';
+    if (diff == -1) return '어제';
+
+    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    return '${date.year}년 ${date.month}월 ${date.day}일 (${weekdays[date.weekday - 1]})';
+  }
+}
+
+/// 개인운동 카드 (탭해서 수정 가능)
+class _PersonalWorkoutCard extends ConsumerWidget {
+  const _PersonalWorkoutCard({required this.workout});
+
+  final WorkoutLogModel workout;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return GestureDetector(
+      onTap: () => _showWorkoutDetail(context, ref),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.gray100,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.fitness_center_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        workout.title.isNotEmpty
+                            ? workout.title
+                            : '${workout.exercises.length}개 운동',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (workout.durationMinutes > 0)
+                        Text(
+                          '${workout.durationMinutes}분',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  size: 20,
+                ),
+              ],
+            ),
+            if (workout.exercises.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              // 운동 종목 칩
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ...workout.exercises.take(4).map((exercise) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                        child: Text(
+                          exercise.name,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      )),
+                  if (workout.exercises.length > 4)
+                    Text(
+                      '+${workout.exercises.length - 4}개 더보기',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showWorkoutDetail(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // 핸들바
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // 헤더
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            workout.title.isNotEmpty
+                                ? workout.title
+                                : '운동 기록',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDetailDate(workout.workoutDate),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 수정 버튼
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.push('/member/add-workout', extra: workout);
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        foregroundColor: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 삭제 버튼
+                    IconButton(
+                      onPressed: () => _confirmDelete(context, ref),
+                      icon: const Icon(Icons.delete_outline),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                        foregroundColor: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // 운동 목록
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  itemCount: workout.exercises.length + (workout.memo.isNotEmpty ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    if (index < workout.exercises.length) {
+                      final exercise = workout.exercises[index];
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.04)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${index + 1}',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                exercise.name,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${exercise.sets}세트 × ${exercise.reps}회',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (exercise.weight > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${exercise.weight}kg',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }
+                    // 메모 섹션
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 18,
+                            color: Colors.amber.shade700,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              workout.memo,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('운동 기록 삭제'),
+        content: const Text('이 운동 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              // ref/context를 pop 전에 저장 (unmount 후 사용 방지)
+              final notifier = ref.read(workoutLogNotifierProvider.notifier);
+              final member = ref.read(currentMemberProvider);
+              final memberId = member?.id ?? '';
+              final userId = ref.read(authProvider).userId ?? '';
+              final effectiveId = memberId.isNotEmpty ? memberId : userId;
+              final container = ProviderScope.containerOf(context);
+              Navigator.pop(dialogContext);
+              await notifier.deleteWorkoutLog(workout.id);
+              container.invalidate(workoutLogsProvider(effectiveId));
+              if (context.mounted) Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDetailDate(DateTime date) {
+    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    return '${date.year}년 ${date.month}월 ${date.day}일 (${weekdays[date.weekday - 1]})';
   }
 }
 
@@ -2959,20 +3484,33 @@ class _SignatureCard extends StatelessWidget {
                     top: Radius.circular(16),
                   ),
                   child: signature.signatureImageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: signature.signatureImageUrl,
+                      ? Image.network(
+                          signature.signatureImageUrl,
                           fit: BoxFit.contain,
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Icon(
-                            Icons.draw_rounded,
-                            size: AppIconSize.xl,
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                          ),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.primary,
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            debugPrint('[Signature] 이미지 로드 실패: $error');
+                            debugPrint('[Signature] URL: ${signature.signatureImageUrl}');
+                            return Center(
+                              child: Icon(
+                                Icons.draw_rounded,
+                                size: AppIconSize.xl,
+                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              ),
+                            );
+                          },
                         )
                       : Center(
                           child: Icon(
@@ -3087,34 +3625,44 @@ class _SignatureCard extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: AppRadius.lgBorderRadius,
                   child: signature.signatureImageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: signature.signatureImageUrl,
+                      ? Image.network(
+                          signature.signatureImageUrl,
                           fit: BoxFit.contain,
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline_rounded,
-                                  size: AppIconSize.xl,
-                                  color: colorScheme.error.withValues(alpha: 0.5),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Text(
-                                  '이미지 로드 실패',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.primary,
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            debugPrint('[Signature] 다이얼로그 이미지 로드 실패: $error');
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    size: AppIconSize.xl,
+                                    color: colorScheme.error.withValues(alpha: 0.5),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text(
+                                    '이미지 로드 실패',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         )
                       : Center(
                           child: Column(

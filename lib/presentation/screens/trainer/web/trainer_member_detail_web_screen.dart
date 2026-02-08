@@ -491,21 +491,6 @@ class _TrainerMemberDetailWebScreenState
               ),
             ],
           ),
-          if (member.targetWeight != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.flag_rounded, size: 16, color: colorScheme.onSurface.withValues(alpha: 0.5)),
-                const SizedBox(width: 8),
-                Text(
-                  '목표 체중: ${member.targetWeight}kg',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

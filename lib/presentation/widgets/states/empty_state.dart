@@ -51,7 +51,7 @@ class EmptyState extends StatelessWidget {
           children: [
             // 아이콘 또는 Lottie
             customIcon ?? _buildIcon(context, config),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             // 타이틀
             Text(
               customTitle ?? config.title,
@@ -60,8 +60,8 @@ class EmptyState extends StatelessWidget {
                 fontSize: 18,
               ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
+            ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+            const SizedBox(height: 10),
             // 메시지
             Text(
               customMessage ?? config.message,
@@ -71,7 +71,7 @@ class EmptyState extends StatelessWidget {
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
-            ),
+            ).animate().fadeIn(delay: 350.ms, duration: 300.ms),
             // 액션 버튼
             if (actionLabel != null || config.actionLabel != null) ...[
               const SizedBox(height: 24),
@@ -79,7 +79,8 @@ class EmptyState extends StatelessWidget {
                 onPressed: onAction,
                 icon: Icon(config.actionIcon ?? Icons.add),
                 label: Text(actionLabel ?? config.actionLabel ?? ''),
-              ),
+              ).animate().fadeIn(delay: 500.ms, duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms),
             ],
           ],
         ),
@@ -109,40 +110,119 @@ class EmptyState extends StatelessWidget {
   Widget _buildFallbackIcon(BuildContext context, _EmptyStateConfig config) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.colorScheme.primary;
 
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(40),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF374151), // gray700
-                  const Color(0xFF1F2937), // gray800
-                ]
-              : [
-                  theme.colorScheme.primary.withOpacity(0.1),
-                  theme.colorScheme.primary.withOpacity(0.05),
-                ],
-        ),
-      ),
-      child: Icon(
-        config.icon,
-        size: 40,
-        color: isDark
-            ? theme.colorScheme.primary.withOpacity(0.7)
-            : theme.colorScheme.primary,
+    return SizedBox(
+      width: 120,
+      height: 120,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 배경 글로우
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: isDark
+                    ? [
+                        primaryColor.withValues(alpha: 0.15),
+                        primaryColor.withValues(alpha: 0.03),
+                        Colors.transparent,
+                      ]
+                    : [
+                        primaryColor.withValues(alpha: 0.12),
+                        primaryColor.withValues(alpha: 0.04),
+                        Colors.transparent,
+                      ],
+                stops: const [0.0, 0.6, 1.0],
+              ),
+            ),
+          ),
+          // 아이콘 컨테이너
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF374151),
+                        const Color(0xFF1F2937),
+                      ]
+                    : [
+                        primaryColor.withValues(alpha: 0.12),
+                        primaryColor.withValues(alpha: 0.05),
+                      ],
+              ),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : primaryColor.withValues(alpha: 0.1),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryColor.withValues(alpha: isDark ? 0.1 : 0.08),
+                  blurRadius: 24,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Specular highlight
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 36,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: isDark ? 0.08 : 0.25),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Icon(
+                    config.icon,
+                    size: 36,
+                    color: isDark
+                        ? primaryColor.withValues(alpha: 0.7)
+                        : primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     )
         .animate(onPlay: (controller) => controller.repeat(reverse: true))
         .scale(
-          begin: const Offset(0.97, 0.97),
-          end: const Offset(1.03, 1.03),
-          duration: 2000.ms,
+          begin: const Offset(0.96, 0.96),
+          end: const Offset(1.04, 1.04),
+          duration: 2500.ms,
           curve: Curves.easeInOut,
+        )
+        .shimmer(
+          delay: 500.ms,
+          duration: 2500.ms,
+          color: primaryColor.withValues(alpha: 0.08),
         );
   }
 

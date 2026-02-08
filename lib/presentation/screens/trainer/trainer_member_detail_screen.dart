@@ -22,7 +22,6 @@ import 'package:flutter_pal_app/presentation/providers/body_records_provider.dar
 import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/presentation/widgets/charts/weight_line_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/charts/body_composition_pie_chart.dart';
-import 'package:flutter_pal_app/presentation/widgets/charts/goal_progress_indicator.dart';
 import 'package:flutter_pal_app/presentation/widgets/add_body_record_sheet.dart';
 import 'package:flutter_pal_app/presentation/widgets/session_complete_dialog.dart';
 import 'package:flutter_pal_app/data/models/session_signature_model.dart';
@@ -38,6 +37,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_transfer_provider.dart';
+import 'package:flutter_pal_app/core/constants/routes.dart';
 
 // ============================================================================
 // Providers
@@ -154,34 +154,15 @@ class _MemberDetailContent extends ConsumerStatefulWidget {
       _MemberDetailContentState();
 }
 
-class _MemberDetailContentState extends ConsumerState<_MemberDetailContent>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
   String get memberName => widget.user?.name ?? '회원';
   String? get profileImageUrl => widget.user?.profileImageUrl;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(
-      length: 5,
-      vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 4),
-    );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5,
-      initialIndex: widget.initialTabIndex.clamp(0, 4),
+      length: 4,
+      initialIndex: widget.initialTabIndex.clamp(0, 3),
       child: Scaffold(
         appBar: AppBar(
           title: Text(memberName),
@@ -216,11 +197,10 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent>
             ),
           ],
           bottom: const TabBar(
-            isScrollable: true,
+            tabAlignment: TabAlignment.fill,
             tabs: [
               Tab(text: '기본정보'),
               Tab(text: '그래프'),
-              Tab(text: 'AI 분석'),
               Tab(text: '커리큘럼'),
               Tab(text: '메모'),
             ],
@@ -230,7 +210,6 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent>
           children: [
             _InfoTab(member: widget.member, user: widget.user),
             _GraphTab(memberId: widget.memberId, member: widget.member),
-            _InbodyTab(memberId: widget.memberId),
             _CurriculumTab(memberId: widget.memberId),
             _MemoTab(memberId: widget.memberId, member: widget.member),
           ],
@@ -438,8 +417,6 @@ class _InfoTab extends StatelessWidget {
               'PT 시작일',
               DateFormat('yyyy.MM.dd').format(member.ptInfo.startDate),
             ),
-            if (member.targetWeight != null)
-              _buildInfoRow(context, '목표 체중', '${member.targetWeight}kg'),
           ]).animateListItem(1),
         ],
       ),
@@ -672,7 +649,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     });
   }
 
-  /// 자동 예측 시도 (기록이 4개 이상이고 아직 예측이 없을 때)
+  /// 자동 예측 시도 (화면 진입 시 무조건 실행)
   void _tryAutoPredict() async {
     if (_hasAutoFetched) return;
 
@@ -686,12 +663,11 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       return;
     }
 
-    final records = bodyRecordsAsync.value ?? [];
     final hasPrediction = bodyCompPredictionState.prediction != null;
     final isLoading = bodyCompPredictionState.isLoading;
 
-    // 기록이 4개 이상이고, 예측이 없고, 로딩 중이 아닐 때 자동 예측
-    if (records.length >= 4 && !hasPrediction && !isLoading) {
+    // 예측이 없고 로딩 중이 아닐 때 자동 예측 (Provider 내부에서 데이터 부족 시 에러 처리)
+    if (!hasPrediction && !isLoading) {
       _hasAutoFetched = true;
       ref.read(bodyCompositionPredictionProvider.notifier).predictBodyComposition(widget.memberId);
     }
@@ -738,7 +714,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => AddBodyRecordSheet.show(context, widget.memberId),
+            onPressed: () => _showAddRecordOptions(context),
             backgroundColor: AppTheme.primary,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add),
@@ -847,10 +823,151 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     );
   }
 
+  /// 기록 추가 옵션 바텀시트 (수기 입력 / 사진 분석)
+  void _showAddRecordOptions(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 핸들 바
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.gray600 : AppColors.gray300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '기록 추가',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '체성분 기록 방법을 선택해주세요',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // 수기 입력 옵션
+            _buildRecordOptionTile(
+              context: context,
+              icon: Icons.edit_outlined,
+              title: '직접 입력',
+              subtitle: '체중, 체지방률, 골격근량을 직접 입력해요',
+              color: AppColors.primary,
+              onTap: () {
+                Navigator.pop(context);
+                AddBodyRecordSheet.show(context, widget.memberId);
+              },
+            ),
+            const SizedBox(height: 12),
+            // 사진 분석 옵션
+            _buildRecordOptionTile(
+              context: context,
+              icon: Icons.camera_alt_outlined,
+              title: '인바디 사진 분석',
+              subtitle: '인바디 결과지를 촬영하면 AI가 자동으로 분석해요',
+              color: const Color(0xFF00C471),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(AppRoutes.memberInbodyOcr, extra: widget.memberId);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordOptionTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: isDark ? 0.1 : 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: isDark ? 0.2 : 0.15),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyView(BuildContext context) {
     return EmptyState(
       type: EmptyStateType.bodyRecords,
-      onAction: () => AddBodyRecordSheet.show(context, widget.memberId),
+      onAction: () => _showAddRecordOptions(context),
     );
   }
 
@@ -891,39 +1008,6 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           ),
           const SizedBox(height: 24),
 
-          // 목표 달성률
-          if (widget.member.targetWeight != null)
-            latestRecordAsync.whenData((record) {
-                  if (record == null) return const SizedBox.shrink();
-                  return _buildSectionCard(
-                    context,
-                    '목표 달성률',
-                    weightHistoryAsync.when(
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      error: (e, st) => const Center(child: Text('데이터 로드 실패')),
-                      data: (history) {
-                        if (history.isEmpty) {
-                          return const Center(child: Text('데이터가 없어요'));
-                        }
-                        return GoalProgressIndicator(
-                          currentValue: record.weight,
-                          targetValue: widget.member.targetWeight!,
-                          startValue: history.first.weight,
-                          label: widget.member.goalLabel,
-                          unit: 'kg',
-                          isDecreaseGoal:
-                              widget.member.goal == FitnessGoal.diet,
-                        );
-                      },
-                    ),
-                  );
-                }).value ??
-                const SizedBox.shrink(),
           const SizedBox(height: 24),
 
           // 지표 선택 탭
@@ -1563,33 +1647,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               context,
               ref,
               predictionState.prediction!,
+              predictionState,
             )
           : _buildBodyCompPredictionEmpty(context, ref, recordCount),
-      trailing: _buildBodyCompPredictionButton(context, ref, recordCount),
-    );
-  }
-
-  /// 체성분 예측 버튼
-  Widget _buildBodyCompPredictionButton(
-    BuildContext context,
-    WidgetRef ref,
-    int recordCount,
-  ) {
-    final canPredict = recordCount >= 4;
-
-    return TextButton.icon(
-      onPressed: canPredict
-          ? () => _runBodyCompositionPrediction(context, ref)
-          : null,
-      icon: Icon(
-        Icons.auto_graph,
-        size: 18,
-        color: canPredict ? AppTheme.primary : Colors.grey,
-      ),
-      label: Text(
-        '예측하기',
-        style: TextStyle(color: canPredict ? AppTheme.primary : Colors.grey),
-      ),
     );
   }
 
@@ -1651,8 +1711,6 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     WidgetRef ref,
     int recordCount,
   ) {
-    final canPredict = recordCount >= 4;
-
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1660,30 +1718,15 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           Icon(Icons.auto_graph, size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(
-            canPredict
-                ? '체성분 예측을 실행해 보세요\n체중, 골격근량, 체지방률 변화를 예측해요'
-                : '예측을 위해 최소 4개의 기록이 필요해요',
+            '체성분 데이터를 분석 중이에요...',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             textAlign: TextAlign.center,
           ),
-          if (canPredict) ...[
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => _runBodyCompositionPrediction(context, ref),
-              icon: const Icon(Icons.auto_graph),
-              label: const Text('예측 시작'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            Text(
-              '현재 $recordCount개 기록',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-            ),
-          ],
+          const SizedBox(height: 8),
+          Text(
+            '현재 $recordCount개 기록',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -1717,250 +1760,187 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     );
   }
 
-  /// 체성분 예측 결과 표시
+  /// 체성분 예측 결과 표시 (회원 앱 _AIPredictionCard와 동일한 row 기반 UI)
   Widget _buildBodyCompPredictionResult(
     BuildContext context,
     WidgetRef ref,
     BodyCompositionPredictionModel prediction,
+    BodyCompositionPredictionState predictionState,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 예측 결과 카드들
-          Row(
-            children: [
-              if (prediction.weightPrediction != null)
-                Expanded(
-                  child: _buildMetricPredictionCard(
-                    context,
-                    '체중',
-                    prediction.weightPrediction!,
-                    'kg',
-                    AppTheme.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 헤더: 신뢰도 배지
+        Row(
+          children: [
+            Text(
+              '4주 후 예측',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (predictionState.isDemo) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '간이 분석',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
                   ),
                 ),
-              if (prediction.musclePrediction != null) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricPredictionCard(
-                    context,
-                    '골격근량',
-                    prediction.musclePrediction!,
-                    'kg',
-                    AppTheme.secondary,
-                  ),
-                ),
-              ],
+              ),
             ],
-          ),
-          if (prediction.bodyFatPrediction != null) ...[
-            const SizedBox(height: 8),
-            _buildMetricPredictionCard(
-              context,
-              '체지방률',
-              prediction.bodyFatPrediction!,
-              '%',
-              AppTheme.tertiary,
-              fullWidth: true,
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getConfidenceColor(prediction.overallConfidence)
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '신뢰도 ${(prediction.overallConfidence * 100).toInt()}%',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: _getConfidenceColor(prediction.overallConfidence),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 12),
 
-          // 신뢰도 표시
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: _getConfidenceColor(
-                prediction.overallConfidence,
-              ).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.verified,
-                  size: 18,
-                  color: _getConfidenceColor(prediction.overallConfidence),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '예측 신뢰도: ${(prediction.overallConfidence * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    color: _getConfidenceColor(prediction.overallConfidence),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _getConfidenceLabel(prediction.overallConfidence),
-                  style: TextStyle(
-                    color: _getConfidenceColor(prediction.overallConfidence),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+        // 체중 예측
+        if (prediction.weightPrediction != null)
+          _buildPredictionRow(
+            context, '체중', prediction.weightPrediction!, 'kg',
+            AppTheme.primary, Icons.monitor_weight_rounded,
           ),
-          const SizedBox(height: 12),
-
-          // 분석 메시지
-          if (prediction.analysisMessage.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.5,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline,
-                    color: Colors.amber.shade700,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      prediction.analysisMessage,
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // 예측 정보
-          const SizedBox(height: 12),
-          Text(
-            '데이터 기반: ${prediction.dataPointsUsed.entries.map((e) => '${_getMetricLabel(e.key)} ${e.value}개').join(', ')} | ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
-            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
+        // 골격근량 예측
+        if (prediction.musclePrediction != null)
+          _buildPredictionRow(
+            context, '골격근량', prediction.musclePrediction!, 'kg',
+            AppTheme.secondary, Icons.fitness_center_rounded,
           ),
-        ],
-      ),
+        // 체지방률 예측
+        if (prediction.bodyFatPrediction != null)
+          _buildPredictionRow(
+            context, '체지방률', prediction.bodyFatPrediction!, '%',
+            AppTheme.tertiary, Icons.water_drop_rounded,
+          ),
+
+
+        // 데이터 기반 정보 (디버그용 - 비활성화)
+        // const SizedBox(height: 12),
+        // Text(
+        //   '데이터 기반: ${prediction.dataPointsUsed.entries.map((e) => '${_getMetricLabel(e.key)} ${e.value}개').join(', ')} | ${DateFormat('M/d HH:mm').format(prediction.createdAt)}',
+        //   style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
+        // ),
+      ],
     );
   }
 
-  /// 개별 지표 예측 카드 빌드
-  Widget _buildMetricPredictionCard(
+  /// 개별 지표 예측 row (회원 앱 _AIPredictionCard._buildPredictionRow와 동일)
+  Widget _buildPredictionRow(
     BuildContext context,
     String label,
-    MetricPrediction prediction,
+    MetricPrediction pred,
     String unit,
-    Color color, {
-    bool fullWidth = false,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isPositive = prediction.weeklyTrend > 0;
-    final isNeutral = prediction.weeklyTrend.abs() < 0.05;
+    Color color,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.gray100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+    // 변화에 따른 색상 결정 (체중/체지방은 감소가 좋음, 근육량은 증가가 좋음)
+    Color changeColor;
+    if (label == '골격근량') {
+      changeColor = pred.weeklyTrend > 0 ? Colors.green : Colors.red;
+    } else {
+      changeColor = pred.weeklyTrend < 0 ? Colors.green : Colors.red;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              Icon(
-                isNeutral
-                    ? Icons.trending_flat
-                    : (isPositive ? Icons.trending_up : Icons.trending_down),
-                size: 16,
-                color: color,
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: AppIconSize.xs, color: color),
           ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  prediction.current.toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+          const SizedBox(width: AppSpacing.md / 1.333),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Icon(
-                  Icons.arrow_forward,
-                  size: 12,
-                  color: colorScheme.onSurfaceVariant,
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      '${pred.current.toStringAsFixed(1)}$unit',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${pred.predicted.toStringAsFixed(1)}$unit',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      '(4주 후)',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Flexible(
-                child: Text(
-                  prediction.predicted.toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                unit,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            '${prediction.change >= 0 ? "▲" : "▼"}${prediction.change.abs().toStringAsFixed(1)}$unit/월',
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w500,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: changeColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${pred.change >= 0 ? "▲" : "▼"}${pred.change.abs().toStringAsFixed(1)}$unit/월',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: changeColor,
+              ),
             ),
           ),
         ],
@@ -1969,15 +1949,9 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
   }
 
   Color _getConfidenceColor(double confidence) {
-    if (confidence >= 0.7) return AppTheme.secondary;
-    if (confidence >= 0.4) return AppTheme.primary;
-    return AppTheme.tertiary;
-  }
-
-  String _getConfidenceLabel(double confidence) {
-    if (confidence >= 0.7) return '높음';
-    if (confidence >= 0.4) return '보통';
-    return '낮음';
+    if (confidence >= 0.7) return Colors.green;
+    if (confidence >= 0.4) return Colors.orange;
+    return Colors.red;
   }
 
   String _getMetricLabel(String key) {
@@ -2574,11 +2548,10 @@ class _CurriculumTabState extends ConsumerState<_CurriculumTab> {
 
       if (shouldUseAI) {
         // AI 커리큘럼 생성 화면으로 이동
-        if (mounted) {
-          context.push(
-            '/trainer/curriculum/create?memberId=${widget.memberId}&additionalSessions=$sessions&startSession=${currentMaxSession + 1}',
-          );
-        }
+        if (!context.mounted) return;
+        context.push(
+          '/trainer/curriculum/create?memberId=${widget.memberId}&additionalSessions=$sessions&startSession=${currentMaxSession + 1}',
+        );
       } else {
         // 빈 커리큘럼 추가
         try {
@@ -2588,17 +2561,15 @@ class _CurriculumTabState extends ConsumerState<_CurriculumTab> {
             additionalSessions: sessions,
           );
           ref.invalidate(curriculumsProvider(widget.memberId));
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$sessions개 회차가 추가됐어요')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$sessions개 회차가 추가됐어요')),
+          );
         } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('추가 실패: $e')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('추가 실패: $e')),
+          );
         }
       }
     }
@@ -3442,6 +3413,7 @@ class _CurriculumCard extends ConsumerWidget {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
                           Icons.fitness_center,
@@ -3449,11 +3421,9 @@ class _CurriculumCard extends ConsumerWidget {
                           color: AppTheme.primary,
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            exercise.summary,
-                            style: const TextStyle(fontSize: 14),
-                          ),
+                        Text(
+                          exercise.summary,
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -4729,6 +4699,13 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
     );
     _selectedGoal = widget.member.goalLabel;
     _selectedExperience = widget.member.experienceLabel;
+
+    // 커리큘럼 데이터에서 실제 총 회차 / 완료 회차 최신화
+    final statsAsync = ref.read(curriculumStatsProvider(widget.memberId));
+    statsAsync.whenData((stats) {
+      _totalSessionsController.text = stats.total.toString();
+      _completedSessionsController.text = stats.completed.toString();
+    });
   }
 
   @override

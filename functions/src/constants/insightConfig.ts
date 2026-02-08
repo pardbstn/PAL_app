@@ -238,7 +238,7 @@ export const TRAINER_MESSAGE_TEMPLATES = {
   },
   revenue: {
     monthly: (sessions: number, amount: number, change: number) =>
-      `이번 달 ${sessions}회 완료, 예상 수입 ${amount}만원 (${change > 0 ? '+' : ''}${change}%)`,
+      `이번 달 ${sessions}회 완료, 예상 수입 ${amount}만원 (${change > 0 ? "+" : ""}${change}%)`,
     weekly: (sessions: number, remaining: number) =>
       `이번 주 ${sessions}회 완료 - ${remaining}회 남았어요`,
   },

@@ -60,31 +60,39 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   Future<List<NotificationModel>> getByUserId(String userId) async {
     final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .get();
-    return snapshot.docs
+    final notifications = snapshot.docs
         .map((doc) => NotificationModel.fromFirestore(doc))
         .toList();
+    // 클라이언트에서 정렬 (Firestore composite index 불필요)
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return notifications;
   }
 
   /// 사용자별 알림 실시간 감시
   Stream<List<NotificationModel>> watchByUserId(String userId) {
     return collection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => NotificationModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final notifications = snapshot.docs
+              .map((doc) => NotificationModel.fromFirestore(doc))
+              .toList();
+          // 클라이언트에서 정렬 (Firestore composite index 불필요)
+          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return notifications;
+        });
   }
 
   /// 읽지 않은 알림 개수 실시간 감시
   Stream<int> watchUnreadCount(String userId) {
     return collection
         .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .map((snapshot) => snapshot.docs.where((doc) {
+              final data = doc.data();
+              return data['isRead'] == false;
+            }).length);
   }
 
   /// 알림 읽음 처리
@@ -97,11 +105,13 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     final batch = firestore.batch();
     final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
         .get();
 
     for (final doc in snapshot.docs) {
-      batch.update(doc.reference, {'isRead': true});
+      final data = doc.data();
+      if (data['isRead'] == false) {
+        batch.update(doc.reference, {'isRead': true});
+      }
     }
     await batch.commit();
   }
@@ -112,11 +122,14 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     final batch = firestore.batch();
     final snapshot = await collection
         .where('userId', isEqualTo: userId)
-        .where('createdAt', isLessThan: Timestamp.fromDate(cutoffDate))
         .get();
 
     for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
+      final data = doc.data();
+      final createdAt = data['createdAt'];
+      if (createdAt != null && createdAt is Timestamp && createdAt.toDate().isBefore(cutoffDate)) {
+        batch.delete(doc.reference);
+      }
     }
     await batch.commit();
   }

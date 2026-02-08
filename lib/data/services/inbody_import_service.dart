@@ -265,7 +265,7 @@ class InbodyImportService {
         inbodyScore: _parseInt(columnMap['inbodyScore'], row),
       );
     } catch (e) {
-      return ParsedInbodyData(error: '행 $rowNumber: 파싱 오류 - $e');
+      return ParsedInbodyData(error: '행 $rowNumber: 데이터를 읽지 못했어요 - $e');
     }
   }
 
@@ -390,7 +390,7 @@ class InbodyImportService {
         successCount++;
       } catch (e) {
         failCount++;
-        errors.add('저장 실패: $e');
+        errors.add('저장에 실패했어요: $e');
       }
     }
 

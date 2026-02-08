@@ -233,17 +233,26 @@ function generateBodyPrediction(
   let message: string;
   let priority: InsightPriority = "medium";
 
+  // 주간 변화율 계산
+  const weeklyChange = Math.abs(weightChange / 4);
+
   if (targetWeight && Math.abs(predictedWeight - targetWeight) <= 2) {
-    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.loss(Math.abs(weightChange));
+    // 목표 도달 예정
+    const weeksToGoal = Math.ceil(Math.abs(targetWeight - currentWeight) / weeklyChange);
+    message = MEMBER_MESSAGE_TEMPLATES.body_prediction.goalReach(weeksToGoal, targetWeight);
     priority = "high";
   } else if (weightChange < -0.5) {
     message = MEMBER_MESSAGE_TEMPLATES.body_prediction.loss(
-      parseFloat(Math.abs(weightChange).toFixed(1))
+      parseFloat(Math.abs(weightChange).toFixed(1)),
+      parseFloat(weeklyChange.toFixed(1))
     );
+    priority = "medium";
   } else if (weightChange > 0.5) {
     message = MEMBER_MESSAGE_TEMPLATES.body_prediction.gain(
-      parseFloat(weightChange.toFixed(1))
+      parseFloat(weightChange.toFixed(1)),
+      parseFloat(weeklyChange.toFixed(1))
     );
+    priority = "medium";
   } else {
     message = MEMBER_MESSAGE_TEMPLATES.body_prediction.stable();
     priority = "low";
@@ -260,6 +269,7 @@ function generateBodyPrediction(
       currentWeight,
       predictedWeight: parseFloat(predictedWeight.toFixed(1)),
       weightChange: parseFloat(weightChange.toFixed(1)),
+      weeklyChange: parseFloat(weeklyChange.toFixed(2)),
       targetWeight,
     },
   };
@@ -390,12 +400,23 @@ function generateWorkoutAchievement(
   // 다음 목표 계산 (10kg 단위)
   const nextTarget = Math.ceil(latestRM / 10) * 10;
 
+  // 개선 기간 계산
+  const firstDate = exerciseData.find((r) => r.oneRM === oldestRM)?.date;
+  const lastDate = exerciseData[exerciseData.length - 1].date;
+  const weeksBetween = firstDate && lastDate
+    ? Math.max(1, Math.floor((lastDate.getTime() - firstDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+    : 4;
+
   return {
     type: "workout_achievement",
     priority: "high",
     title: truncateMessage("운동 성과", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
     message: truncateMessage(
-      MEMBER_MESSAGE_TEMPLATES.workout_achievement.improved(bestExercise, parseFloat(bestImprovement.toFixed(0))),
+      MEMBER_MESSAGE_TEMPLATES.workout_achievement.improved(
+        bestExercise,
+        parseFloat(bestImprovement.toFixed(0)),
+        weeksBetween
+      ),
       INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
     ),
     graphData,
@@ -405,6 +426,7 @@ function generateWorkoutAchievement(
       previousRM: parseFloat(oldestRM.toFixed(1)),
       currentRM: parseFloat(latestRM.toFixed(1)),
       improvement: parseFloat(bestImprovement.toFixed(1)),
+      weeksBetween,
       nextTarget,
     },
   };
@@ -467,18 +489,42 @@ async function generateAttendanceHabit(
     value: count,
   }));
 
+  // 연속 출석 계산
+  let currentStreak = 0;
+  for (let i = 0; i < weeklyData.length; i++) {
+    if (weeklyData[weeklyData.length - 1 - i] > 0) {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+
   // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
   if (attendanceRate >= 80) {
-    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.good(attendanceRate);
+    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.good(attendanceRate, currentStreak);
     priority = "medium";
   } else if (attendanceRate >= 60) {
     message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.average(attendanceRate);
     priority = "medium";
   } else {
-    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.low(attendanceRate);
+    // 마지막 운동한 날 계산
+    const lastSession = recentSchedules
+      .filter((s) => s.status === "completed" || s.status === "attended")
+      .sort((a, b) => {
+        const dateA = safeToDate(a.date || a.scheduledAt)?.getTime() || 0;
+        const dateB = safeToDate(b.date || b.scheduledAt)?.getTime() || 0;
+        return dateB - dateA;
+      })[0];
+
+    const lastSessionDate = lastSession ? safeToDate(lastSession.date || lastSession.scheduledAt) : null;
+    const daysSinceLastSession = lastSessionDate
+      ? Math.floor((Date.now() - lastSessionDate.getTime()) / (24 * 60 * 60 * 1000))
+      : 14;
+
+    message = MEMBER_MESSAGE_TEMPLATES.attendance_habit.low(attendanceRate, daysSinceLastSession);
     priority = "high";
   }
 
@@ -495,6 +541,7 @@ async function generateAttendanceHabit(
       completedSessions: completed,
       totalSessions: total,
       weeklyData,
+      currentStreak,
     },
   };
 }
@@ -595,14 +642,38 @@ function generateNutritionBalance(
   let priority: InsightPriority;
 
   if (mostDeficient.percent < 70) {
-    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(mostDeficient.name);
+    const deficitAmount = Math.round(
+      mostDeficient.name === "단백질" ? targetProtein - avgProtein :
+      mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
+      targetFat - avgFat
+    );
+    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(
+      mostDeficient.name,
+      deficitAmount,
+      mostDeficient.suggestion
+    );
     priority = "high";
   } else if (mostDeficient.percent < 90) {
-    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(mostDeficient.name);
+    const deficitAmount = Math.round(
+      mostDeficient.name === "단백질" ? targetProtein - avgProtein :
+      mostDeficient.name === "탄수화물" ? targetCarbs - avgCarbs :
+      targetFat - avgFat
+    );
+    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.deficient(
+      mostDeficient.name,
+      deficitAmount,
+      mostDeficient.suggestion
+    );
     priority = "medium";
   } else {
-    message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.balanced();
-    priority = "low";
+    // 단백질이 충분하면 특별 메시지
+    if (proteinPercent >= 90) {
+      message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.proteinGood(Math.round(avgProtein));
+      priority = "medium";
+    } else {
+      message = MEMBER_MESSAGE_TEMPLATES.nutrition_balance.balanced();
+      priority = "low";
+    }
   }
 
   return {
@@ -619,6 +690,9 @@ function generateNutritionBalance(
       proteinPercent,
       carbsPercent,
       fatPercent,
+      targetProtein,
+      targetCarbs,
+      targetFat,
     },
   };
 }
@@ -727,24 +801,44 @@ function generateBodyChangeReport(
     },
   ];
 
+  // 기간 계산
+  const oldestDate = safeToDate(oldestRecord.measuredAt || oldestRecord.createdAt);
+  const latestDate = safeToDate(latestRecord.measuredAt || latestRecord.createdAt);
+  const weeksBetween = oldestDate && latestDate
+    ? Math.max(1, Math.floor((latestDate.getTime() - oldestDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+    : 4;
+
+  // 체지방률 변화
+  const fatPercentChange = afterFatPercent - beforeFatPercent;
+
   // 메시지 생성 (간결하게)
   let message: string;
   let priority: InsightPriority;
 
-  if (fatChange < 0 && muscleChange > 0) {
+  if (fatChange < -0.5 && muscleChange > 0.3) {
     message = MEMBER_MESSAGE_TEMPLATES.body_change_report.both(
       parseFloat(Math.abs(fatChange).toFixed(1)),
-      parseFloat(muscleChange.toFixed(1))
+      parseFloat(muscleChange.toFixed(1)),
+      weeksBetween
     );
     priority = "high";
-  } else if (fatChange < 0) {
+  } else if (fatChange < -0.5) {
     message = MEMBER_MESSAGE_TEMPLATES.body_change_report.fatLoss(
-      parseFloat(Math.abs(fatChange).toFixed(1))
+      parseFloat(Math.abs(fatChange).toFixed(1)),
+      weeksBetween
     );
     priority = "medium";
-  } else if (muscleChange > 0) {
+  } else if (muscleChange > 0.3) {
     message = MEMBER_MESSAGE_TEMPLATES.body_change_report.muscleGain(
-      parseFloat(muscleChange.toFixed(1))
+      parseFloat(muscleChange.toFixed(1)),
+      weeksBetween
+    );
+    priority = "medium";
+  } else if (fatPercentChange < -1) {
+    // 체지방률이 눈에 띄게 감소
+    message = MEMBER_MESSAGE_TEMPLATES.body_change_report.fatPercentDrop(
+      parseFloat(Math.abs(fatPercentChange).toFixed(1)),
+      weeksBetween
     );
     priority = "medium";
   } else {
@@ -755,7 +849,7 @@ function generateBodyChangeReport(
   return {
     type: "body_change_report",
     priority,
-    title: truncateMessage("체성분 변화", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    title: truncateMessage("내 몸이 변하고 있어요", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
     message: truncateMessage(message, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
     graphData,
     graphType: "bar",
@@ -768,6 +862,8 @@ function generateBodyChangeReport(
       muscleChange: parseFloat(muscleChange.toFixed(1)),
       beforeFatPercent,
       afterFatPercent,
+      fatPercentChange: parseFloat(fatPercentChange.toFixed(1)),
+      weeksBetween,
     },
   };
 }
@@ -1000,11 +1096,33 @@ function generateGoalProgress(
   let message: string;
   let priority: InsightPriority;
 
+  // 남은 양 계산
+  const remaining = targetWeight ? Math.abs(targetWeight - (currentWeight || 0)) : 0;
+
+  // 예상 소요 주차 계산
+  const allWeights = [
+    ...bodyRecords.filter((r) => r.weight).map((r) => ({weight: r.weight!, date: safeToDate(r.recordDate)})),
+    ...inbodyRecords.filter((r) => r.weight).map((r) => ({weight: r.weight!, date: safeToDate(r.measuredAt)})),
+  ].filter((w) => w.date).sort((a, b) => a.date!.getTime() - b.date!.getTime());
+
+  let weeklyRate = 0.5; // 기본값
+  if (allWeights.length >= 2) {
+    const firstWeight = allWeights[0].weight;
+    const lastWeight = allWeights[allWeights.length - 1].weight;
+    const weeksBetween = Math.max(1,
+      Math.floor((allWeights[allWeights.length - 1].date!.getTime() - allWeights[0].date!.getTime()) /
+      (7 * 24 * 60 * 60 * 1000))
+    );
+    weeklyRate = Math.abs(lastWeight - firstWeight) / weeksBetween;
+  }
+
+  const weeksToGoal = weeklyRate > 0 ? Math.ceil(remaining / weeklyRate) : 0;
+
   if (progressPercent >= 90) {
-    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.high(progressPercent);
+    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.high(progressPercent, remaining);
     priority = "high";
   } else if (progressPercent >= 50) {
-    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.medium(progressPercent);
+    message = MEMBER_MESSAGE_TEMPLATES.goal_progress.medium(progressPercent, weeksToGoal);
     priority = "medium";
   } else {
     message = MEMBER_MESSAGE_TEMPLATES.goal_progress.low(progressPercent);
@@ -1026,8 +1144,148 @@ function generateGoalProgress(
       targetBodyFat,
       currentMuscle,
       targetMuscle,
+      remaining,
+      weeksToGoal,
+      weeklyRate: parseFloat(weeklyRate.toFixed(2)),
     },
   };
+}
+
+/**
+ * 9. 주간 요약 (weekly_summary)
+ * 이번 주 운동 횟수와 성과 요약
+ */
+function generateWeeklySummary(
+  schedules: ScheduleRecord[],
+  bodyRecords: BodyRecord[],
+  inbodyRecords: InbodyRecord[],
+  member: MemberData
+): MemberInsight | null {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  // 이번 주 완료된 세션 수
+  const weekSessions = schedules.filter((s) => {
+    const date = safeToDate(s.date || s.scheduledAt);
+    return date &&
+      date >= oneWeekAgo &&
+      (s.status === "completed" || s.status === "attended");
+  }).length;
+
+  if (weekSessions === 0) return null;
+
+  // 이번 주 체중 변화
+  const weekWeightData = [
+    ...bodyRecords.filter((r) => {
+      const date = safeToDate(r.recordDate);
+      return date && date >= oneWeekAgo && r.weight;
+    }).map((r) => ({weight: r.weight!, date: safeToDate(r.recordDate)!})),
+    ...inbodyRecords.filter((r) => {
+      const date = safeToDate(r.measuredAt);
+      return date && date >= oneWeekAgo && r.weight;
+    }).map((r) => ({weight: r.weight!, date: safeToDate(r.measuredAt)!})),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  let progressMessage = "";
+  let priority: InsightPriority = "medium";
+
+  if (weekWeightData.length >= 2) {
+    const weekChange = weekWeightData[weekWeightData.length - 1].weight - weekWeightData[0].weight;
+    const goal = member.goal || "diet";
+
+    if (goal === "diet" && weekChange < -0.5) {
+      progressMessage = `체중 ${Math.abs(weekChange).toFixed(1)}kg 감량`;
+      priority = "high";
+    } else if (goal === "bulk" && weekChange > 0.5) {
+      progressMessage = `체중 ${weekChange.toFixed(1)}kg 증가`;
+      priority = "high";
+    } else {
+      progressMessage = "꾸준히 운동 중";
+    }
+  } else {
+    progressMessage = "꾸준히 운동 중";
+  }
+
+  // 목표 횟수 (주 3회 기준)
+  const targetSessions = 3;
+  let message: string;
+
+  if (weekSessions >= targetSessions) {
+    message = MEMBER_MESSAGE_TEMPLATES.weekly_summary.excellent(weekSessions, progressMessage);
+  } else if (weekSessions >= 2) {
+    message = MEMBER_MESSAGE_TEMPLATES.weekly_summary.good(weekSessions);
+  } else {
+    message = MEMBER_MESSAGE_TEMPLATES.weekly_summary.needMore(weekSessions, targetSessions);
+    priority = "low";
+  }
+
+  return {
+    type: "attendance_habit", // 출석 관련이므로 기존 타입 재사용
+    priority,
+    title: "이번 주 요약",
+    message,
+    graphData: [{sessions: weekSessions, target: targetSessions}],
+    graphType: "text",
+    data: {
+      weekSessions,
+      targetSessions,
+      progressMessage,
+    },
+  };
+}
+
+/**
+ * 10. 휴식 권장 (rest_recommendation)
+ * 연속 운동일 감지 및 휴식 제안
+ */
+function generateRestRecommendation(
+  schedules: ScheduleRecord[]
+): MemberInsight | null {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // 최근 7일간 완료된 세션을 날짜별로 그룹화
+  const completedDates = new Set<string>();
+  schedules.forEach((s) => {
+    const date = safeToDate(s.date || s.scheduledAt);
+    if (date &&
+        date >= sevenDaysAgo &&
+        (s.status === "completed" || s.status === "attended")) {
+      completedDates.add(date.toISOString().split("T")[0]);
+    }
+  });
+
+  // 연속 운동일 계산
+  let consecutiveDays = 0;
+  for (let i = 0; i < 7; i++) {
+    const checkDate = new Date(now);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dateStr = checkDate.toISOString().split("T")[0];
+
+    if (completedDates.has(dateStr)) {
+      consecutiveDays++;
+    } else {
+      break;
+    }
+  }
+
+  // 5일 이상 연속 운동했으면 휴식 권장
+  if (consecutiveDays >= 5) {
+    return {
+      type: "attendance_habit",
+      priority: "medium",
+      title: "휴식이 필요해요",
+      message: MEMBER_MESSAGE_TEMPLATES.rest_needed.consecutive(consecutiveDays),
+      graphData: [],
+      graphType: "text",
+      data: {
+        consecutiveDays,
+        recommendation: "rest",
+      },
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -1095,6 +1353,12 @@ async function generateBenchmarking(
   const total = recentSchedules.length;
   const attendanceRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+  // ===== VALIDATION: Minimum data check =====
+  // Personal mode users with no activity shouldn't get benchmark insights
+  if (recentSchedules.length === 0 && bodyRecords.length === 0 && inbodyRecords.length === 0) {
+    return null; // No data at all - don't show benchmark
+  }
+
   // 체지방률 4주 변화 계산
   let bodyFatChange = 0;
   if (inbodyRecords.length >= 2) {
@@ -1114,6 +1378,12 @@ async function generateBenchmarking(
       const lastFat = fourWeeksRecords[fourWeeksRecords.length - 1].bodyFatPercent || 0;
       bodyFatChange = lastFat - firstFat;
     }
+  }
+
+  // ===== VALIDATION: Zero activity case =====
+  // If user has no attendance and no body composition change, benchmark is meaningless
+  if (attendanceRate === 0 && bodyFatChange === 0) {
+    return null; // User hasn't done anything yet
   }
 
   // ===== 동일 그룹 회원 대비 벤치마킹 (성별, 연령대, 목표, BMI 기반) =====
@@ -1196,6 +1466,12 @@ async function generateBenchmarking(
     });
   }
 
+  // ===== VALIDATION: Minimum comparison group check =====
+  // Need at least 3 comparable members for statistically meaningful benchmark
+  if (groupMetrics.length < 3) {
+    return null; // Not enough comparison data
+  }
+
   // 백분위 계산: percentile = (내 순위 / 전체) × 100, 상위% = 100 - percentile
   const sampleSize = groupMetrics.length + 1; // 본인 포함
 
@@ -1255,36 +1531,43 @@ async function generateBenchmarking(
     },
   ];
 
-  // 메시지 생성
+  // 메시지 생성 (더 구체적이고 동기부여)
   let message: string;
   let priority: InsightPriority;
+  const topPercentDisplay = 100 - overallPercentile;
   const groupDesc = `${comparisonGroup.gender} ${comparisonGroup.ageGroup} ${comparisonGroup.goal} 회원`;
 
   if (topPercent >= 80) {
-    message = `${groupDesc} ${sampleSize}명 중 상위 ${100 - overallPercentile}%! ` +
-      `출석률 ${attendanceRate}%로 ${memberGoal === "diet" ? "체지방 감량" : "근육 증가"}도 우수해요`;
+    const attendanceTop = 100 - attendancePercentile;
+    message = `${groupDesc} ${sampleSize}명 중 상위 ${topPercentDisplay}%예요! 🏆 ` +
+      `출석률도 상위 ${attendanceTop}% - 정말 열심히 하고 있어요`;
     priority = "high";
   } else if (topPercent >= 60) {
-    message = `${groupDesc} 중 상위 ${100 - overallPercentile}%에 속해요! 평균보다 좋은 성과를 내고 있어요`;
+    message = `${groupDesc} 중 상위 ${topPercentDisplay}%! 평균 이상이에요. ` +
+      `${memberGoal === "diet" ? "체지방 감량" : "근육 증가"} 성과도 좋아요 💪`;
     priority = "medium";
   } else if (topPercent >= 40) {
-    message = `${groupDesc} 중 평균 수준이에요. 출석률을 조금 높이면 상위권 진입 가능!`;
+    message = `${groupDesc} 중 평균 수준이에요. 출석률 ${attendanceRate}%에서 ` +
+      `10%만 더 높이면 상위권 진입이에요!`;
     priority = "medium";
   } else {
-    message = `다른 ${groupDesc}보다 조금 뒤처져 있어요. 규칙적인 운동으로 따라잡아봐요!`;
+    const needAttendance = Math.max(0, 80 - attendanceRate);
+    message = `다른 ${groupDesc}보다 뒤처져 있어요. 출석률 ${needAttendance}% 더 높이면 ` +
+      `평균 이상 될 수 있어요 - 함께 해봐요!`;
     priority = "low";
   }
 
   return {
     type: "benchmarking",
     priority,
-    title: topPercent >= 80 ? `상위 ${100 - topPercent}%! 🏆` : "나의 순위",
+    title: topPercent >= 80 ? `상위 ${topPercentDisplay}%! 🏆` : "나의 순위",
     message,
     graphData,
     graphType: "distribution",
     data: {
       overallPercentile,
       topPercent,
+      topPercentDisplay,
       attendanceRate,
       attendancePercentile,
       bodyFatChange: parseFloat(bodyFatChange.toFixed(1)),
@@ -1294,6 +1577,7 @@ async function generateBenchmarking(
       currentMuscle,
       goal: memberGoal,
       comparisonGroup,
+      sampleSize,
     },
   };
 }
@@ -1441,6 +1725,14 @@ export const generateMemberInsights = functions
         schedules
       );
       if (benchmarking) insights.push(benchmarking);
+
+      // 5-9. 주간 요약
+      const weeklySummary = generateWeeklySummary(schedules, bodyRecords, inbodyRecords, member);
+      if (weeklySummary) insights.push(weeklySummary);
+
+      // 5-10. 휴식 권장
+      const restRecommendation = generateRestRecommendation(schedules);
+      if (restRecommendation) insights.push(restRecommendation);
 
       functions.logger.info("[generateMemberInsights] 인사이트 생성 완료", {
         totalInsights: insights.length,
@@ -1666,6 +1958,12 @@ export const generateMemberInsightsScheduled = functions
             schedules
           );
           if (benchmarking) insights.push(benchmarking);
+
+          const weeklySummary = generateWeeklySummary(schedules, bodyRecords, inbodyRecords, member);
+          if (weeklySummary) insights.push(weeklySummary);
+
+          const restRecommendation = generateRestRecommendation(schedules);
+          if (restRecommendation) insights.push(restRecommendation);
 
           // 우선순위 기반 필터링 및 정렬
           const sortedInsights = insights

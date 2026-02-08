@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/inbody_record_model.dart';
 import '../../../data/services/ai_service.dart';
 import '../../providers/inbody_provider.dart';
@@ -49,7 +50,7 @@ class MemberInbodyScreen extends ConsumerWidget {
               children: [
                 const Icon(Icons.error_outline, size: 48, color: Colors.red),
                 const SizedBox(height: 16),
-                Text('오류가 발생했습니다\n$e'),
+                Text('문제가 생겼어요\n$e'),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () {
@@ -68,10 +69,13 @@ class MemberInbodyScreen extends ConsumerWidget {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showImageSourceDialog(context, ref),
-        icon: const Icon(Icons.camera_alt),
-        label: const Text('인바디 촬영'),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: AppNavGlass.fabBottomPadding),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showImageSourceDialog(context, ref),
+          icon: const Icon(Icons.camera_alt),
+          label: const Text('인바디 촬영'),
+        ),
       ),
     );
   }
@@ -90,14 +94,14 @@ class MemberInbodyScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '인바디 기록이 없습니다',
+            '인바디 기록이 없어요',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            '인바디 결과지를 촬영하여 기록을 추가해보세요',
+            '인바디 결과지를 촬영하여 기록을 추가해 보세요',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
@@ -135,7 +139,7 @@ class MemberInbodyScreen extends ConsumerWidget {
             label: const Text('인바디 촬영'),
           ),
         ],
-      ).animate().fadeIn(duration: 300.ms),
+      ).animate().fadeIn(duration: 200.ms),
     );
   }
 
@@ -147,23 +151,23 @@ class MemberInbodyScreen extends ConsumerWidget {
   ) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 최신 인바디 결과 카드
           _InbodyResultCard(record: latest)
               .animate()
-              .fadeIn(duration: 300.ms)
-              .slideY(begin: 0.1, end: 0),
+              .fadeIn(duration: 200.ms)
+              .slideY(begin: 0.02, end: 0),
 
           const SizedBox(height: 24),
 
           // 체성분 도넛 차트
           _BodyCompositionChart(record: latest)
               .animate()
-              .fadeIn(duration: 300.ms, delay: 100.ms)
-              .slideY(begin: 0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 50.ms)
+              .slideY(begin: 0.02, end: 0),
 
           const SizedBox(height: 24),
 
@@ -177,8 +181,8 @@ class MemberInbodyScreen extends ConsumerWidget {
               }
               return _InbodyHistoryChart(records: history)
                   .animate()
-                  .fadeIn(duration: 300.ms, delay: 200.ms)
-                  .slideY(begin: 0.1, end: 0);
+                  .fadeIn(duration: 200.ms, delay: 100.ms)
+                  .slideY(begin: 0.02, end: 0);
             },
           ),
 
@@ -220,7 +224,7 @@ class MemberInbodyScreen extends ConsumerWidget {
           error: (e, st) => Text('오류: $e'),
           data: (history) {
             if (history.isEmpty) {
-              return const Text('기록이 없습니다');
+              return const Text('기록이 없어요');
             }
             return ListView.separated(
               shrinkWrap: true,
@@ -357,7 +361,7 @@ class MemberInbodyScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'AI가 사진에서 데이터를 추출하고 있습니다',
+              'AI가 사진에서 데이터를 추출하고 있어요',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
@@ -404,7 +408,7 @@ class MemberInbodyScreen extends ConsumerWidget {
         // 에러 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? '분석에 실패했습니다.'),
+            content: Text(result.error ?? '분석에 실패했어요'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
           ),
@@ -425,7 +429,7 @@ class MemberInbodyScreen extends ConsumerWidget {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('오류가 발생했습니다: $e'),
+          content: Text('문제가 생겼어요: $e'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.red,
         ),
@@ -540,7 +544,7 @@ class MemberInbodyScreen extends ConsumerWidget {
                     Colors.amber,
                   ),
               ] else
-                const Text('분석 데이터를 불러올 수 없습니다.'),
+                const Text('분석 데이터를 불러올 수 없어요.'),
             ],
           ),
         ),
@@ -612,7 +616,7 @@ class MemberInbodyScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('기록 삭제'),
-        content: const Text('이 인바디 기록을 삭제하시겠습니까?'),
+        content: const Text('이 인바디 기록을 삭제할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -633,7 +637,7 @@ class MemberInbodyScreen extends ConsumerWidget {
       if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('기록이 삭제되었습니다'),
+            content: Text('기록이 삭제됐어요'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -660,7 +664,7 @@ class _InbodyResultCard extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -833,7 +837,7 @@ class _BodyCompositionChart extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
 
 /// PAL 앱 공통 텍스트 필드 위젯
 ///
@@ -64,10 +63,10 @@ class AppTextField extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final hasError = errorText != null && errorText!.isNotEmpty;
 
-    // 테두리 색상 설정
-    final defaultBorderColor = isDark ? Colors.grey[600]! : Colors.grey[300]!;
-    final focusedBorderColor = AppTheme.primary;
-    final errorBorderColor = AppTheme.error;
+    // 테두리 색상 설정 (Toss Design System)
+    final defaultBorderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFD9D9D9);
+    final focusedBorderColor = const Color(0xFF0064FF); // Toss Blue
+    final errorBorderColor = const Color(0xFFF04452); // Toss Red
 
     // 비활성화 배경색
     final disabledFillColor = isDark ? Colors.grey[800] : Colors.grey[200];
@@ -81,9 +80,9 @@ class AppTextField extends StatelessWidget {
           Text(
             label!,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
               color: hasError
-                  ? AppTheme.error
+                  ? const Color(0xFFF04452)
                   : theme.textTheme.bodyMedium?.color,
             ),
           ),
@@ -103,7 +102,7 @@ class AppTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
-              color: isDark ? Colors.grey[500] : Colors.grey[400],
+              color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFFB0B0B0),
             ),
             filled: !enabled,
             fillColor: !enabled ? disabledFillColor : null,
@@ -111,60 +110,54 @@ class AppTextField extends StatelessWidget {
                 ? Icon(
                     prefixIcon,
                     color: hasError
-                        ? AppTheme.error
+                        ? const Color(0xFFF04452)
                         : (isDark ? Colors.grey[400] : Colors.grey[600]),
                   )
                 : null,
             suffixIcon: suffix,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
+              horizontal: 0,
               vertical: 14,
             ),
-            // 기본 테두리
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            // 기본 테두리 (Toss Design System - UnderlineInputBorder)
+            border: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: defaultBorderColor,
                 width: 1,
               ),
             ),
             // 활성화 테두리
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            enabledBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: hasError ? errorBorderColor : defaultBorderColor,
                 width: hasError ? 1.5 : 1,
               ),
             ),
             // 포커스 테두리
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: hasError ? errorBorderColor : focusedBorderColor,
                 width: 2,
               ),
             ),
             // 에러 테두리
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            errorBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: errorBorderColor,
                 width: 1.5,
               ),
             ),
             // 포커스 + 에러 테두리
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            focusedErrorBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: errorBorderColor,
                 width: 2,
               ),
             ),
             // 비활성화 테두리
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            disabledBorder: UnderlineInputBorder(
               borderSide: BorderSide(
-                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFD9D9D9),
                 width: 1,
               ),
             ),
@@ -181,14 +174,14 @@ class AppTextField extends StatelessWidget {
               Icon(
                 Icons.error_outline,
                 size: 14,
-                color: AppTheme.error,
+                color: const Color(0xFFF04452),
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   errorText!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.error,
+                    color: const Color(0xFFF04452),
                   ),
                 ),
               ),

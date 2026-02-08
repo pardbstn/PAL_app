@@ -27,19 +27,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ),
     _OnboardingPage(
       icon: Icons.camera_alt_rounded,
-      iconColor: const Color(0xFF10B981),
+      iconColor: const Color(0xFF00C471),
       title: '운동/식단 인증',
       description: '사진으로 간편하게 인증하고\n트레이너에게 피드백을 받아요',
     ),
     _OnboardingPage(
       icon: Icons.insights_rounded,
-      iconColor: const Color(0xFFF59E0B),
+      iconColor: const Color(0xFFFF8A00),
       title: '데이터 기반 인사이트',
       description: '체성분 변화를 그래프로 보고\nAI가 개선점을 알려드려요',
     ),
     _OnboardingPage(
       icon: Icons.draw_rounded,
-      iconColor: const Color(0xFF2563EB),
+      iconColor: const Color(0xFF0064FF),
       title: '전자서명으로 간편하게',
       description: '수업 완료 시 전자서명으로\nPT 회차를 관리해요',
     ),
@@ -133,7 +133,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: _currentPage == index
-                              ? const Color(0xFF2563EB)
+                              ? const Color(0xFF0064FF)
                               : colorScheme.onSurface.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -150,7 +150,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     child: FilledButton(
                       onPressed: _nextPage,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
+                        backgroundColor: const Color(0xFF0064FF),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -225,11 +225,11 @@ class _OnboardingPageWidget extends StatelessWidget {
             ),
           )
               .animate(target: isActive ? 1 : 0)
-              .fadeIn(duration: 400.ms)
+              .fadeIn(duration: 200.ms)
               .scale(
                 begin: const Offset(0.8, 0.8),
                 end: const Offset(1.0, 1.0),
-                duration: 400.ms,
+                duration: 200.ms,
                 curve: Curves.easeOut,
               ),
 
@@ -245,9 +245,9 @@ class _OnboardingPageWidget extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           )
-              .animate(target: isActive ? 1 : 0, delay: 100.ms)
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, end: 0, duration: 400.ms),
+              .animate(target: isActive ? 1 : 0, delay: 50.ms)
+              .fadeIn(duration: 200.ms)
+              .slideY(begin: 0.02, end: 0, duration: 200.ms),
 
           const SizedBox(height: 16),
 
@@ -262,9 +262,9 @@ class _OnboardingPageWidget extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           )
-              .animate(target: isActive ? 1 : 0, delay: 200.ms)
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, end: 0, duration: 400.ms),
+              .animate(target: isActive ? 1 : 0, delay: 100.ms)
+              .fadeIn(duration: 200.ms)
+              .slideY(begin: 0.02, end: 0, duration: 200.ms),
         ],
       ),
     );

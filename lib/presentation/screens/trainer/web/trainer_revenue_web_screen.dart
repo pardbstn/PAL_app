@@ -75,14 +75,14 @@ class _TrainerRevenueWebScreenState
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
-            ).animate().fadeIn(duration: 300.ms),
+            ).animate().fadeIn(duration: 200.ms),
             const SizedBox(height: 4),
             Text(
-              '결제 내역을 관리하고 매출을 분석하세요',
+              '결제 내역을 관리하고 매출을 분석해보세요',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isDark ? Colors.white60 : Colors.black54,
                   ),
-            ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
+            ).animate().fadeIn(duration: 200.ms, delay: 50.ms),
           ],
         ),
         Row(
@@ -104,7 +104,7 @@ class _TrainerRevenueWebScreenState
                   vertical: 16,
                 ),
               ),
-            ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
+            ).animate().fadeIn(duration: 200.ms, delay: 100.ms),
           ],
         ),
       ],
@@ -229,7 +229,7 @@ class _TrainerRevenueWebScreenState
                   ),
                 ),
               ],
-            ).animate().fadeIn(duration: 400.ms);
+            ).animate().fadeIn(duration: 200.ms);
           },
         );
       },
@@ -280,7 +280,7 @@ class _TrainerRevenueWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
+    ).animate().fadeIn(duration: 200.ms, delay: 50.ms);
   }
 
   /// 바 차트
@@ -448,7 +448,7 @@ class _TrainerRevenueWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: 200.ms);
+    ).animate().fadeIn(duration: 200.ms, delay: 100.ms);
   }
 
   /// PlutoGrid 테이블
@@ -667,7 +667,7 @@ class _TrainerRevenueWebScreenState
           ),
           const SizedBox(height: 16),
           Text(
-            '이 달의 결제 내역이 없습니다',
+            '이 달의 결제 내역이 없어요',
             style: TextStyle(
               color: isDark ? Colors.white60 : Colors.black54,
               fontSize: 16,
@@ -697,7 +697,7 @@ class _TrainerRevenueWebScreenState
           ),
           const SizedBox(height: 16),
           Text(
-            '데이터를 불러오지 못했습니다',
+            '데이터를 불러오지 못했어요',
             style: TextStyle(
               color: isDark ? Colors.white : Colors.black87,
             ),

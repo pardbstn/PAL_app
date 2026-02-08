@@ -186,7 +186,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
+    ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.02, end: 0);
   }
 
   Widget _buildWideLayout(
@@ -351,7 +351,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
                       height: 8,
                       margin: const EdgeInsets.symmetric(horizontal: 1),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF59E0B),
+                        color: Color(0xFFFF8A00),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -373,7 +373,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
           ref.read(focusedDateProvider.notifier).setDate(focusedDay);
         },
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   Widget _buildCalendarLoading(BuildContext context) {
@@ -396,7 +396,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
           children: [
             Icon(Icons.error_outline, size: 48, color: colorScheme.error),
             const SizedBox(height: 16),
-            const Text('일정을 불러올 수 없습니다'),
+            const Text('일정을 불러올 수 없어요'),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () {
@@ -485,7 +485,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
                       Icon(Icons.event_available, size: 48, color: Colors.grey[300]),
                       const SizedBox(height: 16),
                       Text(
-                        '일정이 없습니다',
+                        '일정이 없어요',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
@@ -507,13 +507,13 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
                     schedule: daySchedules[index],
                     onTap: () => _showScheduleDetailDialog(context, daySchedules[index]),
                     onStatusChange: (status) => _updateScheduleStatus(daySchedules[index], status),
-                  ).animate().fadeIn(duration: 300.ms, delay: (50 * index).ms).slideX(begin: 0.1, end: 0);
+                  ).animate().fadeIn(duration: 200.ms, delay: (50 * index).ms).slideX(begin: 0.02, end: 0);
                 },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => Center(
-              child: Text('일정을 불러올 수 없습니다', style: TextStyle(color: Colors.grey[600])),
+              child: Text('일정을 불러올 수 없어요', style: TextStyle(color: Colors.grey[600])),
             ),
           ),
         ),
@@ -583,12 +583,12 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (schedule.isPtSchedule ? dialogColorScheme.primary : const Color(0xFFF59E0B)).withValues(alpha: 0.1),
+                color: (schedule.isPtSchedule ? dialogColorScheme.primary : const Color(0xFFFF8A00)).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 schedule.isPtSchedule ? Icons.fitness_center : Icons.event,
-                color: schedule.isPtSchedule ? dialogColorScheme.primary : const Color(0xFFF59E0B),
+                color: schedule.isPtSchedule ? dialogColorScheme.primary : const Color(0xFFFF8A00),
                 size: 20,
               ),
             ),
@@ -654,7 +654,7 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
       await ref.read(scheduleNotifierProvider.notifier).updateScheduleStatus(schedule.id, status);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정이 ${_getStatusLabel(status)}로 변경되었습니다')),
+        SnackBar(content: Text('일정이 ${_getStatusLabel(status)}로 변경됐어요')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -675,10 +675,10 @@ class _TrainerScheduleWebScreenState extends ConsumerState<TrainerScheduleWebScr
 
   Color _getStatusColor(ScheduleStatus status) {
     return switch (status) {
-      ScheduleStatus.scheduled => const Color(0xFF2563EB),
-      ScheduleStatus.completed => const Color(0xFF10B981),
+      ScheduleStatus.scheduled => const Color(0xFF0064FF),
+      ScheduleStatus.completed => const Color(0xFF00C471),
       ScheduleStatus.cancelled => Colors.grey,
-      ScheduleStatus.noShow => const Color(0xFFEF4444),
+      ScheduleStatus.noShow => const Color(0xFFF04452),
     };
   }
 }
@@ -707,7 +707,7 @@ class _ScheduleCardState extends State<_ScheduleCard> {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPt = widget.schedule.isPtSchedule;
-    final accentColor = isPt ? colorScheme.primary : const Color(0xFFF59E0B);
+    final accentColor = isPt ? colorScheme.primary : const Color(0xFFFF8A00);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -808,7 +808,7 @@ class _ScheduleCardState extends State<_ScheduleCard> {
                       value: ScheduleStatus.completed,
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, size: 18, color: Color(0xFF10B981)),
+                          Icon(Icons.check_circle, size: 18, color: Color(0xFF00C471)),
                           SizedBox(width: 8),
                           Text('완료'),
                         ],
@@ -818,7 +818,7 @@ class _ScheduleCardState extends State<_ScheduleCard> {
                       value: ScheduleStatus.noShow,
                       child: Row(
                         children: [
-                          Icon(Icons.person_off, size: 18, color: Color(0xFFEF4444)),
+                          Icon(Icons.person_off, size: 18, color: Color(0xFFF04452)),
                           SizedBox(width: 8),
                           Text('노쇼'),
                         ],
@@ -870,10 +870,10 @@ class _ScheduleCardState extends State<_ScheduleCard> {
 
   Color _getStatusColor(ScheduleStatus status) {
     return switch (status) {
-      ScheduleStatus.scheduled => const Color(0xFF2563EB),
-      ScheduleStatus.completed => const Color(0xFF10B981),
+      ScheduleStatus.scheduled => const Color(0xFF0064FF),
+      ScheduleStatus.completed => const Color(0xFF00C471),
       ScheduleStatus.cancelled => Colors.grey,
-      ScheduleStatus.noShow => const Color(0xFFEF4444),
+      ScheduleStatus.noShow => const Color(0xFFF04452),
     };
   }
 }

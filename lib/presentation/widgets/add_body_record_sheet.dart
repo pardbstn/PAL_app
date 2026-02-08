@@ -7,7 +7,6 @@ import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/data/models/body_record_model.dart';
 import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/body_records_provider.dart';
-import 'package:flutter_pal_app/presentation/providers/streak_provider.dart';
 
 /// 체성분 기록 추가 바텀시트
 class AddBodyRecordSheet extends ConsumerStatefulWidget {
@@ -238,7 +237,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     final existingRecord = await repository.getByDate(widget.memberId, date);
     setState(() {
       _dateWarning = existingRecord != null
-          ? '이 날짜에 이미 기록이 있습니다. 저장 시 기존 기록을 삭제한 후 다시 시도해주세요.'
+          ? '이 날짜에 이미 기록이 있어요. 저장 시 기존 기록을 삭제한 후 다시 시도해주세요'
           : null;
     });
   }
@@ -392,8 +391,8 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildDataSourceChip(
-                label: 'InBody 연동',
-                icon: Icons.devices_outlined,
+                label: 'AI 인바디 분석',
+                icon: Icons.camera_alt_outlined,
                 source: RecordSource.inbodyApi,
               ),
             ),
@@ -500,7 +499,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _dateWarning = '이 날짜에 이미 기록이 있습니다. 다른 날짜를 선택해주세요.';
+            _dateWarning = '이 날짜에 이미 기록이 있어요. 다른 날짜를 선택해주세요';
           });
         }
         return;
@@ -527,9 +526,6 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
 
       await repository.create(record);
 
-      // 스트릭 업데이트
-      await ref.read(streakNotifierProvider.notifier).recordWeight(widget.memberId);
-
       // Provider 무효화
       ref.invalidate(bodyRecordsProvider(widget.memberId));
 
@@ -537,7 +533,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('체성분 기록이 저장되었습니다'),
+            content: Text('체성분 기록이 저장됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );

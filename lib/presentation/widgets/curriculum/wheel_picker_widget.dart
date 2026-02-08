@@ -27,7 +27,7 @@ class _WheelPickerWidgetState extends State<WheelPickerWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
 
     return Column(
       mainAxisSize: MainAxisSize.min,

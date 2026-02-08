@@ -164,7 +164,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
     if (trainer == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('트레이너 정보를 찾을 수 없습니다')));
+      ).showSnackBar(const SnackBar(content: Text('트레이너 정보를 찾을 수 없어요')));
       return;
     }
 
@@ -223,7 +223,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              savedCount > 1 ? '$savedCount개의 일정이 추가되었습니다' : '일정이 추가되었습니다',
+              savedCount > 1 ? '$savedCount개의 일정이 추가됐어요' : '일정이 추가됐어요',
             ),
             backgroundColor: AppTheme.secondary,
           ),
@@ -236,7 +236,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('일정 추가 실패: $e'),
+            content: Text('일정 추가에 실패했어요: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -284,7 +284,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      '등록된 회원이 없습니다',
+                      '등록된 회원이 없어요',
                       style: TextStyle(color: Colors.grey),
                     ),
                   );
@@ -314,7 +314,7 @@ class _AddScheduleScreenState extends ConsumerState<AddScheduleScreen> {
                 );
               },
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('회원 로드 실패: $e'),
+              error: (e, _) => Text('회원을 불러오지 못했어요: $e'),
             ),
             const SizedBox(height: 20),
 

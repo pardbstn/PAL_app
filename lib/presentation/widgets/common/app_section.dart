@@ -82,9 +82,9 @@ class AppSection extends StatelessWidget {
                       children: [
                         Text(
                           title!,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppColors.gray900,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : AppColors.gray800,
                           ),
                         ),
                         if (subtitle != null) ...[
@@ -115,8 +115,8 @@ class AppSection extends StatelessWidget {
     if (animate) {
       section = section
           .animate(delay: animationDelay)
-          .fadeIn(duration: 300.ms, curve: Curves.easeOut)
-          .slideY(begin: 0.02, end: 0, duration: 300.ms, curve: Curves.easeOut);
+          .fadeIn(duration: 200.ms, curve: Curves.easeOut)
+          .slideY(begin: 0.01, end: 0, duration: 200.ms, curve: Curves.easeOut);
     }
 
     return section;
@@ -146,7 +146,7 @@ class AppSection extends StatelessWidget {
           const SizedBox(width: AppSpacing.xs),
           Icon(
             Icons.chevron_right_rounded,
-            size: AppIconSize.sm,
+            size: 16,
             color: isDark ? AppColors.gray400 : AppColors.gray500,
           ),
         ],

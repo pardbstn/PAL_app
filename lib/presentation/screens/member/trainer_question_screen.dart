@@ -47,7 +47,7 @@ class _TrainerQuestionScreenState extends ConsumerState<TrainerQuestionScreen>
       return Scaffold(
         appBar: AppBar(title: const Text('트레이너에게 질문')),
         body: const Center(
-          child: Text('회원 정보를 불러올 수 없습니다.'),
+          child: Text('회원 정보를 불러올 수 없어요'),
         ),
       );
     }
@@ -145,7 +145,7 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
   Future<void> _submitRequest() async {
     if (_contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('질문 내용을 입력해주세요.')),
+        const SnackBar(content: Text('질문 내용을 입력해주세요')),
       );
       return;
     }
@@ -167,7 +167,7 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
       if (requestId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('질문이 전송되었습니다.'),
+            content: Text('질문이 전송됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -183,7 +183,7 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('문제가 생겼어요: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -202,7 +202,7 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
     final subscriptionAsync = ref.watch(currentSubscriptionProvider(widget.memberId));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -266,7 +266,7 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 300.ms).slideX(begin: -0.1, end: 0);
+              ).animate().fadeIn(duration: 200.ms).slideX(begin: -0.02, end: 0);
             },
           ),
           const SizedBox(height: 24),
@@ -314,8 +314,8 @@ class _NewQuestionTabState extends ConsumerState<_NewQuestionTab> {
             maxLength: 1000,
             decoration: InputDecoration(
               hintText: _selectedType == RequestType.formCheck
-                  ? '어떤 운동의 폼을 체크받고 싶으신가요?\n영상이나 이미지를 함께 첨부해주세요.'
-                  : '트레이너에게 궁금한 점을 질문해주세요.',
+                  ? '어떤 운동의 폼을 체크받고 싶으신가요?\n영상이나 이미지를 함께 첨부해주세요'
+                  : '트레이너에게 궁금한 점을 질문해주세요',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -694,7 +694,7 @@ class _RequestHistoryTab extends ConsumerWidget {
         if (requests.isEmpty) {
           return const EmptyState(
             type: EmptyStateType.messages,
-            customTitle: '아직 질문 내역이 없습니다',
+            customTitle: '아직 질문 내역이 없어요',
             customMessage: '트레이너에게 궁금한 점을 질문해보세요',
           );
         }

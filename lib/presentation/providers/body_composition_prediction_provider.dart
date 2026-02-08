@@ -120,10 +120,12 @@ class BodyCompositionPredictionNotifier
           .limit(20)
           .get();
 
-      if (bodyRecords.docs.isEmpty) {
+      if (bodyRecords.docs.length < 2) {
         state = state.copyWith(
           isLoading: false,
-          error: '체성분 기록이 없습니다.\n먼저 체중을 기록해주세요.',
+          error: bodyRecords.docs.isEmpty
+              ? '체성분 기록이 없어요.\n먼저 체중을 기록해주세요'
+              : '예측을 위해 최소 2개 이상의 기록이 필요합니다.\n체중을 한 번 더 기록해주세요',
         );
         return;
       }
@@ -140,52 +142,119 @@ class BodyCompositionPredictionNotifier
       // 최신 기록 가져오기
       final latestData = sortedDocs.first.data();
       final latestWeight = (latestData['weight'] as num?)?.toDouble();
+      final latestMuscle = (latestData['muscleMass'] as num?)?.toDouble();
+      final latestBodyFat = (latestData['bodyFatPercent'] as num?)?.toDouble();
 
       if (latestWeight == null) {
-        state = state.copyWith(isLoading: false, error: '체중 데이터가 없습니다.');
+        state = state.copyWith(isLoading: false, error: '체중 데이터가 없어요');
         return;
       }
 
       // 간단한 트렌드 계산 (있는 데이터로)
-      double? weeklyTrend;
+      double? weightWeeklyTrend;
+      double? muscleWeeklyTrend;
+      double? bodyFatWeeklyTrend;
+
       if (sortedDocs.length >= 2) {
         final oldestData = sortedDocs.last.data();
         final oldestWeight = (oldestData['weight'] as num?)?.toDouble();
+        final oldestMuscle = (oldestData['muscleMass'] as num?)?.toDouble();
+        final oldestBodyFat = (oldestData['bodyFatPercent'] as num?)?.toDouble();
+
+        final weeks = sortedDocs.length / 2; // 대략적인 주 수
+        final weeksNonZero = weeks > 0 ? weeks : 1;
+
         if (oldestWeight != null) {
           final weightChange = latestWeight - oldestWeight;
-          final weeks = sortedDocs.length / 2; // 대략적인 주 수
-          weeklyTrend = weightChange / (weeks > 0 ? weeks : 1);
+          weightWeeklyTrend = weightChange / weeksNonZero;
+        }
+
+        if (latestMuscle != null && oldestMuscle != null) {
+          final muscleChange = latestMuscle - oldestMuscle;
+          muscleWeeklyTrend = muscleChange / weeksNonZero;
+        }
+
+        if (latestBodyFat != null && oldestBodyFat != null) {
+          final bodyFatChange = latestBodyFat - oldestBodyFat;
+          bodyFatWeeklyTrend = bodyFatChange / weeksNonZero;
         }
       }
 
       // 로컬 예측 모델 생성
       final now = DateTime.now();
+      final confidence = sortedDocs.length >= 5 ? 0.6 : 0.3;
 
-      // 4주 후 예측 체중 계산
-      final predicted4Weeks = latestWeight + (weeklyTrend ?? 0) * 4;
+      // 4주 후 예측 계산
+      final predicted4WeeksWeight = latestWeight + (weightWeeklyTrend ?? 0) * 4;
 
       final weightPrediction = MetricPrediction(
         current: latestWeight,
-        predicted: predicted4Weeks,
-        weeklyTrend: weeklyTrend ?? 0,
-        confidence: sortedDocs.length >= 5 ? 0.6 : 0.3,
+        predicted: predicted4WeeksWeight,
+        weeklyTrend: weightWeeklyTrend ?? 0,
+        confidence: confidence,
         targetValue: null,
         estimatedWeeksToTarget: null,
       );
+
+      // 골격근량 예측 (데이터가 있는 경우)
+      MetricPrediction? musclePrediction;
+      if (latestMuscle != null) {
+        final predicted4WeeksMuscle = latestMuscle + (muscleWeeklyTrend ?? 0) * 4;
+        musclePrediction = MetricPrediction(
+          current: latestMuscle,
+          predicted: predicted4WeeksMuscle,
+          weeklyTrend: muscleWeeklyTrend ?? 0,
+          confidence: confidence,
+          targetValue: null,
+          estimatedWeeksToTarget: null,
+        );
+      }
+
+      // 체지방률 예측 (데이터가 있는 경우)
+      MetricPrediction? bodyFatPrediction;
+      if (latestBodyFat != null) {
+        final predicted4WeeksBodyFat = latestBodyFat + (bodyFatWeeklyTrend ?? 0) * 4;
+        bodyFatPrediction = MetricPrediction(
+          current: latestBodyFat,
+          predicted: predicted4WeeksBodyFat,
+          weeklyTrend: bodyFatWeeklyTrend ?? 0,
+          confidence: confidence,
+          targetValue: null,
+          estimatedWeeksToTarget: null,
+        );
+      }
+
+      // dataPointsUsed 계산 (각 메트릭별 유효한 데이터 개수)
+      final muscleCount = sortedDocs.where((doc) =>
+        (doc.data()['muscleMass'] as num?) != null
+      ).length;
+      final bodyFatCount = sortedDocs.where((doc) =>
+        (doc.data()['bodyFatPercent'] as num?) != null
+      ).length;
+
+      final dataPointsUsed = {
+        'weight': sortedDocs.length,
+        if (muscleCount > 0) 'muscleMass': muscleCount,
+        if (bodyFatCount > 0) 'bodyFatPercent': bodyFatCount,
+      };
 
       final model = BodyCompositionPredictionModel(
         id: 'local_${DateTime.now().millisecondsSinceEpoch}',
         memberId: memberId,
         trainerId: '',
         weightPrediction: weightPrediction,
-        musclePrediction: null,
-        bodyFatPrediction: null,
+        musclePrediction: musclePrediction,
+        bodyFatPrediction: bodyFatPrediction,
         analysisMessage: _generateLocalAnalysisMessage(
           latestWeight,
-          weeklyTrend,
+          weightWeeklyTrend,
           sortedDocs.length,
+          latestMuscle,
+          muscleWeeklyTrend,
+          latestBodyFat,
+          bodyFatWeeklyTrend,
         ),
-        dataPointsUsed: {'weight': sortedDocs.length},
+        dataPointsUsed: dataPointsUsed,
         createdAt: now,
       );
 
@@ -198,7 +267,7 @@ class BodyCompositionPredictionNotifier
       // 폴백도 실패하면 원래 에러 표시
       state = state.copyWith(
         isLoading: false,
-        error: '예측 서비스를 사용할 수 없습니다.\n잠시 후 다시 시도해주세요.',
+        error: '예측 서비스를 사용할 수 없어요.\n잠시 후 다시 시도해주세요',
       );
     }
   }
@@ -206,29 +275,68 @@ class BodyCompositionPredictionNotifier
   /// 로컬 분석 메시지 생성
   String _generateLocalAnalysisMessage(
     double currentWeight,
-    double? weeklyTrend,
+    double? weightWeeklyTrend,
     int dataPoints,
+    double? currentMuscle,
+    double? muscleWeeklyTrend,
+    double? currentBodyFat,
+    double? bodyFatWeeklyTrend,
   ) {
     final buffer = StringBuffer();
 
-    buffer.writeln('📊 현재 체중: ${currentWeight.toStringAsFixed(1)}kg');
+    buffer.writeln('📊 현재 체성분');
+    buffer.writeln('체중: ${currentWeight.toStringAsFixed(1)}kg');
+    if (currentMuscle != null) {
+      buffer.writeln('골격근량: ${currentMuscle.toStringAsFixed(1)}kg');
+    }
+    if (currentBodyFat != null) {
+      buffer.writeln('체지방률: ${currentBodyFat.toStringAsFixed(1)}%');
+    }
     buffer.writeln();
 
-    if (weeklyTrend != null) {
-      if (weeklyTrend < -0.1) {
+    // 체중 트렌드
+    if (weightWeeklyTrend != null) {
+      if (weightWeeklyTrend < -0.1) {
         buffer.writeln(
-          '📉 주간 ${weeklyTrend.abs().toStringAsFixed(2)}kg 감량 추세입니다.',
+          '📉 체중: 주간 ${weightWeeklyTrend.abs().toStringAsFixed(2)}kg 감량 추세',
         );
-      } else if (weeklyTrend > 0.1) {
-        buffer.writeln('📈 주간 ${weeklyTrend.toStringAsFixed(2)}kg 증가 추세입니다.');
+      } else if (weightWeeklyTrend > 0.1) {
+        buffer.writeln('📈 체중: 주간 ${weightWeeklyTrend.toStringAsFixed(2)}kg 증가 추세');
       } else {
-        buffer.writeln('➡️ 체중이 안정적으로 유지되고 있습니다.');
+        buffer.writeln('➡️ 체중: 안정적으로 유지');
       }
-      buffer.writeln();
     }
 
+    // 골격근량 트렌드
+    if (currentMuscle != null && muscleWeeklyTrend != null) {
+      if (muscleWeeklyTrend < -0.05) {
+        buffer.writeln(
+          '📉 골격근량: 주간 ${muscleWeeklyTrend.abs().toStringAsFixed(2)}kg 감소 추세',
+        );
+      } else if (muscleWeeklyTrend > 0.05) {
+        buffer.writeln('💪 골격근량: 주간 ${muscleWeeklyTrend.toStringAsFixed(2)}kg 증가 추세');
+      } else {
+        buffer.writeln('➡️ 골격근량: 안정적으로 유지');
+      }
+    }
+
+    // 체지방률 트렌드
+    if (currentBodyFat != null && bodyFatWeeklyTrend != null) {
+      if (bodyFatWeeklyTrend < -0.1) {
+        buffer.writeln(
+          '📉 체지방률: 주간 ${bodyFatWeeklyTrend.abs().toStringAsFixed(2)}% 감소 추세',
+        );
+      } else if (bodyFatWeeklyTrend > 0.1) {
+        buffer.writeln('📈 체지방률: 주간 ${bodyFatWeeklyTrend.toStringAsFixed(2)}% 증가 추세');
+      } else {
+        buffer.writeln('➡️ 체지방률: 안정적으로 유지');
+      }
+    }
+
+    buffer.writeln();
+
     if (dataPoints < 5) {
-      buffer.writeln('💡 더 정확한 예측을 위해 체중을 꾸준히 기록해주세요.');
+      buffer.writeln('💡 더 정확한 예측을 위해 체성분을 꾸준히 기록해주세요.');
       buffer.writeln('   (현재 $dataPoints개 기록, 권장 10개 이상)');
     }
 

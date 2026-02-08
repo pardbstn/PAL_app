@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/subscription_model.dart';
 
 /// 구독 플랜 카드 위젯
@@ -74,18 +75,12 @@ class SubscriptionCard extends StatelessWidget {
           border: isRecommended
               ? null
               : Border.all(
-                  color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+                  color: isDark ? AppColors.darkBorder : AppColors.gray100,
                   width: 1,
                 ),
           boxShadow: isRecommended
               ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+              : AppShadows.sm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

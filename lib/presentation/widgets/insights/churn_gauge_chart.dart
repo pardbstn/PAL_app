@@ -95,13 +95,13 @@ class _ChurnGaugeChartState extends State<ChurnGaugeChart>
   Color _getRiskColor(String level) {
     switch (level.toUpperCase()) {
       case 'CRITICAL':
-        return const Color(0xFFEF4444); // 빨강
+        return const Color(0xFFF04452); // 빨강
       case 'HIGH':
-        return const Color(0xFFF59E0B); // 주황
+        return const Color(0xFFFF8A00); // 주황
       case 'MEDIUM':
         return const Color(0xFFFBBF24); // 노랑
       case 'LOW':
-        return const Color(0xFF10B981); // 초록
+        return const Color(0xFF00C471); // 초록
       default:
         return AppTheme.primary;
     }
@@ -263,13 +263,13 @@ class _ChurnGaugeChartState extends State<ChurnGaugeChart>
     // 점수에 따른 색상 결정
     Color scoreColor;
     if (score >= 80) {
-      scoreColor = const Color(0xFFEF4444); // CRITICAL
+      scoreColor = const Color(0xFFF04452); // CRITICAL
     } else if (score >= 60) {
-      scoreColor = const Color(0xFFF59E0B); // HIGH
+      scoreColor = const Color(0xFFFF8A00); // HIGH
     } else if (score >= 40) {
       scoreColor = const Color(0xFFFBBF24); // MEDIUM
     } else {
-      scoreColor = const Color(0xFF10B981); // LOW
+      scoreColor = const Color(0xFF00C471); // LOW
     }
 
     return [
@@ -405,13 +405,13 @@ class _ChurnGaugeChartState extends State<ChurnGaugeChart>
     // 점수에 따른 색상
     Color barColor;
     if (score >= 80) {
-      barColor = const Color(0xFFEF4444);
+      barColor = const Color(0xFFF04452);
     } else if (score >= 60) {
-      barColor = const Color(0xFFF59E0B);
+      barColor = const Color(0xFFFF8A00);
     } else if (score >= 40) {
       barColor = const Color(0xFFFBBF24);
     } else {
-      barColor = const Color(0xFF10B981);
+      barColor = const Color(0xFF00C471);
     }
 
     return Padding(
@@ -517,13 +517,13 @@ class ChurnGaugeChartCompact extends StatelessWidget {
   Color _getRiskColor(String level) {
     switch (level.toUpperCase()) {
       case 'CRITICAL':
-        return const Color(0xFFEF4444);
+        return const Color(0xFFF04452);
       case 'HIGH':
-        return const Color(0xFFF59E0B);
+        return const Color(0xFFFF8A00);
       case 'MEDIUM':
         return const Color(0xFFFBBF24);
       case 'LOW':
-        return const Color(0xFF10B981);
+        return const Color(0xFF00C471);
       default:
         return AppTheme.primary;
     }

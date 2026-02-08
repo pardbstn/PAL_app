@@ -196,11 +196,57 @@ extension InsightModelX on InsightModel {
   Color get priorityColor {
     switch (priority) {
       case InsightPriority.high:
-        return const Color(0xFFEF4444);
+        return const Color(0xFFF04452);
       case InsightPriority.medium:
-        return const Color(0xFFF59E0B);
+        return const Color(0xFFFF8A00);
       case InsightPriority.low:
         return const Color(0xFF3B82F6);
+    }
+  }
+
+  /// 인사이트 유형별 색상
+  /// 이탈/출석 위험: 빨간색 / 성과: 초록색 / 추천: 파란색 / 재등록/PT종료: 주황색 / 랭킹: 보라색
+  Color get typeColor {
+    switch (type) {
+      // 이탈 위험 (빨간색)
+      case InsightType.churnRisk:
+      case InsightType.attendanceAlert:
+      case InsightType.noshowPattern:
+        return const Color(0xFFF04452); // 빨간색
+
+      // 재등록 가능성 / PT종료 임박 (주황색)
+      case InsightType.renewalLikelihood:
+      case InsightType.ptExpiry:
+        return const Color(0xFFFF8A00); // 주황색
+
+      // 운동 성과 (초록색)
+      case InsightType.performance:
+      case InsightType.workoutVolume:
+      case InsightType.workoutAchievement:
+        return const Color(0xFF00C471); // 초록색
+
+      // 추천/제안 (파란색)
+      case InsightType.recommendation:
+      case InsightType.workoutRecommendation:
+      case InsightType.plateauDetection:
+        return const Color(0xFF0064FF); // 파란색
+
+      // 성과 랭킹 (보라색)
+      case InsightType.performanceRanking:
+      case InsightType.benchmark:
+        return const Color(0xFF8B5CF6); // 보라색
+
+      // 기타 (회원 인사이트)
+      case InsightType.weightProgress:
+      case InsightType.bodyPrediction:
+      case InsightType.bodyChangeReport:
+        return const Color(0xFF8B5CF6); // 보라색
+
+      case InsightType.attendanceHabit:
+      case InsightType.nutritionBalance:
+      case InsightType.conditionPattern:
+      case InsightType.goalProgress:
+        return const Color(0xFF0064FF); // 파란색
     }
   }
 

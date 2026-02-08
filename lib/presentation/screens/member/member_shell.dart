@@ -2,89 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/liquid_glass_nav_bar.dart';
 
 /// 회원 앱 셸 (Bottom Navigation - 5개 탭)
-/// 1. 홈 2. 내 기록 3. 캘린더 4. 식단 5. 메시지
-class MemberShell extends ConsumerWidget {
+/// 스와이프 탭 전환 + 슬라이드 애니메이션 지원
+class MemberShell extends ConsumerStatefulWidget {
   final Widget child;
 
   const MemberShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  ConsumerState<MemberShell> createState() => _MemberShellState();
+}
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF1A2140), const Color(0xFF162035)]
-                : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
-          ),
-        ),
-        // 페이지별 고유 키 + AnimatedSwitcher로 이전 페이지 잔상 방지
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder: (child, animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey(GoRouterState.of(context).uri.path),
-            child: child,
-          ),
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _calculateSelectedIndex(context),
-        onDestinationSelected: (index) => _onItemTapped(index, context),
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: '홈',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.fitness_center_outlined),
-            selectedIcon: Icon(Icons.fitness_center),
-            label: '내 기록',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_today),
-            label: '캘린더',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.restaurant_outlined),
-            selectedIcon: Icon(Icons.restaurant),
-            label: '식단',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-              child: const Icon(Icons.message_outlined),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-              child: const Icon(Icons.message),
-            ),
-            label: '메시지',
-          ),
-        ],
-      ),
-    );
-  }
+class _MemberShellState extends ConsumerState<MemberShell> {
+  /// 탭 전환 방향 (true = 오른쪽 탭으로 이동)
+  bool _slideForward = true;
+
+  /// 탭 라우트 목록 (순서대로)
+  static const _routes = [
+    AppRoutes.memberHome,
+    AppRoutes.memberRecords,
+    AppRoutes.memberCalendar,
+    AppRoutes.memberDiet,
+    AppRoutes.memberMessages,
+  ];
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
@@ -96,27 +40,101 @@ class MemberShell extends ConsumerWidget {
     return 0;
   }
 
-  void _onItemTapped(int index, BuildContext context) {
-    // 현재 위치와 동일한 탭이면 네비게이션 스킵 (중복 네비게이션 방지)
+  void _navigateToIndex(int index, BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
-    if (currentIndex == index) return;
+    if (currentIndex == index || index < 0 || index >= _routes.length) return;
+    _slideForward = index > currentIndex;
+    context.go(_routes[index]);
+  }
 
-    switch (index) {
-      case 0:
-        context.go(AppRoutes.memberHome);
-        break;
-      case 1:
-        context.go(AppRoutes.memberRecords);
-        break;
-      case 2:
-        context.go(AppRoutes.memberCalendar);
-        break;
-      case 3:
-        context.go(AppRoutes.memberDiet);
-        break;
-      case 4:
-        context.go(AppRoutes.memberMessages);
-        break;
-    }
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentIndex = _calculateSelectedIndex(context);
+    final currentPath = GoRouterState.of(context).uri.path;
+
+    return Scaffold(
+      extendBody: true,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          // 왼쪽 스와이프 → 다음 탭
+          if (details.primaryVelocity! < -400) {
+            _navigateToIndex(currentIndex + 1, context);
+          }
+          // 오른쪽 스와이프 → 이전 탭
+          else if (details.primaryVelocity! > 400) {
+            _navigateToIndex(currentIndex - 1, context);
+          }
+        },
+        child: Container(
+          color: isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              // 들어오는 화면: 방향에 따라 슬라이드 + 페이드
+              final isIncoming = child.key == ValueKey(currentPath);
+              if (isIncoming) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(_slideForward ? 0.15 : -0.15, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              }
+              // 나가는 화면: 페이드 아웃만
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(currentPath),
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: LiquidGlassNavBar(
+        currentIndex: currentIndex,
+        onTap: (index) => _navigateToIndex(index, context),
+        items: [
+          const LiquidGlassNavItem(
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home_rounded,
+            label: '홈',
+          ),
+          const LiquidGlassNavItem(
+            icon: Icons.fitness_center_outlined,
+            activeIcon: Icons.fitness_center_rounded,
+            label: '내 기록',
+          ),
+          const LiquidGlassNavItem(
+            icon: Icons.calendar_today_outlined,
+            activeIcon: Icons.calendar_today_rounded,
+            label: '캘린더',
+          ),
+          const LiquidGlassNavItem(
+            icon: Icons.restaurant_outlined,
+            activeIcon: Icons.restaurant_rounded,
+            label: '식단',
+          ),
+          LiquidGlassNavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            activeIcon: Icons.chat_bubble_rounded,
+            label: '메시지',
+            badge: unreadCount > 0 ? unreadCount : null,
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -79,30 +79,33 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // 검색바 + 통계
-          _buildSearchAndStats(),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          children: [
+            // 검색바 + 통계
+            _buildSearchAndStats(),
 
-          // 회원 목록
-          Expanded(
-            child: membersWithUserAsync.when(
-              loading: () => _buildShimmerList(),
-              error: (error, stack) => _buildErrorView(error),
-              data: (membersWithUser) {
-                // 검색 필터 적용
-                final filteredMembers =
-                    _filterBySearchWithUser(membersWithUser, searchQuery);
+            // 회원 목록
+            Expanded(
+              child: membersWithUserAsync.when(
+                loading: () => _buildShimmerList(),
+                error: (error, stack) => _buildErrorView(error),
+                data: (membersWithUser) {
+                  // 검색 필터 적용
+                  final filteredMembers =
+                      _filterBySearchWithUser(membersWithUser, searchQuery);
 
-                if (filteredMembers.isEmpty) {
-                  return _buildEmptyView(searchQuery.isNotEmpty);
-                }
+                  if (filteredMembers.isEmpty) {
+                    return _buildEmptyView(searchQuery.isNotEmpty);
+                  }
 
-                return _buildMemberListWithUser(filteredMembers);
-              },
+                  return _buildMemberListWithUser(filteredMembers);
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -131,7 +134,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
     final statsAsync = ref.watch(memberStatsProvider);
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Column(
         children: [
           // 검색바
@@ -236,7 +239,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
           baseColor: isDark ? AppColors.gray700 : AppColors.gray300,
           highlightColor: isDark ? AppColors.gray600 : AppColors.gray100,
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            padding: EdgeInsets.zero,
             itemCount: 5,
             itemBuilder: (context, index) {
               return Container(
@@ -334,7 +337,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       child: ListView.builder(
         // 검색/정렬 변경 시 애니메이션 재실행을 위한 키
         key: ValueKey('$searchQuery-${sortOption.name}'),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        padding: EdgeInsets.zero,
         itemCount: membersWithUser.length,
         itemBuilder: (context, index) {
           final mwu = membersWithUser[index];
@@ -370,7 +373,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('회원 수정'),
-        content: Text('${member.goalLabel} 목표의 회원 정보를 수정합니다.'),
+        content: Text('${member.goalLabel} 목표의 회원 정보를 수정할게요'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -396,7 +399,7 @@ class _TrainerMembersScreenState extends ConsumerState<TrainerMembersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('회원이 삭제되었습니다.'),
+            content: Text('회원이 삭제됐어요'),
             backgroundColor: AppColors.secondary,
           ),
         );

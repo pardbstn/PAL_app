@@ -2,94 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
+import 'package:flutter_pal_app/presentation/widgets/common/liquid_glass_nav_bar.dart';
 
-/// 트레이너 앱 셸 (Bottom Navigation)
-class TrainerShell extends ConsumerWidget {
+/// 트레이너 앱 셸 (Bottom Navigation - 4개 탭)
+/// 스와이프 탭 전환 + 슬라이드 애니메이션 지원
+class TrainerShell extends ConsumerStatefulWidget {
   final Widget child;
 
   const TrainerShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  ConsumerState<TrainerShell> createState() => _TrainerShellState();
+}
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF1A2140), const Color(0xFF162035)]
-                : [const Color(0xFFDBE1FE), const Color(0xFFD5F5E3)],
-          ),
-        ),
-        // 페이지별 고유 키 + AnimatedSwitcher로 이전 페이지 잔상 방지
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder: (child, animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey(GoRouterState.of(context).uri.path),
-            child: child,
-          ),
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _calculateSelectedIndex(context),
-        onDestinationSelected: (index) => _onItemTapped(index, context),
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: '홈',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.people_outlined),
-            selectedIcon: Icon(Icons.people),
-            label: '회원',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_today),
-            label: '캘린더',
-          ),
-          // 메시지 배지만 별도로 리빌드되도록 Consumer 사용
-          NavigationDestination(
-            icon: Consumer(
-              builder: (context, ref, _) {
-                final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
-                return Badge(
-                  isLabelVisible: unreadCount > 0,
-                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-                  child: const Icon(Icons.message_outlined),
-                );
-              },
-            ),
-            selectedIcon: Consumer(
-              builder: (context, ref, _) {
-                final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
-                return Badge(
-                  isLabelVisible: unreadCount > 0,
-                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-                  child: const Icon(Icons.message),
-                );
-              },
-            ),
-            label: '메시지',
-          ),
-        ],
-      ),
-    );
-  }
+class _TrainerShellState extends ConsumerState<TrainerShell> {
+  /// 탭 전환 방향 (true = 오른쪽 탭으로 이동)
+  bool _slideForward = true;
 
+  /// 탭 라우트 목록 (순서대로)
+  static const _routes = [
+    AppRoutes.trainerHome,
+    AppRoutes.trainerMembers,
+    AppRoutes.trainerCalendar,
+    AppRoutes.trainerMessages,
+  ];
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
@@ -100,24 +38,96 @@ class TrainerShell extends ConsumerWidget {
     return 0;
   }
 
-  void _onItemTapped(int index, BuildContext context) {
-    // 현재 위치와 동일한 탭이면 네비게이션 스킵 (중복 네비게이션 방지)
+  void _navigateToIndex(int index, BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
-    if (currentIndex == index) return;
+    if (currentIndex == index || index < 0 || index >= _routes.length) return;
+    _slideForward = index > currentIndex;
+    context.go(_routes[index]);
+  }
 
-    switch (index) {
-      case 0:
-        context.go(AppRoutes.trainerHome);
-        break;
-      case 1:
-        context.go(AppRoutes.trainerMembers);
-        break;
-      case 2:
-        context.go(AppRoutes.trainerCalendar);
-        break;
-      case 3:
-        context.go(AppRoutes.trainerMessages);
-        break;
-    }
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = ref.watch(totalUnreadCountProvider).value ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentIndex = _calculateSelectedIndex(context);
+    final currentPath = GoRouterState.of(context).uri.path;
+
+    return Scaffold(
+      extendBody: true,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          // 왼쪽 스와이프 → 다음 탭
+          if (details.primaryVelocity! < -400) {
+            _navigateToIndex(currentIndex + 1, context);
+          }
+          // 오른쪽 스와이프 → 이전 탭
+          else if (details.primaryVelocity! > 400) {
+            _navigateToIndex(currentIndex - 1, context);
+          }
+        },
+        child: Container(
+          color: isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              // 들어오는 화면: 방향에 따라 슬라이드 + 페이드
+              final isIncoming = child.key == ValueKey(currentPath);
+              if (isIncoming) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(_slideForward ? 0.15 : -0.15, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              }
+              // 나가는 화면: 페이드 아웃만
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(currentPath),
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: LiquidGlassNavBar(
+        currentIndex: currentIndex,
+        onTap: (index) => _navigateToIndex(index, context),
+        items: [
+          const LiquidGlassNavItem(
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home_rounded,
+            label: '홈',
+          ),
+          const LiquidGlassNavItem(
+            icon: Icons.people_outlined,
+            activeIcon: Icons.people_rounded,
+            label: '회원',
+          ),
+          const LiquidGlassNavItem(
+            icon: Icons.calendar_today_outlined,
+            activeIcon: Icons.calendar_today_rounded,
+            label: '캘린더',
+          ),
+          LiquidGlassNavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            activeIcon: Icons.chat_bubble_rounded,
+            label: '메시지',
+            badge: unreadCount > 0 ? unreadCount : null,
+          ),
+        ],
+      ),
+    );
   }
 }

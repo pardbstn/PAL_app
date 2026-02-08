@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_tokens.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
+import 'package:flutter_pal_app/core/utils/haptic_utils.dart';
 
 /// 리스트 타일 변형 타입
 enum AppListTileVariant {
@@ -75,8 +76,8 @@ class AppListTile extends StatelessWidget {
 
     final effectivePadding = contentPadding ??
         const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
+          horizontal: 20,
+          vertical: 16,
         );
 
     Widget tile = _buildTileContent(
@@ -90,8 +91,8 @@ class AppListTile extends StatelessWidget {
     if (animate) {
       tile = tile
           .animate(delay: animationDelay)
-          .fadeIn(duration: 300.ms, curve: Curves.easeOut)
-          .slideX(begin: -0.02, end: 0, duration: 300.ms, curve: Curves.easeOut);
+          .fadeIn(duration: 200.ms, curve: Curves.easeOut)
+          .slideX(begin: -0.01, end: 0, duration: 200.ms, curve: Curves.easeOut);
     }
 
     return tile;
@@ -105,14 +106,14 @@ class AppListTile extends StatelessWidget {
     EdgeInsets padding,
   ) {
     final titleStyle = theme.textTheme.bodyLarge?.copyWith(
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
       color: enabled
           ? (isDark ? Colors.white : AppColors.gray900)
           : (isDark ? AppColors.gray500 : AppColors.gray400),
     );
 
     final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
-      color: isDark ? AppColors.gray400 : AppColors.gray500,
+      color: isDark ? AppColors.gray300 : AppColors.gray400,
     );
 
     Widget content = Padding(
@@ -158,7 +159,7 @@ class AppListTile extends StatelessWidget {
             Icon(
               Icons.chevron_right_rounded,
               color: isDark ? AppColors.gray500 : AppColors.gray400,
-              size: AppIconSize.md,
+              size: 18,
             ),
           ],
         ],
@@ -175,10 +176,6 @@ class AppListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: AppRadius.mdBorderRadius,
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.gray200,
-            ),
-            boxShadow: AppShadows.sm,
           ),
           child: ClipRRect(
             borderRadius: AppRadius.mdBorderRadius,
@@ -232,7 +229,12 @@ class AppListTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: enabled ? onTap : null,
+        onTap: enabled
+            ? () {
+                HapticUtils.selection();
+                onTap?.call();
+              }
+            : null,
         splashColor: colorScheme.primary.withValues(alpha: 0.08),
         highlightColor: colorScheme.primary.withValues(alpha: 0.04),
         child: child,
@@ -286,6 +288,7 @@ class AppListTileGroup extends StatelessWidget {
             child: Text(
               header!,
               style: theme.textTheme.labelMedium?.copyWith(
+                fontSize: 13,
                 color: isDark ? AppColors.gray400 : AppColors.gray500,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -300,7 +303,6 @@ class AppListTileGroup extends StatelessWidget {
             border: Border.all(
               color: isDark ? AppColors.darkBorder : AppColors.gray200,
             ),
-            boxShadow: AppShadows.sm,
           ),
           child: ClipRRect(
             borderRadius: AppRadius.lgBorderRadius,
@@ -345,8 +347,8 @@ class AppListTileGroup extends StatelessWidget {
     if (animate) {
       group = group
           .animate(delay: animationDelay)
-          .fadeIn(duration: 300.ms, curve: Curves.easeOut)
-          .slideY(begin: 0.02, end: 0, duration: 300.ms, curve: Curves.easeOut);
+          .fadeIn(duration: 200.ms, curve: Curves.easeOut)
+          .slideY(begin: 0.01, end: 0, duration: 200.ms, curve: Curves.easeOut);
     }
 
     return group;

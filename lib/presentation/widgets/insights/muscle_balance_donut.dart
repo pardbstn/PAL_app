@@ -31,9 +31,9 @@ class _MuscleBalanceDonutState extends State<MuscleBalanceDonut> {
   int touchedIndex = -1;
 
   // 색상 정의
-  static const Color upperColor = Color(0xFF2563EB); // Blue - 상체
-  static const Color lowerColor = Color(0xFF10B981); // Green - 하체
-  static const Color coreColor = Color(0xFFF59E0B); // Orange - 코어
+  static const Color upperColor = Color(0xFF0064FF); // Blue - 상체
+  static const Color lowerColor = Color(0xFF00C471); // Green - 하체
+  static const Color coreColor = Color(0xFFFF8A00); // Orange - 코어
   static const Color cardioColor = Color(0xFF8B5CF6); // Purple - 유산소
 
   // 근육 그룹 정보

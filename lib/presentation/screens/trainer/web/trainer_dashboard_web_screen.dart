@@ -100,18 +100,18 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                    color: const Color(0xFFFF8A00).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                    border: Border.all(color: const Color(0xFFFF8A00).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.notifications_active, color: Color(0xFFF59E0B), size: 18),
+                      const Icon(Icons.notifications_active, color: Color(0xFFFF8A00), size: 18),
                       const SizedBox(width: 8),
                       Text(
                         '새로운 인사이트 $count개',
                         style: const TextStyle(
-                          color: Color(0xFFF59E0B),
+                          color: Color(0xFFFF8A00),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -123,7 +123,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
           error: (_, _) => const SizedBox.shrink(),
         ),
       ],
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   /// 통계 카드 빌드 - 반응형
@@ -367,7 +367,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
             ),
         ],
       ),
-    ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 150.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 
   /// AI 인사이트 카드 (high priority 3개)
@@ -386,7 +386,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppTheme.primary, const Color(0xFF10B981)],
+                    colors: [AppTheme.primary, const Color(0xFF00C471)],
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -416,7 +416,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
                       children: [
                         Icon(Icons.lightbulb_outline, size: 48, color: Colors.grey[300]),
                         const SizedBox(height: 12),
-                        Text('새로운 인사이트가 없습니다', style: TextStyle(color: Colors.grey[600])),
+                        Text('새로운 인사이트가 없어요', style: TextStyle(color: Colors.grey[600])),
                       ],
                     ),
                   ),
@@ -429,7 +429,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 175.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 
   /// 회원 현황 카드
@@ -447,10 +447,10 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  color: const Color(0xFF00C471).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.groups, color: Color(0xFF10B981), size: 18),
+                child: const Icon(Icons.groups, color: Color(0xFF00C471), size: 18),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -483,26 +483,26 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
                     label: '신규 (이번 달)',
                     value: '$newThisMonth명',
                     icon: Icons.person_add,
-                    color: const Color(0xFF10B981),
+                    color: const Color(0xFF00C471),
                   ),
                   const Divider(height: 24),
                   _MemberStatusRow(
                     label: '만료 임박',
                     value: '$expiring명',
                     icon: Icons.warning_amber,
-                    color: const Color(0xFFEF4444),
+                    color: const Color(0xFFF04452),
                   ),
                 ],
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => Center(
-              child: Text('회원 정보를 불러올 수 없습니다', style: TextStyle(color: Colors.grey[600])),
+              child: Text('회원 정보를 불러올 수 없어요', style: TextStyle(color: Colors.grey[600])),
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 200.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 
   /// 주간 수업 현황 차트 카드
@@ -516,7 +516,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
         children: [
           const Row(
             children: [
-              Icon(Icons.bar_chart, color: Color(0xFF10B981)),
+              Icon(Icons.bar_chart, color: Color(0xFF00C471)),
               SizedBox(width: 12),
               Text(
                 '주간 수업 현황',
@@ -580,7 +580,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 225.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 
   BarChartGroupData _makeBarGroup(int x, double y) {
@@ -590,7 +590,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
         BarChartRodData(
           toY: y,
           gradient: const LinearGradient(
-            colors: [AppTheme.primary, Color(0xFF10B981)],
+            colors: [AppTheme.primary, Color(0xFF00C471)],
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
           ),
@@ -615,10 +615,10 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.history, color: Color(0xFFF59E0B), size: 18),
+                child: const Icon(Icons.history, color: Color(0xFFFF8A00), size: 18),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -628,36 +628,21 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _ActivityItem(
-            icon: Icons.fitness_center,
-            iconColor: AppTheme.primary,
-            title: '김철수 회원 PT 완료',
-            time: '30분 전',
-          ),
-          const Divider(height: 24),
-          _ActivityItem(
-            icon: Icons.person_add,
-            iconColor: const Color(0xFF10B981),
-            title: '박영희 회원 등록',
-            time: '2시간 전',
-          ),
-          const Divider(height: 24),
-          _ActivityItem(
-            icon: Icons.chat_bubble,
-            iconColor: const Color(0xFFF59E0B),
-            title: '이민수 회원 메시지 수신',
-            time: '3시간 전',
-          ),
-          const Divider(height: 24),
-          _ActivityItem(
-            icon: Icons.auto_awesome,
-            iconColor: const Color(0xFF8B5CF6),
-            title: 'AI 인사이트 생성',
-            time: '5시간 전',
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(Icons.history, size: 48, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text('최근 활동이 없어요', style: TextStyle(color: Colors.grey[600])),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 500.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 250.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 
   /// 빠른 액션 카드
@@ -684,14 +669,14 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
           _QuickActionButton(
             icon: Icons.calendar_month,
             label: '일정 추가',
-            color: const Color(0xFF10B981),
+            color: const Color(0xFF00C471),
             onTap: () => context.go('/trainer/schedule/add'),
           ),
           const SizedBox(height: 12),
           _QuickActionButton(
             icon: Icons.auto_awesome,
             label: 'AI 커리큘럼 생성',
-            color: const Color(0xFFF59E0B),
+            color: const Color(0xFFFF8A00),
             onTap: () => context.go('/trainer/curriculum/create'),
           ),
           const SizedBox(height: 12),
@@ -703,7 +688,7 @@ class TrainerDashboardWebScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 550.ms, duration: 400.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 275.ms, duration: 200.ms).slideY(begin: 0.02);
   }
 }
 
@@ -723,7 +708,7 @@ class _DashboardCard extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -750,7 +735,7 @@ class _TodayScheduleList extends ConsumerWidget {
 
     return schedulesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(child: Text('일정을 불러올 수 없습니다')),
+      error: (e, _) => const Center(child: Text('일정을 불러올 수 없어요')),
       data: (schedules) {
         final now = DateTime.now();
         final upcoming = schedules
@@ -766,7 +751,7 @@ class _TodayScheduleList extends ConsumerWidget {
                 children: [
                   Icon(Icons.event_available, size: 48, color: Colors.grey[300]),
                   const SizedBox(height: 12),
-                  Text('오늘 예정된 수업이 없습니다', style: TextStyle(color: Colors.grey[600])),
+                  Text('오늘 예정된 수업이 없어요', style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             ),
@@ -790,7 +775,7 @@ class _ScheduleTimelineItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPt = schedule.isPtSchedule;
-    final itemColor = isPt ? AppTheme.primary : const Color(0xFFF59E0B);
+    final itemColor = isPt ? AppTheme.primary : const Color(0xFFFF8A00);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -957,50 +942,6 @@ class _MemberStatusRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 16),
-        ),
-      ],
-    );
-  }
-}
-
-/// 활동 아이템 위젯
-class _ActivityItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String time;
-
-  const _ActivityItem({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: iconColor, size: 16),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-          ),
-        ),
-        Text(
-          time,
-          style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[500] : Colors.grey[500]),
         ),
       ],
     );

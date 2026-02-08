@@ -29,9 +29,7 @@ Future<void> _initializeFCM() async {
     debugPrint('[Main] FCM 초기화 시작...');
 
     // FCM 백그라운드 핸들러 등록
-    FirebaseMessaging.onBackgroundMessage(
-      _firebaseMessagingBackgroundHandler,
-    );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // FCM 서비스 초기화 (타임아웃 5초)
     final fcmService = FCMService();
@@ -83,7 +81,7 @@ void main() async {
           options: DefaultFirebaseOptions.currentPlatform,
         ).timeout(const Duration(seconds: 10));
         debugPrint('[Main] Firebase 초기화 완료');
-      } catch (e, st) {
+      } catch (e) {
         debugPrint('[Main] Firebase 초기화 실패: $e');
         // Firebase 없이는 앱 실행 불가 - 에러 화면 표시 후 종료 필요
         rethrow;
@@ -93,7 +91,7 @@ void main() async {
       try {
         KakaoSdk.init(nativeAppKey: '493a529a0143eee0e513d3bec3eaa6fa');
         debugPrint('[Main] Kakao SDK 초기화 완료');
-      } catch (e, st) {
+      } catch (e) {
         debugPrint('[Main] Kakao SDK 초기화 실패: $e');
         // 카카오 로그인 불가하지만 앱은 계속 실행
       }
@@ -112,7 +110,7 @@ void main() async {
               'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYWt4dWl4ZGVianZ3amJhc3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0Nzc1NTQsImV4cCI6MjA4NDA1MzU1NH0.q8rb2oY8QimxmCDlLhRncMp-00TriKAOjBNckM-u8SM',
         ).timeout(const Duration(seconds: 10));
         debugPrint('[Main] Supabase 초기화 완료');
-      } catch (e, st) {
+      } catch (e) {
         debugPrint('[Main] Supabase 초기화 실패: $e');
         // Supabase 실패해도 앱은 계속 실행 (이미지 저장만 불가)
       }

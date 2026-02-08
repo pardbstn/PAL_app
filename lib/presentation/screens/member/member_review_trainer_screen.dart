@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 
@@ -41,13 +42,13 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
     ref.listen<ReviewSubmitState>(reviewSubmitProvider, (prev, next) {
       if (next.status == ReviewSubmitStatus.success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('리뷰가 등록되었습니다'), backgroundColor: Color(0xFF10B981)),
+          const SnackBar(content: Text('리뷰가 등록됐어요'), backgroundColor: Color(0xFF00C471)),
         );
         ref.read(reviewSubmitProvider.notifier).reset();
         context.pop();
       } else if (next.status == ReviewSubmitStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: ${next.errorMessage ?? "알 수 없는 오류"}'), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(content: Text('오류: ${next.errorMessage ?? "알 수 없는 오류"}'), backgroundColor: const Color(0xFFF04452)),
         );
       }
     });
@@ -70,9 +71,9 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1E293B),
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
               ),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+            ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
             const SizedBox(height: 8),
             Text(
               '솔직한 평가가 트레이너의 성장에 도움됩니다',
@@ -80,7 +81,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                 fontSize: 14,
                 color: isDark ? Colors.white70 : const Color(0xFF64748B),
               ),
-            ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+            ).animate(delay: 50.ms).fadeIn(duration: 200.ms),
 
             const SizedBox(height: 32),
 
@@ -123,19 +124,12 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
             // 한줄평
             Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+                color: isDark ? AppColors.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200,
+                  color: isDark ? AppColors.darkBorder : AppColors.gray200,
                 ),
-                boxShadow: [
-                  if (!isDark)
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                ],
+                boxShadow: !isDark ? AppShadows.md : null,
               ),
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -146,7 +140,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -162,29 +156,29 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade300,
+                          color: isDark ? AppColors.darkBorder : AppColors.gray300,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade300,
+                          color: isDark ? AppColors.darkBorder : AppColors.gray300,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                        borderSide: const BorderSide(color: Color(0xFF0064FF)),
                       ),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF162035) : Colors.grey.shade50,
+                      fillColor: isDark ? AppColors.darkSurface : Colors.grey.shade50,
                     ),
                     style: TextStyle(
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                     ),
                   ),
                 ],
               ),
-            ).animate(delay: 500.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+            ).animate(delay: 250.ms).fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
 
             const SizedBox(height: 40),
 
@@ -197,7 +191,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                     ? null
                     : _submitReview,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: const Color(0xFF0064FF),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -221,7 +215,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                         ),
                       ),
               ),
-            ).animate(delay: 600.ms).fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+            ).animate(delay: 300.ms).fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
 
             const SizedBox(height: 20),
           ],
@@ -241,10 +235,10 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : Colors.grey.shade200,
+          color: isDark ? AppColors.darkBorder : AppColors.gray200,
         ),
         boxShadow: [
           if (!isDark)
@@ -264,7 +258,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
             ),
           ),
           const SizedBox(height: 4),
@@ -288,7 +282,7 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
                     starValue <= value ? Icons.star_rounded : Icons.star_outline_rounded,
                     size: 40,
                     color: starValue <= value
-                        ? const Color(0xFFF59E0B)
+                        ? const Color(0xFFFF8A00)
                         : (isDark ? Colors.white24 : Colors.grey.shade300),
                   ),
                 ),
@@ -302,13 +296,13 @@ class _MemberReviewTrainerScreenState extends ConsumerState<MemberReviewTrainerS
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFFF59E0B),
+                color: const Color(0xFFFF8A00),
               ),
             ),
           ),
         ],
       ),
-    ).animate(delay: Duration(milliseconds: delay)).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+    ).animate(delay: Duration(milliseconds: delay)).fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0);
   }
 
   /// 별점에 따른 라벨

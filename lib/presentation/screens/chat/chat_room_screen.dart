@@ -201,7 +201,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
-                child: Text('메시지를 불러올 수 없습니다: $error'),
+                child: Text('메시지를 불러올 수 없어요: $error'),
               ),
             ),
           ),

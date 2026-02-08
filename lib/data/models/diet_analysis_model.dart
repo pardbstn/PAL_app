@@ -126,9 +126,9 @@ extension DietAnalysisModelX on DietAnalysisModel {
   Color get mealTypeColor {
     switch (mealType) {
       case MealType.breakfast:
-        return const Color(0xFFF59E0B); // 주황색
+        return const Color(0xFFFF8A00); // 주황색
       case MealType.lunch:
-        return const Color(0xFF10B981); // 초록색
+        return const Color(0xFF00C471); // 초록색
       case MealType.dinner:
         return const Color(0xFF3B82F6); // 파란색
       case MealType.snack:
@@ -145,9 +145,9 @@ extension DietAnalysisModelX on DietAnalysisModel {
 
   /// 신뢰도 색상
   Color get confidenceColor {
-    if (confidence >= 0.8) return const Color(0xFF10B981);
-    if (confidence >= 0.5) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    if (confidence >= 0.8) return const Color(0xFF00C471);
+    if (confidence >= 0.5) return const Color(0xFFFF8A00);
+    return const Color(0xFFF04452);
   }
 
   /// 총 칼로리 포맷

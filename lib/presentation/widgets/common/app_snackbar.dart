@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
 
 /// 스낵바 변형 타입
-enum AppSnackbarVariant {
-  success,
-  error,
-  warning,
-  info,
-}
+enum AppSnackbarVariant { success, error, warning, info }
 
 /// PAL 앱 공통 스낵바 위젯
 ///
@@ -40,16 +34,12 @@ abstract class AppSnackbar {
     // 현재 표시 중인 스낵바 숨기기
     messenger.hideCurrentSnackBar();
 
-    final (backgroundColor, icon) = _getVariantStyle(variant);
+    final (iconColor, icon) = _getVariantStyle(variant);
 
     final snackBar = SnackBar(
       content: Row(
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 24,
-          ),
+          Icon(icon, color: iconColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -63,12 +53,10 @@ abstract class AppSnackbar {
           ),
         ],
       ),
-      backgroundColor: backgroundColor,
+      backgroundColor: const Color(0xFF333333).withValues(alpha: 0.88),
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      margin: const EdgeInsets.all(20),
       duration: duration,
       dismissDirection: DismissDirection.horizontal,
       action: actionLabel != null
@@ -94,11 +82,7 @@ abstract class AppSnackbar {
 
   /// 에러 스낵바 표시
   static void error(BuildContext context, String message) {
-    show(
-      context: context,
-      message: message,
-      variant: AppSnackbarVariant.error,
-    );
+    show(context: context, message: message, variant: AppSnackbarVariant.error);
   }
 
   /// 경고 스낵바 표시
@@ -112,20 +96,25 @@ abstract class AppSnackbar {
 
   /// 정보 스낵바 표시
   static void info(BuildContext context, String message) {
-    show(
-      context: context,
-      message: message,
-      variant: AppSnackbarVariant.info,
-    );
+    show(context: context, message: message, variant: AppSnackbarVariant.info);
   }
 
-  /// 변형 타입에 따른 스타일 반환
+  /// 변형 타입에 따른 스타일 반환 (아이콘 색상, 아이콘)
   static (Color, IconData) _getVariantStyle(AppSnackbarVariant variant) {
     return switch (variant) {
-      AppSnackbarVariant.success => (AppTheme.secondary, Icons.check_circle),
-      AppSnackbarVariant.error => (AppTheme.error, Icons.error),
-      AppSnackbarVariant.warning => (AppTheme.tertiary, Icons.warning),
-      AppSnackbarVariant.info => (AppTheme.primary, Icons.info),
+      AppSnackbarVariant.success => (
+        const Color(0xFF00C471),
+        Icons.check_circle_rounded,
+      ),
+      AppSnackbarVariant.error => (
+        const Color(0xFFF04452),
+        Icons.error_rounded,
+      ),
+      AppSnackbarVariant.warning => (
+        const Color(0xFFFF8A00),
+        Icons.warning_rounded,
+      ),
+      AppSnackbarVariant.info => (const Color(0xFF0064FF), Icons.info_rounded),
     };
   }
 }

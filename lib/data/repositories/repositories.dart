@@ -13,3 +13,5 @@ export 'weight_prediction_repository.dart';
 export 'insight_repository.dart';
 export 'inbody_repository.dart';
 export 'diet_analysis_repository.dart';
+export 'workout_log_repository.dart';
+export 'trainer_transfer_repository.dart';

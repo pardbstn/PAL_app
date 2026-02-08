@@ -35,7 +35,7 @@ class NotificationBadge extends ConsumerWidget {
   });
 
   // 디자인 시스템 색상
-  static const Color _badgeColor = Color(0xFFEF4444);
+  static const Color _badgeColor = Color(0xFFF04452);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

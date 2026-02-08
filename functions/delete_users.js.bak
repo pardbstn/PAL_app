@@ -1,0 +1,50 @@
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin
+admin.initializeApp();
+
+async function deleteUsers() {
+  const usersToDelete = [
+    'kakao:4715870762',
+    'naver:Ak-AZnF54oJ-42I7InuMz58LdJ6yBE9it3-Gu0Dg700'
+  ];
+  
+  const db = admin.firestore();
+  
+  for (const uid of usersToDelete) {
+    try {
+      // Delete from Firebase Auth
+      await admin.auth().deleteUser(uid);
+      console.log('Auth deleted:', uid);
+    } catch (e) {
+      console.log('Auth delete error:', uid, e.message);
+    }
+    
+    try {
+      // Delete from Firestore users collection
+      await db.collection('users').doc(uid).delete();
+      console.log('Firestore users deleted:', uid);
+    } catch (e) {
+      console.log('Firestore users delete error:', uid, e.message);
+    }
+    
+    // Delete from trainers collection (if exists)
+    const trainersSnap = await db.collection('trainers').where('userId', '==', uid).get();
+    for (const doc of trainersSnap.docs) {
+      await doc.ref.delete();
+      console.log('Trainer deleted:', doc.id);
+    }
+    
+    // Delete from members collection (if exists)
+    const membersSnap = await db.collection('members').where('userId', '==', uid).get();
+    for (const doc of membersSnap.docs) {
+      await doc.ref.delete();
+      console.log('Member deleted:', doc.id);
+    }
+  }
+  
+  console.log('Done!');
+  process.exit(0);
+}
+
+deleteUsers().catch(console.error);

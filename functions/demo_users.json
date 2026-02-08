@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "localId": "demo_trainer_001",
+      "email": "trainer.demo@palapp.com",
+      "emailVerified": true,
+      "displayName": "데모 트레이너",
+      "passwordHash": "UkVEQUNURUQ=",
+      "salt": "UkVEQUNURUQ=",
+      "createdAt": 1706313600000
+    },
+    {
+      "localId": "demo_member_001",
+      "email": "member.demo@palapp.com",
+      "emailVerified": true,
+      "displayName": "데모 회원",
+      "passwordHash": "UkVEQUNURUQ=",
+      "salt": "UkVEQUNURUQ=",
+      "createdAt": 1706313600000
+    }
+  ]
+}

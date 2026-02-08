@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/widgets/skeleton/skeletons.dart';
 import 'package:flutter_pal_app/presentation/widgets/states/states.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
@@ -305,10 +306,13 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddScheduleBottomSheet(),
-        backgroundColor: AppTheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: AppNavGlass.fabBottomPadding),
+        child: FloatingActionButton(
+          onPressed: () => _showAddScheduleBottomSheet(),
+          backgroundColor: AppTheme.primary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -316,7 +320,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
   /// 헤더 위젯 (년/월 + 오늘 + 뷰 전환)
   Widget _buildHeader(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
           GestureDetector(
@@ -1553,7 +1557,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                               });
                             },
                             decoration: InputDecoration(
-                              hintText: '회원 이름을 입력하세요',
+                              hintText: '회원 이름을 입력해주세요',
                               filled: true,
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
@@ -1600,7 +1604,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                               setDialogState(() => personalTitle = v);
                             },
                             decoration: InputDecoration(
-                              hintText: '일정 제목을 입력하세요',
+                              hintText: '일정 제목을 입력해주세요',
                               filled: true,
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
@@ -1768,7 +1772,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                           maxLines: 3,
                           onChanged: (v) => memo = v,
                           decoration: InputDecoration(
-                            hintText: '메모를 입력하세요',
+                            hintText: '메모를 입력해주세요',
                             filled: true,
                             fillColor: Colors.grey[50],
                             border: OutlineInputBorder(
@@ -2082,8 +2086,8 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
           SnackBar(
             content: Text(
               totalSchedules > 1
-                  ? '$totalSchedules개 일정이 추가되었습니다'
-                  : '일정이 추가되었습니다',
+                  ? '$totalSchedules개 일정이 추가됐어요'
+                  : '일정이 추가됐어요',
             ),
             backgroundColor: scheduleType == ScheduleType.pt
                 ? AppTheme.primary
@@ -2257,7 +2261,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                               });
                             },
                             decoration: InputDecoration(
-                              hintText: '회원 이름을 입력하세요',
+                              hintText: '회원 이름을 입력해주세요',
                               filled: true,
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
@@ -2305,7 +2309,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                               setDialogState(() => personalTitle = v);
                             },
                             decoration: InputDecoration(
-                              hintText: '일정 제목을 입력하세요',
+                              hintText: '일정 제목을 입력해주세요',
                               filled: true,
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
@@ -2474,7 +2478,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
                           maxLines: 3,
                           onChanged: (v) => memo = v,
                           decoration: InputDecoration(
-                            hintText: '메모를 입력하세요',
+                            hintText: '메모를 입력해주세요',
                             filled: true,
                             fillColor: Colors.grey[50],
                             border: OutlineInputBorder(
@@ -2591,7 +2595,7 @@ class _TrainerCalendarScreenState extends ConsumerState<TrainerCalendarScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('일정이 수정되었습니다'),
+            content: const Text('일정이 수정됐어요'),
             backgroundColor: originalSchedule.scheduleType == ScheduleType.pt
                 ? AppTheme.primary
                 : AppTheme.tertiary,
@@ -2660,16 +2664,10 @@ class _ScheduleCard extends ConsumerWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+            color: isDark ? AppColors.darkBorder : AppColors.gray100,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: AppShadows.md,
         ),
         child: Row(
           children: [

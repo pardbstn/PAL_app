@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/core/utils/animation_utils.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_pal_app/presentation/widgets/animated/animated_widgets.dart';
 
 /// 로그인 화면
@@ -46,19 +48,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.1),
-              colorScheme.surface,
-              colorScheme.secondary.withValues(alpha: 0.05),
-            ],
-          ),
-        ),
+        color: isDark ? AppColors.appBackgroundDark : AppColors.appBackground,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -263,12 +257,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         labelText: '이메일',
         hintText: 'email@example.com',
-        prefixIcon: const Icon(Icons.email_outlined),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
+        prefixIcon: Icon(Icons.email_outlined),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -300,8 +292,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             setState(() => _isPasswordVisible = !_isPasswordVisible);
           },
         ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -335,15 +325,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             setState(() => _isPasswordConfirmVisible = !_isPasswordConfirmVisible);
           },
         ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return '비밀번호를 다시 입력해주세요';
         }
         if (value != _passwordController.text) {
-          return '비밀번호가 일치하지 않습니다';
+          return '비밀번호가 일치하지 않아요';
         }
         return null;
       },
@@ -430,7 +418,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'OR',
+            '또는',
             style: TextStyle(
               color: colorScheme.onSurface.withValues(alpha: 0.5),
               fontSize: 12,
@@ -444,7 +432,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  /// 카카오 로그인 버튼
+  /// 카카오 로그인 버튼 (카카오 디자인 가이드라인 준수)
   Widget _buildKakaoSignInButton(BuildContext context, bool isLoading) {
     return SizedBox(
       width: double.infinity,
@@ -459,10 +447,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
           elevation: 0,
         ),
-        icon: const Icon(
-          Icons.chat_bubble,
-          size: 22,
-          color: Color(0xFF191919),
+        icon: SvgPicture.string(
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
+          '<path fill="#000000" fill-opacity="0.9" d="M12 3C6.48 3 2 6.58 2 10.95c0 2.82 1.87 5.3 4.69 6.72-.21.76-.75 2.74-.78 2.91-.05.23.08.23.18.17.07-.05 2.72-1.85 3.82-2.6.69.1 1.4.15 2.09.15 5.52 0 10-3.58 10-7.95S17.52 3 12 3z"/>'
+          '</svg>',
+          height: 22,
+          width: 22,
         ),
         label: const Text(
           '카카오로 계속하기',
@@ -506,7 +496,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animateSlideUp(delay: const Duration(milliseconds: 700));
   }
 
-  /// Google 로그인 버튼
+  /// Google 로그인 버튼 (Google Identity 브랜딩 가이드라인 준수)
   Widget _buildGoogleSignInButton(BuildContext context, bool isLoading) {
     return SizedBox(
       width: double.infinity,
@@ -515,32 +505,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         onPressed: isLoading ? null : _handleGoogleSignIn,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
+          foregroundColor: const Color(0xFF1F1F1F),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          side: BorderSide(
-            color: Colors.grey.shade300,
+          side: const BorderSide(
+            color: Color(0xFF747775),
             width: 1,
           ),
           elevation: 0,
         ),
-        icon: Image.network(
+        icon: SvgPicture.network(
           'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
           height: 24,
           width: 24,
-          errorBuilder: (context, error, stackTrace) => const Icon(
-            Icons.g_mobiledata,
-            size: 24,
-            color: Colors.red,
+          placeholderBuilder: (context) => const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
         label: const Text(
           'Google로 계속하기',
           style: TextStyle(
+            fontFamily: 'Roboto',
             fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF1F1F1F),
           ),
         ),
       ),
@@ -553,7 +544,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          _isSignUp ? '이미 계정이 있으신가요?' : '아직 계정이 없으신가요?',
+          _isSignUp ? '이미 계정이 있나요?' : '아직 계정이 없나요?',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
@@ -581,7 +572,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return TextButton(
       onPressed: _handleForgotPassword,
       child: Text(
-        '비밀번호를 잊으셨나요?',
+        '비밀번호를 잊었나요?',
         style: TextStyle(
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         ),
@@ -655,7 +646,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       await ref.read(authProvider.notifier).sendPasswordResetEmail(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('비밀번호 재설정 이메일을 전송했습니다')),
+          const SnackBar(content: Text('비밀번호 재설정 이메일을 전송했어요')),
         );
       }
     } catch (e) {

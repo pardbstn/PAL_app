@@ -34,9 +34,9 @@ class _VolumeBarChartState extends State<VolumeBarChart> {
   int? touchedIndex;
 
   // 색상 상수
-  static const Color _overtainingColor = Color(0xFFEF4444); // 빨간색
-  static const Color _normalColor = Color(0xFF2563EB); // 파란색
-  static const Color _undertrainingColor = Color(0xFFF59E0B); // 주황색
+  static const Color _overtainingColor = Color(0xFFF04452); // 빨간색
+  static const Color _normalColor = Color(0xFF0064FF); // 파란색
+  static const Color _undertrainingColor = Color(0xFFFF8A00); // 주황색
 
   @override
   Widget build(BuildContext context) {
@@ -349,14 +349,14 @@ class _VolumeBarChartState extends State<VolumeBarChart> {
           icon: Icons.warning_amber_rounded,
           color: _overtainingColor,
           title: '과훈련 주의',
-          description: '최근 운동 볼륨이 평균보다 높습니다. 충분한 휴식을 권장합니다.',
+          description: '최근 운동 볼륨이 평균보다 높아요. 충분한 휴식을 권장해요',
         );
       case 'undertraining':
         return _TrendData(
           icon: Icons.trending_down_rounded,
           color: _undertrainingColor,
           title: '저훈련 상태',
-          description: '운동 볼륨이 평균보다 낮습니다. 점진적인 볼륨 증가를 고려해보세요.',
+          description: '운동 볼륨이 평균보다 낮아요. 점진적인 볼륨 증가를 고려해보세요',
         );
       case 'imbalanced':
         return _TrendData(
@@ -370,7 +370,7 @@ class _VolumeBarChartState extends State<VolumeBarChart> {
           icon: Icons.check_circle_outline_rounded,
           color: AppTheme.secondary,
           title: '정상 훈련',
-          description: '운동 볼륨이 적절하게 유지되고 있습니다.',
+          description: '운동 볼륨이 적절하게 유지되고 있어요',
         );
     }
   }

@@ -10,6 +10,8 @@ enum UserRoleType {
   trainer,
   @JsonValue('member')
   member,
+  @JsonValue('personal')
+  personal,
 }
 
 /// Firestore Timestamp 변환기
@@ -107,6 +109,9 @@ extension UserModelX on UserModel {
 
   /// 회원 여부
   bool get isMember => role == UserRoleType.member;
+
+  /// 개인모드 여부
+  bool get isPersonal => role == UserRoleType.personal;
 
   /// 회원 태그 (이름#코드 형식, 예: "홍길동#1234")
   String get displayTag => memberCode != null ? '$name#$memberCode' : name;

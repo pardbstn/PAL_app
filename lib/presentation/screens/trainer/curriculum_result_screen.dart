@@ -95,7 +95,7 @@ class _CurriculumResultScreenState
         content: TextField(
           controller: nameController,
           decoration: const InputDecoration(
-            hintText: '템플릿 이름을 입력하세요',
+            hintText: '템플릿 이름을 입력해주세요',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -118,7 +118,7 @@ class _CurriculumResultScreenState
     try {
       final state = ref.read(curriculumGeneratorV2Provider);
       final authState = ref.read(authProvider);
-      final trainerId = authState.userId ?? '';
+      final trainerId = authState.trainerModel?.id ?? authState.userId ?? '';
 
       final sessions = <Map<String, dynamic>>[];
       for (int i = 0; i < state.sessions.length; i++) {
@@ -143,8 +143,8 @@ class _CurriculumResultScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("'${name.trim()}' 템플릿이 저장되었습니다."),
-            backgroundColor: const Color(0xFF10B981),
+            content: Text("'${name.trim()}' 템플릿이 저장됐어요."),
+            backgroundColor: const Color(0xFF00C471),
           ),
         );
       }
@@ -152,7 +152,7 @@ class _CurriculumResultScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('템플릿 저장에 실패했습니다.'),
+            content: Text('템플릿 저장에 실패했어요.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -224,9 +224,9 @@ class _CurriculumResultScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(widget.isAdditionalMode
-              ? '$sessionCount회차 커리큘럼이 추가되었습니다!'
-              : '$sessionCount회차 커리큘럼이 저장되었습니다!'),
-          backgroundColor: const Color(0xFF10B981),
+              ? '$sessionCount회차 커리큘럼이 추가됐어요!'
+              : '$sessionCount회차 커리큘럼이 저장됐어요!'),
+          backgroundColor: const Color(0xFF00C471),
         ),
       );
       // 회원 상세 화면의 커리큘럼 탭으로 이동 (memberId가 있으면 해당 회원으로, 없으면 홈으로)
@@ -238,7 +238,7 @@ class _CurriculumResultScreenState
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('저장에 실패했습니다. 다시 시도해주세요.'),
+          content: Text('저장에 실패했어요. 다시 시도해주세요.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -252,7 +252,7 @@ class _CurriculumResultScreenState
     final exercise = state.currentExercises[index];
     if (exercise.exerciseId == null || exercise.exerciseId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('운동 ID가 없어 대체를 할 수 없습니다.')),
+        const SnackBar(content: Text('운동 ID가 없어서 대체할 수 없어요.')),
       );
       return;
     }
@@ -306,7 +306,7 @@ class _CurriculumResultScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
     final state = ref.watch(curriculumGeneratorV2Provider);
 
     return Scaffold(
@@ -432,7 +432,7 @@ class _CurriculumResultScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            'AI가 커리큘럼을 생성하고 있습니다',
+            'AI가 커리큘럼을 생성하고 있어요',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -463,7 +463,7 @@ class _CurriculumResultScreenState
             ),
             const SizedBox(height: 16),
             Text(
-              error ?? '오류가 발생했습니다.',
+              error ?? '오류가 발생했어요.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge,
             ),
@@ -678,7 +678,7 @@ class _CurriculumResultScreenState
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        const emerald = Color(0xFF10B981);
+        const emerald = Color(0xFF00C471);
         return Container(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -806,7 +806,7 @@ class _AddExerciseBottomSheetState extends State<_AddExerciseBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -942,7 +942,7 @@ class _AlternativesBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
     final alternativesAsync = ref.watch(alternativeExercisesProvider(request));
 
     return Container(
@@ -976,7 +976,7 @@ class _AlternativesBottomSheet extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      '대체할 수 있는 운동이 없습니다.',
+                      '대체할 수 있는 운동이 없어요.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
@@ -1020,7 +1020,7 @@ class _AlternativesBottomSheet extends ConsumerWidget {
             error: (e, _) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text('대체 운동을 불러올 수 없습니다.',
+                child: Text('대체 운동을 불러올 수 없어요.',
                     style: theme.textTheme.bodyMedium),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/notification_model.dart';
 
 /// 단일 알림 항목 카드
@@ -17,10 +18,10 @@ class NotificationCard extends StatelessWidget {
   });
 
   // 디자인 시스템 색상
-  static const Color _primaryColor = Color(0xFF2563EB);
-  static const Color _successColor = Color(0xFF10B981);
-  static const Color _warningColor = Color(0xFFF59E0B);
-  static const Color _errorColor = Color(0xFFEF4444);
+  static const Color _primaryColor = Color(0xFF0064FF);
+  static const Color _successColor = Color(0xFF00C471);
+  static const Color _warningColor = Color(0xFFFF8A00);
+  static const Color _errorColor = Color(0xFFF04452);
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +29,8 @@ class NotificationCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     // 통일된 카드 스타일 색상
-    final backgroundColor = isDark ? const Color(0xFF1F2937) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+    final backgroundColor = isDark ? AppColors.darkSurface : Colors.white;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.gray100;
 
     // 읽지 않은 알림 하이라이트 배경색
     final cardColor = notification.isRead
@@ -43,13 +44,7 @@ class NotificationCard extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: AppShadows.sm,
       ),
       child: Material(
         color: Colors.transparent,

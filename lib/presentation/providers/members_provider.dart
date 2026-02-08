@@ -247,7 +247,7 @@ class MembersNotifier extends AsyncNotifier<void> {
     try {
       final trainer = ref.read(currentTrainerProvider);
       if (trainer == null) {
-        throw Exception('트레이너 정보를 찾을 수 없습니다.');
+        throw Exception('트레이너 정보를 찾을 수 없어요');
       }
 
       final member = MemberModel(

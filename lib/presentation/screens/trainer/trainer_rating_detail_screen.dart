@@ -12,16 +12,18 @@ import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart
 
 /// 트레이너 평점 상세 화면
 class TrainerRatingDetailScreen extends ConsumerWidget {
-  const TrainerRatingDetailScreen({super.key});
+  final String? externalTrainerId;
+
+  const TrainerRatingDetailScreen({super.key, this.externalTrainerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final trainerId = authState.trainerModel?.id ?? '';
+    final trainerId = externalTrainerId ?? authState.trainerModel?.id ?? '';
 
     if (trainerId.isEmpty) {
       return const Scaffold(
-        body: Center(child: Text('로그인이 필요합니다')),
+        body: Center(child: Text('로그인이 필요해요')),
       );
     }
 
@@ -32,36 +34,36 @@ class TrainerRatingDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('내 평점'),
+        title: Text(externalTrainerId != null ? '트레이너 평점' : '내 평점'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.pop(),
         ),
       ),
       body: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 전체 평점 카드
                 _OverallRatingCard(
                   ratingAsync: ratingAsync,
                   isDark: isDark,
-                ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05, duration: 300.ms),
+                ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.02, duration: 200.ms),
                 const SizedBox(height: AppSpacing.lg),
 
                 // 카테고리별 평점
                 _CategoryBreakdownSection(
                   categoryAverages: categoryAverages,
                   isDark: isDark,
-                ).animate(delay: 100.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, duration: 300.ms),
+                ).animate(delay: 50.ms).fadeIn(duration: 200.ms).slideY(begin: 0.02, duration: 200.ms),
                 const SizedBox(height: AppSpacing.lg),
 
                 // 정렬 옵션
                 _SortOptionsRow(isDark: isDark)
-                    .animate(delay: 200.ms)
-                    .fadeIn(duration: 300.ms),
+                    .animate(delay: 100.ms)
+                    .fadeIn(duration: 200.ms),
                 const SizedBox(height: AppSpacing.md),
 
                 // 리뷰 목록
@@ -124,7 +126,7 @@ class _OverallRatingCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -146,7 +148,7 @@ class _OverallRatingCard extends StatelessWidget {
           ),
           error: (_, __) => const SizedBox(
             height: 150,
-            child: Center(child: Text('평점을 불러올 수 없습니다')),
+            child: Center(child: Text('평점을 불러올 수 없어요')),
           ),
         ),
       ),
@@ -177,7 +179,7 @@ class _CategoryBreakdownSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF1E293B),
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -208,7 +210,7 @@ class _CategoryBreakdownSection extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Text(
-                    '아직 리뷰가 없습니다',
+                    '아직 리뷰가 없어요',
                     style: TextStyle(
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                     ),
@@ -270,7 +272,7 @@ class _CategoryProgressBar extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
             ),
           ),
         ),
@@ -313,7 +315,7 @@ class _SortOptionsRow extends ConsumerWidget {
               side: BorderSide(
                 color: isSelected
                     ? AppColors.primary
-                    : (isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB)),
+                    : (isDark ? AppColors.darkBorder : AppColors.gray100),
               ),
             ),
           );
@@ -367,7 +369,7 @@ class _ReviewsList extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Text(
-            '리뷰를 불러올 수 없습니다',
+            '리뷰를 불러올 수 없어요',
             style: TextStyle(
               color: isDark ? Colors.white54 : const Color(0xFF64748B),
             ),
@@ -399,7 +401,7 @@ class _EmptyReviewsState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              '아직 리뷰가 없습니다',
+              '아직 리뷰가 없어요',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -408,7 +410,7 @@ class _EmptyReviewsState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              '회원들의 리뷰가 이곳에 표시됩니다',
+              '회원들의 리뷰가 이곳에 표시돼요',
               style: TextStyle(
                 fontSize: 14,
                 color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
@@ -476,7 +478,7 @@ class _ReviewCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                         ),
                       ),
                       Text(
@@ -500,7 +502,7 @@ class _ReviewCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                       ),
                     ),
                   ],
@@ -582,7 +584,7 @@ class _RatingChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
             ),
           ),
         ],

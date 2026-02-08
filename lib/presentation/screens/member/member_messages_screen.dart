@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
+import 'package:flutter_pal_app/data/repositories/trainer_repository.dart';
+import 'package:flutter_pal_app/data/repositories/user_repository.dart';
+import 'package:flutter_pal_app/data/models/trainer_model.dart';
+import 'package:flutter_pal_app/data/models/user_model.dart';
+import 'package:flutter_pal_app/data/models/member_model.dart';
 
 /// 채팅 메시지 모델 (로컬)
 class ChatMessage {
@@ -35,11 +41,6 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
-  // 더미 트레이너 정보
-  final String _trainerName = '김철수 트레이너';
-  final String _trainerInitial = '김';
-  final bool _isOnline = true;
-
   @override
   void initState() {
     super.initState();
@@ -48,65 +49,8 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
 
   /// 더미 채팅 메시지 초기화
   void _initDummyMessages() {
-    final now = DateTime.now();
-    _messages.addAll([
-      ChatMessage(
-        id: '1',
-        text: '안녕하세요! 오늘 운동 준비 되셨나요?',
-        isMe: false,
-        timestamp: now.subtract(const Duration(days: 1, hours: 2)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '2',
-        text: '네! 오늘 상체 위주로 하고 싶어요',
-        isMe: true,
-        timestamp: now.subtract(const Duration(days: 1, hours: 1, minutes: 55)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '3',
-        text: '좋아요! 벤치프레스랑 덤벨 운동 위주로 진행할게요. 워밍업 충분히 해오세요!',
-        isMe: false,
-        timestamp: now.subtract(const Duration(days: 1, hours: 1, minutes: 50)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '4',
-        text: '오늘 수업 고생하셨습니다! 벤치프레스 자세가 많이 좋아졌어요.',
-        isMe: false,
-        timestamp: now.subtract(const Duration(hours: 3)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '5',
-        text: '감사합니다! 다음 주도 열심히 할게요!',
-        isMe: true,
-        timestamp: now.subtract(const Duration(hours: 2, minutes: 50)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '6',
-        text: '식단 기록도 꼼꼼히 해주시면 더 좋은 결과 나올 거예요',
-        isMe: false,
-        timestamp: now.subtract(const Duration(hours: 2, minutes: 45)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '7',
-        text: '네 알겠습니다! 오늘부터 기록해볼게요',
-        isMe: true,
-        timestamp: now.subtract(const Duration(hours: 2, minutes: 40)),
-        isRead: true,
-      ),
-      ChatMessage(
-        id: '8',
-        text: '다음 수업은 수요일 오후 3시에 뵐게요!',
-        isMe: false,
-        timestamp: now.subtract(const Duration(hours: 1)),
-        isRead: true,
-      ),
-    ]);
+    // 실제 메시지 로드 시 여기에 구현
+    // 현재는 빈 상태로 시작
   }
 
   @override
@@ -183,11 +127,43 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    // 현재 회원 정보에서 trainerId 가져오기
+    final currentMember = ref.watch(currentMemberProvider);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: _buildAppBar(theme, colorScheme, isDark),
+      appBar: _buildAppBarWithTrainerInfo(
+        theme,
+        colorScheme,
+        isDark,
+        currentMember,
+      ),
       body: Column(
         children: [
+          // 준비 중 안내 배너
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '메시지 기능은 현재 준비 중이에요',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           // 채팅 메시지 영역
           Expanded(
             child: _messages.isEmpty
@@ -201,12 +177,76 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
     );
   }
 
-  /// 앱바 빌드
-  PreferredSizeWidget _buildAppBar(
+  /// 앱바 빌드 (트레이너 정보 가져오기)
+  PreferredSizeWidget _buildAppBarWithTrainerInfo(
     ThemeData theme,
     ColorScheme colorScheme,
     bool isDark,
+    MemberModel? currentMember,
   ) {
+    // 트레이너 ID 가져오기
+    final trainerId = currentMember?.trainerId;
+
+    // 트레이너가 없는 경우
+    if (trainerId == null) {
+      return _buildAppBarWithoutTrainer(theme, colorScheme, isDark);
+    }
+
+    // 트레이너 정보 조회 Provider
+    final trainerProvider = FutureProvider<TrainerModel?>((ref) async {
+      final repo = ref.watch(trainerRepositoryProvider);
+      return await repo.get(trainerId);
+    });
+
+    final trainerAsync = ref.watch(trainerProvider);
+
+    return trainerAsync.when(
+      data: (trainer) {
+        if (trainer == null) {
+          return _buildAppBarWithoutTrainer(theme, colorScheme, isDark);
+        }
+
+        // 트레이너의 UserModel에서 이름 가져오기 Provider
+        final userProvider = FutureProvider<UserModel?>((ref) async {
+          final repo = ref.watch(userRepositoryProvider);
+          return await repo.get(trainer.userId);
+        });
+
+        final userAsync = ref.watch(userProvider);
+
+        return userAsync.when(
+          data: (user) {
+            final trainerName = user?.name ?? '알 수 없음';
+            final trainerInitial = trainerName.isNotEmpty ? trainerName[0] : '?';
+            const isOnline = false; // 온라인 상태는 추후 구현
+
+            return _buildAppBar(
+              theme,
+              colorScheme,
+              isDark,
+              trainerName: '$trainerName 트레이너',
+              trainerInitial: trainerInitial,
+              isOnline: isOnline,
+            );
+          },
+          loading: () => _buildAppBarLoading(theme, colorScheme, isDark),
+          error: (_, __) => _buildAppBarWithoutTrainer(theme, colorScheme, isDark),
+        );
+      },
+      loading: () => _buildAppBarLoading(theme, colorScheme, isDark),
+      error: (_, __) => _buildAppBarWithoutTrainer(theme, colorScheme, isDark),
+    );
+  }
+
+  /// 앱바 빌드 (트레이너 정보 포함)
+  PreferredSizeWidget _buildAppBar(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark, {
+    required String trainerName,
+    required String trainerInitial,
+    required bool isOnline,
+  }) {
     return AppBar(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -247,7 +287,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _trainerInitial,
+                    trainerInitial,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -256,7 +296,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
                 ),
               ),
               // 온라인 상태 표시
-              if (_isOnline)
+              if (isOnline)
                 Positioned(
                   right: 0,
                   bottom: 0,
@@ -282,16 +322,16 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _trainerName,
+                trainerName,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
               ),
               Text(
-                _isOnline ? '온라인' : '오프라인',
+                isOnline ? '온라인' : '오프라인',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: _isOnline ? AppTheme.secondary : colorScheme.outline,
+                  color: isOnline ? AppTheme.secondary : colorScheme.outline,
                 ),
               ),
             ],
@@ -309,6 +349,103 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
           },
         ),
       ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+  }
+
+  /// 앱바 빌드 (트레이너 없음)
+  PreferredSizeWidget _buildAppBarWithoutTrainer(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
+    return AppBar(
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: colorScheme.onSurface,
+        ),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: Text(
+        '담당 트레이너 없음',
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+  }
+
+  /// 앱바 빌드 (로딩 중)
+  PreferredSizeWidget _buildAppBarLoading(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
+    return AppBar(
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: colorScheme.onSurface,
+        ),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                width: 60,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(
@@ -339,23 +476,23 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
             ),
           )
               .animate()
-              .fadeIn(duration: 400.ms)
+              .fadeIn(duration: 200.ms)
               .scale(begin: const Offset(0.8, 0.8)),
           const SizedBox(height: 16),
           Text(
-            '아직 메시지가 없습니다',
+            '아직 메시지가 없어요',
             style: theme.textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.w600,
             ),
-          ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+          ).animate().fadeIn(delay: 50.ms, duration: 200.ms),
           const SizedBox(height: 8),
           Text(
             '트레이너에게 먼저 메시지를 보내보세요!',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.outline,
             ),
-          ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+          ).animate().fadeIn(delay: 100.ms, duration: 200.ms),
         ],
       ),
     );
@@ -369,7 +506,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
   ) {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final message = _messages[index];
@@ -454,6 +591,9 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
   ) {
     final isMe = message.isMe;
 
+    // 트레이너 이니셜 가져오기 (더미 데이터용)
+    String trainerInitial = '김';
+
     Widget bubble = Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -484,7 +624,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _trainerInitial,
+                    trainerInitial,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -588,7 +728,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
     bool isDark,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
@@ -623,7 +763,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
                   // 이미지 첨부 (더미)
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('이미지 첨부 기능은 준비 중입니다'),
+                      content: const Text('이미지 첨부 기능은 준비 중이에요'),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -651,7 +791,7 @@ class _MemberMessagesScreenState extends ConsumerState<MemberMessagesScreen> {
                     color: colorScheme.onSurface,
                   ),
                   decoration: InputDecoration(
-                    hintText: '메시지를 입력하세요',
+                    hintText: '메시지를 입력해주세요',
                     hintStyle: theme.textTheme.bodyMedium?.copyWith(
                       color: colorScheme.outline,
                     ),

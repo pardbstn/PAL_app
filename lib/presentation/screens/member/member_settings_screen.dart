@@ -49,12 +49,13 @@ class MemberSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final member = ref.watch(currentMemberProvider);
+    final isPersonal = authState.userRole == UserRole.personal;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('설정'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.go('/member/home'),
         ),
       ),
@@ -82,12 +83,10 @@ class MemberSettingsScreen extends ConsumerWidget {
                   animationDelay: const Duration(milliseconds: 150),
                 ),
                 AppListTile(
-                  leading: const Icon(Icons.notifications_outlined),
+                  leading: const Icon(Icons.notifications_none_rounded),
                   title: '알림 설정',
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: 알림 설정 화면
-                  },
+                  onTap: () => context.push('/notification-settings'),
                   animate: true,
                   animationDelay: const Duration(milliseconds: 200),
                 ),
@@ -108,30 +107,33 @@ class MemberSettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          // 내 PT 정보
+          // 내 PT 정보 (개인모드에서는 목표 설정만 표시)
           AppSection(
-            title: '내 PT 정보',
+            title: isPersonal ? '내 운동 정보' : '내 PT 정보',
             animationDelay: 200.ms,
             child: Column(
               children: [
-                // 담당 트레이너
-                _buildTrainerTile(context, ref),
-                // 트레이너 평가
-                _buildTrainerReviewTile(context, ref, member),
-                // PT 일정
-                AppListTile(
-                  leading: const Icon(Icons.calendar_month_outlined),
-                  title: 'PT 일정',
-                  subtitle: member != null
-                      ? '${member.ptInfo.completedSessions}/${member.ptInfo.totalSessions}회 진행'
-                      : '-',
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: PT 일정 화면
-                  },
-                  animate: true,
-                  animationDelay: const Duration(milliseconds: 300),
-                ),
+                // 담당 트레이너 (PT 모드만)
+                if (!isPersonal)
+                  _buildTrainerTile(context, ref),
+                // 트레이너 평가 (PT 모드만)
+                if (!isPersonal)
+                  _buildTrainerReviewTile(context, ref, member),
+                // PT 일정 (PT 모드만)
+                if (!isPersonal)
+                  AppListTile(
+                    leading: const Icon(Icons.calendar_month_outlined),
+                    title: 'PT 일정',
+                    subtitle: member != null
+                        ? '${member.ptInfo.completedSessions}/${member.ptInfo.totalSessions}회 진행'
+                        : '-',
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      // TODO: PT 일정 화면
+                    },
+                    animate: true,
+                    animationDelay: const Duration(milliseconds: 300),
+                  ),
                 // 목표 설정
                 AppListTile(
                   leading: const Icon(Icons.flag_outlined),
@@ -144,6 +146,17 @@ class MemberSettingsScreen extends ConsumerWidget {
                   animate: true,
                   animationDelay: const Duration(milliseconds: 350),
                 ),
+                // 내 데이터 관리 (PT 모드만)
+                if (!isPersonal)
+                  AppListTile(
+                    leading: const Icon(Icons.folder_outlined),
+                    title: '내 데이터 관리',
+                    subtitle: '과거 트레이너 데이터 관리',
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/member/data-management'),
+                    animate: true,
+                    animationDelay: const Duration(milliseconds: 400),
+                  ),
               ],
             ),
           ),
@@ -211,7 +224,7 @@ class MemberSettingsScreen extends ConsumerWidget {
           PremiumTapFeedback(
             onTap: () => _showLogoutDialog(context, ref),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.05),
@@ -246,21 +259,22 @@ class MemberSettingsScreen extends ConsumerWidget {
           ).animatePremiumEntrance(delay: const Duration(milliseconds: 400)),
           const SizedBox(height: AppSpacing.md),
 
-          // 회원 탈퇴
-          Center(
-            child: PremiumTapFeedback(
-              enableShadow: false,
-              scaleFactor: 0.95,
-              onTap: () => _showDeleteAccountDialog(context, ref),
-              child: const Text(
-                '회원 탈퇴',
-                style: TextStyle(
-                  color: AppColors.gray500,
-                  fontSize: 13,
+          // 회원 탈퇴 (개인모드에서는 숨김)
+          if (!isPersonal)
+            Center(
+              child: PremiumTapFeedback(
+                enableShadow: false,
+                scaleFactor: 0.95,
+                onTap: () => _showDeleteAccountDialog(context, ref),
+                child: const Text(
+                  '회원 탈퇴',
+                  style: TextStyle(
+                    color: AppColors.gray500,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(height: AppSpacing.xl),
         ],
       ),
@@ -499,7 +513,7 @@ class MemberSettingsScreen extends ConsumerWidget {
 
   Widget _buildProfileSection(BuildContext context, AuthState authState) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           // 프로필 이미지 (프로필 등장 애니메이션)
@@ -599,7 +613,7 @@ class MemberSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
+        content: const Text('로그아웃할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -630,7 +644,7 @@ class MemberSettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('회원 탈퇴'),
         content: const Text(
-          '정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
+          '정말 탈퇴할까요?\n모든 데이터가 삭제되며 복구할 수 없어요.',
         ),
         actions: [
           TextButton(
@@ -671,7 +685,7 @@ class MemberSettingsScreen extends ConsumerWidget {
           controller: nameController,
           decoration: const InputDecoration(
             labelText: '이름',
-            hintText: '이름을 입력하세요',
+            hintText: '이름을 입력해주세요',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -686,7 +700,7 @@ class MemberSettingsScreen extends ConsumerWidget {
               final newName = nameController.text.trim();
               if (newName.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('이름을 입력해주세요.')),
+                  const SnackBar(content: Text('이름을 입력해주세요')),
                 );
                 return;
               }
@@ -700,7 +714,7 @@ class MemberSettingsScreen extends ConsumerWidget {
 
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('프로필이 수정되었습니다.')),
+                  const SnackBar(content: Text('프로필이 수정됐어요')),
                 );
               }
             },
@@ -733,7 +747,7 @@ class MemberSettingsScreen extends ConsumerWidget {
         ),
         title: const Text('담당 트레이너 없음'),
         content: const Text(
-          '현재 연결된 담당 트레이너가 없습니다.\n\n'
+          '현재 연결된 담당 트레이너가 없어요.\n\n'
           '트레이너가 회원 등록을 완료하면\n'
           '이곳에서 트레이너 정보를 확인할 수 있어요.',
           textAlign: TextAlign.center,
@@ -829,7 +843,7 @@ class MemberSettingsScreen extends ConsumerWidget {
   ) {
     if (member == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')),
+        const SnackBar(content: Text('회원 정보를 불러오는 중이에요. 잠시 후 다시 시도해주세요.')),
       );
       return;
     }
@@ -924,7 +938,7 @@ class MemberSettingsScreen extends ConsumerWidget {
                   targetWeight = double.tryParse(weightText);
                   if (targetWeight == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('올바른 체중을 입력해주세요.')),
+                      const SnackBar(content: Text('올바른 체중을 입력해주세요')),
                     );
                     return;
                   }
@@ -943,7 +957,7 @@ class MemberSettingsScreen extends ConsumerWidget {
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('목표가 설정되었습니다.')),
+                      const SnackBar(content: Text('목표가 설정됐어요')),
                     );
                   }
                 } catch (e) {

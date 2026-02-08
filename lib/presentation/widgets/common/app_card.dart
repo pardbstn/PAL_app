@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
+import 'package:flutter_pal_app/core/utils/haptic_utils.dart';
 
 /// 카드 변형 타입
 enum AppCardVariant {
@@ -15,6 +16,9 @@ enum AppCardVariant {
 
   /// 기록 스타일: 흰색 배경 + 미세한 쉐도우 + 그레이 보더 1px, 패딩 없음
   record,
+
+  /// 그라데이션 테두리 스타일: 파란색 그라데이션 보더 + 흰색 배경
+  gradientBorder,
 
   /// @deprecated standard와 동일하게 처리됩니다
   outlined,
@@ -71,14 +75,14 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   bool _isHovered = false;
   bool _isPressed = false;
 
-  static const double _borderRadius = 16.0;
-  static const EdgeInsets _defaultPadding = EdgeInsets.all(16);
+  static const double _borderRadius = 20.0;
+  static const EdgeInsets _defaultPadding = EdgeInsets.all(20);
 
   // 디자인 토큰: 통일된 색상 상수
-  static const Color _lightBorderColor = Color(0xFFE5E7EB); // Gray-200
-  static const Color _darkBorderColor = Color(0xFF2E3B5E); // Gray-700
-  static const Color _darkBackgroundColor = Color(0xFF1E2A4A); // Gray-800
-  static const Color _primaryBlue = Color(0xFF2563EB);
+  static const Color _lightBorderColor = Color(0xFFEBEBEB); // Toss Gray
+  static const Color _darkBorderColor = Color(0xFF2A2A2A); // Toss dark border
+  static const Color _darkBackgroundColor = Color(0xFF1A1A1A); // Toss dark surface
+  static const Color _primaryBlue = Color(0xFF0064FF); // Toss Blue
 
   @override
   Widget build(BuildContext context) {
@@ -91,11 +95,14 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     // 탭 피드백 애니메이션 (터치 시 축소 + 쉐도우 변화)
     if (widget.onTap != null) {
       card = GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) {
+          HapticUtils.selection();
+          setState(() => _isPressed = true);
+        },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         child: AnimatedScale(
-          scale: _isPressed ? 0.98 : 1.0,
+          scale: _isPressed ? 0.97 : 1.0,
           duration: const Duration(milliseconds: 100),
           curve: Curves.easeOut,
           child: card,
@@ -121,9 +128,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     if (widget.animate) {
       card = card
           .animate(delay: widget.animationDelay)
-          .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+          .fadeIn(duration: 200.ms, curve: Curves.easeOut)
           .slideY(
-              begin: 0.02, end: 0, duration: 300.ms, curve: Curves.easeOut);
+              begin: 0.01, end: 0, duration: 200.ms, curve: Curves.easeOut);
     }
 
     return card;
@@ -145,14 +152,15 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         return _buildAccentCard(colorScheme, isDark, effectivePadding);
       case AppCardVariant.record:
         return _buildRecordCard(colorScheme, isDark, effectivePadding);
+      case AppCardVariant.gradientBorder:
+        return _buildGradientBorderCard(colorScheme, isDark, effectivePadding);
     }
   }
 
-  /// Standard 카드: 흰색 배경 + 미세한 쉐도우 + 그레이 보더 1px
+  /// Standard 카드: 흰색 배경 + 미세한 쉐도우 (보더 없음)
   Widget _buildStandardCard(
       ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
     final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
-    final borderColor = isDark ? _darkBorderColor : _lightBorderColor;
 
     return _wrapWithInkWell(
       colorScheme: colorScheme,
@@ -162,15 +170,11 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(_borderRadius),
-          border: Border.all(
-            color: borderColor,
-            width: 1,
-          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: _isPressed ? 0.02 : 0.05),
-              blurRadius: _isPressed ? 6 : 12,
-              offset: Offset(0, _isPressed ? 2 : 4),
+              color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
+              blurRadius: _isPressed ? 1 : 2,
+              offset: Offset(0, _isPressed ? 0 : 1),
             ),
           ],
         ),
@@ -196,13 +200,13 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           borderRadius: BorderRadius.circular(_borderRadius),
           border: Border.all(
             color: borderColor,
-            width: 1,
+            width: 0.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: _isPressed ? 0.04 : 0.08),
-              blurRadius: _isPressed ? 10 : 20,
-              offset: Offset(0, _isPressed ? 4 : 8),
+              color: Colors.black.withValues(alpha: _isPressed ? 0.02 : 0.04),
+              blurRadius: _isPressed ? 3 : 6,
+              offset: Offset(0, _isPressed ? 2 : 4),
             ),
           ],
         ),
@@ -212,7 +216,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// Accent 카드: 흰색 배경 + primary blue 보더 2px + 쉐도우 (진행중 상태용)
+  /// Accent 카드: 흰색 배경 + primary blue 보더 1.5px + 쉐도우 (진행중 상태용)
   Widget _buildAccentCard(
       ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
     final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
@@ -230,13 +234,13 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           borderRadius: BorderRadius.circular(_borderRadius),
           border: Border.all(
             color: borderColor,
-            width: 2,
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: _isPressed ? 0.02 : 0.05),
-              blurRadius: _isPressed ? 6 : 12,
-              offset: Offset(0, _isPressed ? 2 : 4),
+              color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
+              blurRadius: _isPressed ? 1 : 2,
+              offset: Offset(0, _isPressed ? 0 : 1),
             ),
           ],
         ),
@@ -246,11 +250,40 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// Record 카드: 흰색 배경 + 미세한 쉐도우 + 그레이 보더 1px, 패딩 없음 (자식이 직접 처리)
+  /// Record 카드: 흰색 배경 + 미세한 쉐도우 (보더 없음), 패딩 없음 (자식이 직접 처리)
   Widget _buildRecordCard(
       ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
     final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
-    final borderColor = isDark ? _darkBorderColor : _lightBorderColor;
+
+    return _wrapWithInkWell(
+      colorScheme: colorScheme,
+      backgroundColor: backgroundColor,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(_borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
+              blurRadius: _isPressed ? 1 : 2,
+              offset: Offset(0, _isPressed ? 0 : 1),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.zero, // 자식이 패딩을 직접 처리
+        child: widget.child,
+      ),
+    );
+  }
+
+  /// Gradient Border 카드: PAL Design System - 표준 카드 + 미세한 primary 틴트 보더
+  Widget _buildGradientBorderCard(
+      ColorScheme colorScheme, bool isDark, EdgeInsets padding) {
+    final backgroundColor = isDark ? _darkBackgroundColor : Colors.white;
+    final borderColor = isDark
+        ? _primaryBlue.withValues(alpha: 0.3)
+        : _primaryBlue.withValues(alpha: 0.2);
 
     return _wrapWithInkWell(
       colorScheme: colorScheme,
@@ -266,13 +299,13 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: _isPressed ? 0.01 : 0.02),
+              blurRadius: _isPressed ? 1 : 2,
+              offset: Offset(0, _isPressed ? 0 : 1),
             ),
           ],
         ),
-        padding: EdgeInsets.zero, // 자식이 패딩을 직접 처리
+        padding: padding,
         child: widget.child,
       ),
     );
@@ -293,8 +326,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(_borderRadius),
-        splashColor: colorScheme.primary.withValues(alpha: 0.05),
-        highlightColor: colorScheme.primary.withValues(alpha: 0.02),
+        splashColor: colorScheme.primary.withValues(alpha: 0.03),
+        highlightColor: colorScheme.primary.withValues(alpha: 0.01),
         child: child,
       ),
     );
@@ -305,6 +338,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   /// 날짜 뱃지 위젯 (pill shape)
   ///
   /// [dateText] 날짜 텍스트 (예: "2024-01-15")
+  // ignore: unused_element
   static Widget dateBadge(String dateText) {
     return Builder(
       builder: (context) {
@@ -338,6 +372,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   /// [label] 라벨 텍스트 (예: "세트 수")
   /// [value] 값 텍스트 (예: "3")
   /// [valueColor] 값 색상 (선택사항)
+  // ignore: unused_element
   static Widget statItem({
     required String label,
     required String value,

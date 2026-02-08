@@ -32,7 +32,7 @@ class _ServingSizeDialogState extends State<ServingSizeDialog> {
   final _customController = TextEditingController(text: '1.0');
   bool _isCustom = false;
 
-  final List<double> _presetMultipliers = [0.5, 1.0, 1.5, 2.0];
+  final List<double> _presetMultipliers = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0];
 
   @override
   void dispose() {
@@ -60,6 +60,24 @@ class _ServingSizeDialogState extends State<ServingSizeDialog> {
     }
   }
 
+  String _buildCalorieDiffText() {
+    final diff = (_calculatedFood.calories - widget.food.calories).toInt();
+    if (diff > 0) {
+      return '기본 대비 +$diff kcal';
+    } else {
+      return '기본 대비 $diff kcal';
+    }
+  }
+
+  Color _getCalorieDiffColor(ThemeData theme) {
+    final diff = _calculatedFood.calories - widget.food.calories;
+    if (diff > 0) {
+      return theme.colorScheme.error;
+    } else {
+      return theme.colorScheme.tertiary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -76,6 +94,37 @@ class _ServingSizeDialogState extends State<ServingSizeDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 가이드 메시지
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '실제 드신 양에 맞게 수량을 조절해주세요',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // 기본 영양정보
             Container(
               padding: const EdgeInsets.all(12),
@@ -86,8 +135,17 @@ class _ServingSizeDialogState extends State<ServingSizeDialog> {
               child: Column(
                 children: [
                   Text(
-                    '1회 제공량: ${widget.food.servingSizeText}',
-                    style: theme.textTheme.bodySmall,
+                    '1회 제공량 기준: ${widget.food.servingSizeText}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    '(일반적인 1인분 기준입니다)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -180,6 +238,17 @@ class _ServingSizeDialogState extends State<ServingSizeDialog> {
                       color: theme.colorScheme.primary,
                     ),
                   ),
+                  // 칼로리 차이 표시
+                  if (_multiplier != 1.0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _buildCalorieDiffText(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: _getCalorieDiffColor(theme),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     '탄 ${calculated.carbs.toInt()}g | 단 ${calculated.protein.toInt()}g | 지 ${calculated.fat.toInt()}g',

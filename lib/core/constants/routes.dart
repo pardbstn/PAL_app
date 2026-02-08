@@ -37,6 +37,17 @@ abstract class AppRoutes {
   static const String memberSelfTraining = '/member/self-training';
   static const String memberMonthlyReport = '/member/monthly-report';
   static const String memberTrainerQuestion = '/member/trainer-question';
+  static const String memberTrainerRating = '/member/trainer-rating/:trainerId';
+  static const String memberWorkoutLog = '/member/workout-log';
+  static const String memberInbodyOcr = '/member/inbody-ocr';
+
+  // 개인모드 경로 (회원 경로 미러링)
+  static const String personalHome = '/personal/home';
+  static const String personalRecords = '/personal/records';
+  static const String personalCalendar = '/personal/calendar';
+  static const String personalDiet = '/personal/diet';
+  static const String personalSettings = '/personal/settings';
+  static const String personalMonthlyReport = '/personal/monthly-report';
 
   // 공통 경로
   static const String notifications = '/notifications';
@@ -80,6 +91,17 @@ abstract class RouteNames {
   static const String memberSelfTraining = 'member-self-training';
   static const String memberMonthlyReport = 'member-monthly-report';
   static const String memberTrainerQuestion = 'member-trainer-question';
+  static const String memberTrainerRating = 'member-trainer-rating';
+  static const String memberWorkoutLog = 'member-workout-log';
+  static const String memberInbodyOcr = 'member-inbody-ocr';
+
+  // 개인모드
+  static const String personalHome = 'personal-home';
+  static const String personalRecords = 'personal-records';
+  static const String personalCalendar = 'personal-calendar';
+  static const String personalDiet = 'personal-diet';
+  static const String personalSettings = 'personal-settings';
+  static const String personalMonthlyReport = 'personal-monthly-report';
 
   // 공통
   static const String notifications = 'notifications';

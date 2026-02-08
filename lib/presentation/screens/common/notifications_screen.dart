@@ -64,7 +64,7 @@ class NotificationsScreen extends ConsumerWidget {
                 size: 80,
                 color: Colors.grey,
               ),
-              customTitle: '알림이 없습니다',
+              customTitle: '새로운 알림이 없어요',
               customMessage: '새로운 알림이 오면 여기에 표시됩니다',
             );
           }
@@ -246,7 +246,7 @@ class _NotificationGroup extends StatelessWidget {
             background: Container(
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.only(right: 20),
-              color: const Color(0xFFEF4444), // Error color
+              color: const Color(0xFFF04452), // Error color
               child: const Icon(
                 Icons.delete_outline,
                 color: Colors.white,
@@ -342,7 +342,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '알림을 불러오지 못했습니다',
+              '알림을 불러오지 못했어요',
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),

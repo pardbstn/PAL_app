@@ -42,13 +42,26 @@
 
         <!-- 카카오 로그인 리다이렉트 -->
         <activity
-            android:name="com.kakao.sdk.flutter.AuthCodeHandlerActivity"
-            android:exported="true">
+            android:name="com.kakao.sdk.flutter.AuthCodeCustomTabsActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="kakao493a529a0143eee0e513d3bec3eaa6fa" android:host="oauth"/>
+            </intent-filter>
+        </activity>
+
+        <!-- 네이버 로그인 콜백 처리 -->
+        <activity
+            android:name="com.yoonjaepark.flutter_naver_login.OAuthLoginActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.palapp.health123" android:host="oauth"/>
             </intent-filter>
         </activity>
 

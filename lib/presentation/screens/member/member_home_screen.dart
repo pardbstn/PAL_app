@@ -13,9 +13,7 @@ import 'package:flutter_pal_app/presentation/providers/schedule_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/curriculums_provider.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
-import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
-import 'package:flutter_pal_app/presentation/widgets/insights/benchmark_distribution_chart.dart';
-import 'package:flutter_pal_app/presentation/widgets/insights/muscle_balance_donut.dart';
+import 'package:flutter_pal_app/presentation/widgets/insights/member_insight_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/member/reregistration_banner.dart';
 import '../../../presentation/widgets/states/states.dart';
 import '../../../core/utils/animation_utils.dart';
@@ -24,6 +22,8 @@ import 'package:flutter_pal_app/presentation/widgets/common/app_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/card_animations.dart';
 import 'package:flutter_pal_app/presentation/providers/trainer_rating_provider.dart';
 import '../../../core/theme/app_tokens.dart';
+import 'package:flutter_pal_app/presentation/widgets/add_body_record_sheet.dart';
+import 'package:flutter_pal_app/presentation/widgets/trainer_transfer/transfer_pending_banner.dart';
 
 /// 프리미엄 회원 홈 화면
 class MemberHomeScreen extends ConsumerWidget {
@@ -34,6 +34,7 @@ class MemberHomeScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final member = ref.watch(currentMemberProvider);
     final user = ref.watch(currentUserModelProvider);
+    final isPersonal = authState.userRole == UserRole.personal;
 
     // member가 null일 경우: 로딩 중이거나 회원 프로필이 없는 경우
     if (member == null) {
@@ -45,7 +46,7 @@ class MemberHomeScreen extends ConsumerWidget {
       return Scaffold(
         body: _buildNoMemberProfile(
           context,
-          user?.name ?? '회원님',
+          user?.name ?? (isPersonal ? '사용자' : '회원님'),
           user?.memberCode,
         ),
       );
@@ -74,67 +75,74 @@ class MemberHomeScreen extends ConsumerWidget {
         child: SafeArea(
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. 상단 인사말 + 알림/설정 아이콘
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _GreetingSection(userName: user?.name ?? '회원님'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      onPressed: () => context.push('/notifications'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => context.push('/member/settings'),
-                    ),
-                  ],
+                // 1. 블루 브랜딩 히어로 헤더
+                _BlueBrandingHeader(
+                  userName: user?.name ?? (isPersonal ? '사용자' : '회원님'),
+                  onNotification: () => context.push(
+                    '/notifications?userId=${authState.userId ?? ''}',
+                  ),
+                  onSettings: () => context.push('/member/settings'),
                 ).animateListItem(0),
                 const SizedBox(height: 16),
 
-                // 재등록 배너 (80% 이상 완료 시)
-                ReregistrationBanner(memberId: memberId),
-                const SizedBox(height: 16),
+                // 트레이너 전환 요청 배너 - PT 모드만
+                if (!isPersonal) ...[TransferPendingBanner(memberId: memberId)],
 
-                // 2. PT 진행 현황 카드 (index 1)
-                _PtProgressCard(
-                  completed: member.ptInfo.completedSessions,
-                  total: member.ptInfo.totalSessions,
-                  progressRate: member.progressRate,
-                ).animateListItem(1),
-                const SizedBox(height: 16),
+                // 재등록 배너 (80% 이상 완료 시) - PT 모드만
+                if (!isPersonal) ...[
+                  ReregistrationBanner(memberId: memberId),
+                  const SizedBox(height: 16),
+                ],
 
-                // 3. 다음 수업 카드 (index 2) - 캘린더 PT 일정 기반
-                nextPtScheduleAsync.when(
-                  loading: () => _buildNextClassSkeleton(context),
-                  error: (error, _) => _NextClassCard(
-                    schedule: null,
-                    error: error.toString(),
-                  ).animateListItem(2),
-                  data: (schedule) =>
-                      _NextClassCard(schedule: schedule).animateListItem(2),
-                ),
-                const SizedBox(height: 16),
+                // 개인 모드: 오늘 운동 요약 카드 (TODO: 구현 필요)
+                // if (isPersonal)
+                //   _TodayWorkoutSummaryCard(userId: authState.userId!)
+                //       .animateListItem(1),
 
-                // 3.5. 다음 진행할 커리큘럼 카드
-                nextCurriculumAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (curriculum) => curriculum != null
-                      ? Column(
-                          children: [
-                            _NextCurriculumCard(curriculum: curriculum)
-                                .animateListItem(2),
-                            const SizedBox(height: 16),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
-                ),
+                // PT 모드: PT 진행 현황 카드
+                if (!isPersonal) ...[
+                  _PtProgressCard(
+                    completed: member.ptInfo.completedSessions,
+                    total: member.ptInfo.totalSessions,
+                    progressRate: member.progressRate,
+                  ).animateListItem(1),
+                  const SizedBox(height: 16),
+                ],
+
+                // PT 모드만: 다음 수업 카드
+                if (!isPersonal) ...[
+                  nextPtScheduleAsync.when(
+                    loading: () => _buildNextClassSkeleton(context),
+                    error: (error, _) => _NextClassCard(
+                      schedule: null,
+                      error: error.toString(),
+                    ).animateListItem(2),
+                    data: (schedule) =>
+                        _NextClassCard(schedule: schedule).animateListItem(2),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // PT 모드만: 다음 진행할 커리큘럼 카드
+                if (!isPersonal)
+                  nextCurriculumAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (curriculum) => curriculum != null
+                        ? Column(
+                            children: [
+                              _NextCurriculumCard(
+                                curriculum: curriculum,
+                              ).animateListItem(2),
+                              const SizedBox(height: 16),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
 
                 // 4. 체중 변화 미니 차트 (index 3)
                 weightChangeAsync.when(
@@ -143,6 +151,8 @@ class MemberHomeScreen extends ConsumerWidget {
                     weightChange: null,
                     weightHistory: const [],
                     error: error.toString(),
+                    onAddRecord: () =>
+                        AddBodyRecordSheet.show(context, memberId),
                   ).animateListItem(3),
                   data: (weightChange) => weightHistoryAsync.when(
                     loading: () => _buildWeightChartSkeleton(context),
@@ -150,10 +160,14 @@ class MemberHomeScreen extends ConsumerWidget {
                       weightChange: weightChange,
                       weightHistory: const [],
                       error: error.toString(),
+                      onAddRecord: () =>
+                          AddBodyRecordSheet.show(context, memberId),
                     ).animateListItem(3),
                     data: (history) => _WeightChangeCard(
                       weightChange: weightChange,
                       weightHistory: history,
+                      onAddRecord: () =>
+                          AddBodyRecordSheet.show(context, memberId),
                     ).animateListItem(3),
                   ),
                 ),
@@ -180,6 +194,7 @@ class MemberHomeScreen extends ConsumerWidget {
                 _QuickActionsSection(
                   trainerId: member.trainerId,
                   memberId: memberId,
+                  isPersonal: isPersonal,
                 ).animateListItem(5),
                 const SizedBox(height: 32),
               ],
@@ -319,178 +334,211 @@ class MemberHomeScreen extends ConsumerWidget {
     final displayTag = memberCode != null ? '$userName#$memberCode' : userName;
 
     return SafeArea(
-      child: Column(
-        children: [
-          // 상단 설정 버튼
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined),
-                  onPressed: () => context.push('/member/settings'),
-                  tooltip: '설정',
-                ),
-              ],
-            ),
-          ),
-          // 메인 콘텐츠
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
+            children: [
+              // 상단 설정 버튼
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        size: 48,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                const SizedBox(height: 24),
-                Text(
-                  '안녕하세요, $userName님!',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '아직 트레이너와 연결되지 않았습니다.\n아래 회원 코드를 트레이너에게 알려주세요.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white60 : Colors.black54,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // 회원 코드 표시
-                if (memberCode != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF2E3B5E)
-                            : const Color(0xFFE5E7EB),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '내 회원 코드',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark ? Colors.white60 : Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          displayTag,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: AppTheme.primary,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '회원 등록 방법',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '1. 위의 회원 코드를 트레이너에게 알려주세요\n2. 트레이너가 회원으로 등록하면\n3. 이 화면이 자동으로 업데이트됩니다',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isDark ? Colors.white54 : Colors.black45,
-                          height: 1.6,
-                        ),
-                      ),
-                    ],
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => context.push('/member/settings'),
+                      tooltip: '설정',
                     ),
                   ],
                 ),
               ),
-            ),
+              // 메인 콘텐츠
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person_outline,
+                            size: 48,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          '안녕하세요, $userName님!',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '아직 트레이너와 연결되지 않았어요.\n아래 회원 코드를 트레이너에게 알려주세요',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark ? Colors.white60 : Colors.black54,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // 회원 코드 표시
+                        if (memberCode != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.darkBorder
+                                    : AppColors.gray100,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  '내 회원 코드',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isDark
+                                        ? Colors.white60
+                                        : Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  displayTag,
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primary,
+                                        letterSpacing: 1,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.info_outline,
+                                color: AppTheme.primary,
+                                size: 28,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '회원 등록 방법',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '1. 위의 회원 코드를 트레이너에게 알려주세요\n2. 트레이너가 회원으로 등록하면\n3. 이 화면이 자동으로 업데이트됩니다',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black45,
+                                  height: 1.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    )
+        )
         .animate()
-        .fadeIn(duration: 400.ms)
+        .fadeIn(duration: 200.ms)
         .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1));
   }
 }
 
-/// 상단 인사말 섹션
-class _GreetingSection extends StatelessWidget {
+/// 브랜딩 히어로 헤더 - 화이트 카드 스타일
+class _BlueBrandingHeader extends StatelessWidget {
   final String userName;
+  final VoidCallback onNotification;
+  final VoidCallback onSettings;
 
-  const _GreetingSection({required this.userName});
+  const _BlueBrandingHeader({
+    required this.userName,
+    required this.onNotification,
+    required this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final greeting = _getTimeBasedGreeting();
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '안녕하세요, $userName님!',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '안녕하세요, $userName님!',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _getTimeBasedGreeting(),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          greeting,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        IconButton(
+          icon: Icon(
+            Icons.notifications_none_rounded,
+            color: isDark ? AppColors.gray400 : AppColors.gray600,
           ),
+          onPressed: onNotification,
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.settings_rounded,
+            color: isDark ? AppColors.gray400 : AppColors.gray600,
+          ),
+          onPressed: onSettings,
         ),
       ],
     );
@@ -781,7 +829,7 @@ class _NextClassCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -805,75 +853,71 @@ class _NextClassCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.fitness_center,
-                        color: theme.colorScheme.primary,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '다음 PT 수업',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: daysUntil == 0
-                                      ? AppTheme.secondary.withValues(
-                                          alpha: 0.15,
-                                        )
-                                      : theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  dDayText,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: daysUntil == 0
-                                        ? AppTheme.secondary
-                                        : theme.colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  schedule!.memberName ?? 'PT 수업',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
+                          child: Icon(
+                            Icons.fitness_center,
+                            color: theme.colorScheme.primary,
+                            size: 24,
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '다음 PT 수업',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            (daysUntil == 0
+                                    ? AppTheme.secondary
+                                    : theme.colorScheme.primary)
+                                .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        dDayText,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: daysUntil == 0
+                              ? AppTheme.secondary
+                              : theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
+                // 수업 정보
+                if (schedule!.memberName != null &&
+                    schedule!.memberName!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      schedule!.memberName!,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -919,20 +963,26 @@ class _NextClassCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.md,
       ),
-      child: const EmptyState(
-        type: EmptyStateType.sessions,
-        customMessage: '트레이너에게 문의해보세요',
-        iconSize: 80,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const EmptyState(
+              type: EmptyStateType.sessions,
+              customMessage: '트레이너에게 문의해보세요',
+              iconSize: 48,
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => context.go('/member/calendar'),
+              child: const Text('일정 보러 가기'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -946,15 +996,9 @@ class _NextClassCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.md,
       ),
       child: ErrorState.fromError(error, onRetry: null),
     );
@@ -991,11 +1035,13 @@ class _WeightChangeCard extends StatelessWidget {
   final WeightChange? weightChange;
   final List<WeightHistoryData> weightHistory;
   final String? error;
+  final VoidCallback? onAddRecord;
 
   const _WeightChangeCard({
     this.weightChange,
     required this.weightHistory,
     this.error,
+    this.onAddRecord,
   });
 
   @override
@@ -1023,7 +1069,7 @@ class _WeightChangeCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -1044,15 +1090,15 @@ class _WeightChangeCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: changeColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         isLoss ? Icons.trending_down : Icons.trending_up,
                         color: changeColor,
-                        size: 20,
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1067,12 +1113,12 @@ class _WeightChangeCard extends StatelessWidget {
                 // 체중 변화량 카운트업 애니메이션
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: changeColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: AnimatedDoubleCounter(
                     value: weightChange!.change.abs(),
@@ -1190,7 +1236,7 @@ class _WeightChangeCard extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            curveSmoothness: 0.3,
+            curveSmoothness: 0.4,
             color: lineColor,
             barWidth: 3,
             isStrokeCapRound: true,
@@ -1240,7 +1286,7 @@ class _WeightChangeCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -1250,11 +1296,12 @@ class _WeightChangeCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const EmptyState(
+      child: EmptyState(
         type: EmptyStateType.bodyRecords,
         customTitle: '체중 기록이 부족합니다',
         customMessage: '2개 이상의 기록이 필요해요',
         iconSize: 80,
+        onAction: onAddRecord,
       ),
     );
   }
@@ -1268,15 +1315,9 @@ class _WeightChangeCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.md,
       ),
       child: ErrorState.fromError(error, onRetry: null),
     );
@@ -1287,8 +1328,13 @@ class _WeightChangeCard extends StatelessWidget {
 class _QuickActionsSection extends ConsumerWidget {
   final String trainerId;
   final String memberId;
+  final bool isPersonal;
 
-  const _QuickActionsSection({required this.trainerId, required this.memberId});
+  const _QuickActionsSection({
+    required this.trainerId,
+    required this.memberId,
+    required this.isPersonal,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1336,133 +1382,158 @@ class _QuickActionsSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-        // 트레이너 평점 표시 카드
-        if (trainerId.isNotEmpty && trainerRatingAsync != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+        // 트레이너 평점 표시 카드 (PT 모드만) - 탭하면 상세 보기
+        if (!isPersonal && trainerId.isNotEmpty && trainerRatingAsync != null)
+          GestureDetector(
+            onTap: () => context.push('/member/trainer-rating/$trainerId'),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.gray100,
                 ),
-              ],
-            ),
-            child: trainerRatingAsync.when(
-              data: (rating) {
-                final overall = rating?.overall ?? 0.0;
-                final reviewCount = rating?.reviewCount ?? 0;
-                return Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                boxShadow: AppShadows.sm,
+              ),
+              child: trainerRatingAsync.when(
+                data: (rating) {
+                  final overall = rating?.overall ?? 0.0;
+                  final reviewCount = rating?.reviewCount ?? 0;
+                  return Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF8A00).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFFF8A00),
+                          size: 24,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.star_rounded,
-                        color: Color(0xFFF59E0B),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '내 트레이너 평점',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '내 트레이너 평점',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              ...List.generate(5, (index) {
-                                final starValue = index + 1;
-                                if (overall >= starValue) {
-                                  return const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18);
-                                } else if (overall >= starValue - 0.5) {
-                                  return const Icon(Icons.star_half_rounded, color: Color(0xFFF59E0B), size: 18);
-                                } else {
-                                  return Icon(Icons.star_outline_rounded, color: Colors.grey.shade300, size: 18);
-                                }
-                              }),
-                              const SizedBox(width: 8),
-                              Text(
-                                overall > 0 ? overall.toStringAsFixed(1) : '-',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFF59E0B),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                ...List.generate(5, (index) {
+                                  final starValue = index + 1;
+                                  if (overall >= starValue) {
+                                    return const Icon(
+                                      Icons.star_rounded,
+                                      color: Color(0xFFFF8A00),
+                                      size: 18,
+                                    );
+                                  } else if (overall >= starValue - 0.5) {
+                                    return const Icon(
+                                      Icons.star_half_rounded,
+                                      color: Color(0xFFFF8A00),
+                                      size: 18,
+                                    );
+                                  } else {
+                                    return Icon(
+                                      Icons.star_outline_rounded,
+                                      color: Colors.grey.shade300,
+                                      size: 18,
+                                    );
+                                  }
+                                }),
+                                const SizedBox(width: 8),
+                                Text(
+                                  overall > 0
+                                      ? overall.toStringAsFixed(1)
+                                      : '-',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFFF8A00),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '($reviewCount개 리뷰)',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '($reviewCount개 리뷰)',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.3,
+                        ),
+                        size: 20,
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Shimmer.fromColors(
+                  baseColor: isDark
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade300,
+                  highlightColor: isDark
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade100,
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                );
-              },
-              loading: () => Shimmer.fromColors(
-                baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+                error: (_, __) => const SizedBox.shrink(),
               ),
-              error: (_, __) => const SizedBox.shrink(),
             ),
           ),
-        _QuickActionButton(
-          icon: Icons.star_outline_rounded,
-          label: '트레이너 평가하기',
-          color: const Color(0xFFF59E0B),
-          onTap: () {
-            // 연동된 트레이너가 없는 경우 안내 다이얼로그 표시
-            if (trainerId.isEmpty) {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('연동된 트레이너 없음'),
-                  content: const Text(
-                    '현재 연동된 트레이너가 없습니다.\n트레이너와 연동 후 평가할 수 있습니다.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('확인'),
+        if (!isPersonal)
+          _QuickActionButton(
+            icon: Icons.star_outline_rounded,
+            label: '트레이너 평가하기',
+            color: const Color(0xFFFF8A00),
+            onTap: () {
+              if (trainerId.isEmpty) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('연동된 트레이너 없음'),
+                    content: const Text(
+                      '현재 연동된 트레이너가 없어요.\n트레이너와 연동 후 평가할 수 있어요',
                     ),
-                  ],
-                ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('확인'),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+              context.push(
+                '/member/review-trainer/$trainerId?memberId=$memberId',
               );
-              return;
-            }
-            context.push(
-              '/member/review-trainer/$trainerId?memberId=$memberId',
-            );
-          },
-        ),
+            },
+          ),
       ],
     );
   }
@@ -1492,15 +1563,9 @@ class _QuickActionButton extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.md,
       ),
       child: Material(
         color: Colors.transparent,
@@ -1510,7 +1575,7 @@ class _QuickActionButton extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -1546,6 +1611,8 @@ class _EmptyInsightSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final generationState = ref.watch(memberInsightsGenerationProvider);
+    final authState = ref.watch(authProvider);
+    final isPersonal = authState.userRole == UserRole.personal;
 
     // 생성 완료 시 즉시 인사이트 카드 표시
     if (generationState.insights != null &&
@@ -1591,12 +1658,25 @@ class _EmptyInsightSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'AI가 분석한 맞춤 인사이트를 확인해보세요',
+            isPersonal
+                ? '기록을 쌓으면 AI가 맞춤 인사이트를 제공해요'
+                : 'AI가 분석한 맞춤 인사이트를 확인해보세요',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.textTheme.bodySmall?.color,
             ),
             textAlign: TextAlign.center,
           ),
+          if (isPersonal) ...[
+            const SizedBox(height: 8),
+            Text(
+              '혼자서도 잘하고 있어요! 💪',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -1644,35 +1724,6 @@ class _EmptyInsightSection extends ConsumerWidget {
   }
 }
 
-/// _MemberInsightCard에서 사용할 통일된 카드 데코레이션
-BoxDecoration _getUnifiedCardDecoration(
-  BuildContext context,
-  Color? accentColor,
-) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  // 기본 그레이 보더, accentColor가 있으면 아주 미세하게만 적용
-  final borderColor = accentColor != null
-      ? Color.lerp(
-          isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
-          accentColor,
-          0.15,
-        )!
-      : (isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB));
-
-  return BoxDecoration(
-    color: isDark ? const Color(0xFF1E2A4A) : Colors.white,
-    borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: borderColor, width: 1),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.05),
-        blurRadius: 12,
-        offset: const Offset(0, 4),
-      ),
-    ],
-  );
-}
-
 /// AI 인사이트 카드 섹션
 class _InsightCardsSection extends ConsumerWidget {
   final List<MemberInsight> insights;
@@ -1680,10 +1731,37 @@ class _InsightCardsSection extends ConsumerWidget {
 
   const _InsightCardsSection({required this.insights, required this.memberId});
 
+  /// 중복 제거 및 필터링된 인사이트 목록 반환
+  List<MemberInsight> _getFilteredInsights() {
+    final seen = <String>{};
+    final filtered = <MemberInsight>[];
+    for (final insight in insights) {
+      // 같은 제목의 인사이트는 최신 것만 표시
+      if (seen.contains(insight.title)) {
+        continue;
+      }
+      seen.add(insight.title);
+      // 만료된 인사이트 제외
+      if (insight.expiresAt != null &&
+          insight.expiresAt!.isBefore(DateTime.now())) {
+        continue;
+      }
+      filtered.add(insight);
+    }
+    return filtered;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final generationState = ref.watch(memberInsightsGenerationProvider);
+    final authState = ref.watch(authProvider);
+    final isPersonal = authState.userRole == UserRole.personal;
+    final filteredInsights = _getFilteredInsights();
+
+    if (filteredInsights.isEmpty) {
+      return _EmptyInsightSection(memberId: memberId);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1708,11 +1786,23 @@ class _InsightCardsSection extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    'AI 인사이트',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI 인사이트',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (isPersonal)
+                        Text(
+                          '꾸준한 기록이 최고의 트레이너에요',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -1734,19 +1824,31 @@ class _InsightCardsSection extends ConsumerWidget {
           ),
         ),
         SizedBox(
-          height: 160,
+          height: 240,
           child: AnimatedListWrapper(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: insights.length > 5 ? 5 : insights.length,
+              itemCount: filteredInsights.length > 5
+                  ? 5
+                  : filteredInsights.length,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final insight = insights[index];
+                final insight = filteredInsights[index];
                 return AnimatedListWrapper.item(
                   index: index,
                   horizontalOffset: 50.0,
                   verticalOffset: 0.0,
-                  child: _MemberInsightCard(insight: insight),
+                  child: MemberInsightCard(
+                    insight: insight,
+                    onRead: () {
+                      // 자세히 보기 시 자동 읽음 처리
+                      if (!insight.isRead) {
+                        ref
+                            .read(memberInsightsServiceProvider)
+                            .markAsRead(insight.id);
+                      }
+                    },
+                  ),
                 );
               },
             ),
@@ -1762,167 +1864,6 @@ class _InsightCardsSection extends ConsumerWidget {
   }
 }
 
-/// 개별 인사이트 카드 (미니 그래프 지원)
-class _MemberInsightCard extends StatelessWidget {
-  final MemberInsight insight;
-
-  const _MemberInsightCard({required this.insight});
-
-  /// 인사이트 타입에 따른 네비게이션 경로 반환
-  String? _getNavigationRoute() {
-    switch (insight.type) {
-      // 체성분 관련 - 기록 화면으로
-      case 'bodyPrediction':
-      case 'bodyChangeReport':
-      case 'weightProgress':
-        return '/member/records';
-      // 영양/식단 관련 - 식단 화면으로
-      case 'nutritionBalance':
-        return '/member/diet';
-      // 출석/일정 관련 - 캘린더 화면으로
-      case 'attendanceHabit':
-      case 'attendanceAlert':
-        return '/member/calendar';
-      // 벤치마크 - 기록 화면으로
-      case 'benchmark':
-        return '/member/records';
-      // 운동 관련 - 기록 화면으로
-      case 'workoutAchievement':
-      case 'workoutVolume':
-        return '/member/records';
-      // 목표 진행률 - 기록 화면으로
-      case 'goalProgress':
-        return '/member/records';
-      // 컨디션 패턴 - 기록 화면으로
-      case 'conditionPattern':
-        return '/member/records';
-      default:
-        return null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final navigationRoute = _getNavigationRoute();
-
-    return GestureDetector(
-      onTap: navigationRoute != null
-          ? () => context.push(navigationRoute)
-          : null,
-      child: Container(
-        width: 200,
-        margin: const EdgeInsets.only(right: 0),
-        padding: const EdgeInsets.all(12),
-        decoration: _getUnifiedCardDecoration(context, insight.priorityColor),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 헤더: 아이콘 + 우선순위 배지
-            Row(
-              children: [
-                Icon(insight.typeIcon, size: 20, color: insight.priorityColor),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: insight.priorityColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    insight.title,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: insight.priorityColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // 미니 그래프 영역 (데이터가 있는 경우)
-            if (insight.graphData != null && insight.graphType != null)
-              Expanded(child: _buildChart())
-            else
-              const Spacer(),
-            const SizedBox(height: 8),
-            // 메시지
-            Text(
-              insight.message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark ? Colors.white70 : Colors.black54,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 그래프 타입과 인사이트 타입에 따른 차트 위젯 빌드
-  Widget _buildChart() {
-    // 벤치마크 타입이고 distribution 그래프인 경우 BenchmarkDistributionChart 사용
-    if (insight.type == 'benchmark' && insight.graphType == 'distribution') {
-      final data = insight.graphData!;
-      // graphData에서 필요한 정보 추출
-      final overallPercentile =
-          data.isNotEmpty && data[0].containsKey('overallPercentile')
-          ? (data[0]['overallPercentile'] as num).toInt()
-          : 50;
-      final goal = data.isNotEmpty && data[0].containsKey('goal')
-          ? data[0]['goal'] as String
-          : 'fitness';
-      final categories = data.isNotEmpty && data[0].containsKey('categories')
-          ? (data[0]['categories'] as List<dynamic>)
-                .map((c) => c as Map<String, dynamic>)
-                .toList()
-          : <Map<String, dynamic>>[];
-
-      return BenchmarkDistributionChart.fromMaps(
-        overallPercentile: overallPercentile,
-        categories: categories,
-        goal: goal,
-      );
-    }
-
-    // workout_volume 타입이고 donut 그래프인 경우 MuscleBalanceDonut 사용
-    if (insight.type == 'workoutVolume' && insight.graphType == 'donut') {
-      final data = insight.graphData!;
-      if (data.isNotEmpty && data[0].containsKey('muscleGroupBalance')) {
-        final muscleBalance =
-            data[0]['muscleGroupBalance'] as Map<String, dynamic>;
-        final isImbalanced = data[0]['isImbalanced'] as bool? ?? false;
-        final imbalanceType = data[0]['imbalanceType'] as String?;
-
-        return MuscleBalanceDonut(
-          muscleGroupBalance: muscleBalance.map(
-            (key, value) => MapEntry(key, (value as num).toInt()),
-          ),
-          isImbalanced: isImbalanced,
-          imbalanceType: imbalanceType,
-        );
-      }
-    }
-
-    // 기본 InsightMiniChart 사용
-    return InsightMiniChart(
-      graphType: insight.graphType!,
-      data: insight.graphData!,
-      primaryColor: insight.priorityColor,
-    );
-  }
-}
-
 /// 다음 진행할 커리큘럼 카드
 class _NextCurriculumCard extends StatelessWidget {
   final CurriculumModel curriculum;
@@ -1934,47 +1875,46 @@ class _NextCurriculumCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return AppCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
+        ),
+        boxShadow: AppShadows.md,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 헤더
+            // 헤더 (체중 변화 카드와 동일한 레이아웃)
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.fitness_center,
-                    color: AppTheme.secondary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '다음 진행할 운동',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        '${curriculum.sessionNumber}회차',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppTheme.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: const Icon(
+                        Icons.fitness_center,
+                        color: AppColors.primary,
+                        size: 24,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '다음 진행할 운동',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1982,20 +1922,20 @@ class _NextCurriculumCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.secondary.withValues(alpha: 0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${curriculum.exercises.length}개 운동',
+                    '${curriculum.sessionNumber}회차 · ${curriculum.exercises.length}개',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppTheme.secondary,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // 커리큘럼 제목
             Text(
@@ -2047,7 +1987,7 @@ class _NextCurriculumCard extends StatelessWidget {
                 child: Text(
                   '외 ${curriculum.exercises.length - 3}개 운동',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.secondary,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

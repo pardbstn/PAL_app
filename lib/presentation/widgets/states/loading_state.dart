@@ -82,11 +82,11 @@ class LoadingState extends StatelessWidget {
     switch (type) {
       case LoadingStateType.general:
         return _LoadingStateConfig(
-          message: '로딩 중...',
+          message: '',
         );
       case LoadingStateType.aiAnalysis:
         return _LoadingStateConfig(
-          message: 'AI가 분석 중입니다...',
+          message: 'AI가 분석하고 있어요...',
         );
       case LoadingStateType.saving:
         return _LoadingStateConfig(

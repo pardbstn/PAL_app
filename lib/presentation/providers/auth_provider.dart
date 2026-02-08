@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,7 +20,7 @@ import 'package:flutter_pal_app/data/repositories/repositories.dart';
 import 'package:flutter_pal_app/data/services/fcm_service.dart';
 
 /// 사용자 역할 enum
-enum UserRole { trainer, member }
+enum UserRole { trainer, member, personal }
 
 /// 인증 상태 클래스
 class AuthState {
@@ -97,8 +98,16 @@ class AuthNotifier extends Notifier<AuthState> {
     // Firebase Auth 상태 변화 리스닝
     _auth.authStateChanges().listen((User? user) async {
       if (user != null) {
-        // 로딩 시작
-        state = state.copyWith(isLoading: true);
+        debugPrint('[Auth] authStateChanges: 사용자 감지됨 - ${user.uid}');
+        // 로딩 시작 - 즉시 isAuthenticated: true 설정하여 로그인 페이지 리다이렉트 방지
+        state = state.copyWith(
+          isLoading: true,
+          isAuthenticated: true,
+          userId: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoURL,
+        );
 
         // Firestore에서 사용자 정보 로드 (타임아웃 10초)
         try {
@@ -130,6 +139,7 @@ class AuthNotifier extends Notifier<AuthState> {
           );
         }
       } else {
+        debugPrint('[Auth] authStateChanges: 사용자 로그아웃');
         state = const AuthState();
       }
     });
@@ -179,12 +189,14 @@ class AuthNotifier extends Notifier<AuthState> {
       }
 
       if (userModel != null) {
-        final role = userModel.role == UserRoleType.trainer
-            ? UserRole.trainer
-            : UserRole.member;
+        final role = switch (userModel.role) {
+          UserRoleType.trainer => UserRole.trainer,
+          UserRoleType.member => UserRole.member,
+          UserRoleType.personal => UserRole.personal,
+        };
 
-        // 회원인데 memberCode가 없으면 자동 생성
-        if (role == UserRole.member && userModel.memberCode == null) {
+        // 회원 또는 개인모드인데 memberCode가 없으면 자동 생성
+        if ((role == UserRole.member || role == UserRole.personal) && userModel.memberCode == null) {
           final newCode = _generateMemberCode();
           await _userRepository.update(uid, {'memberCode': newCode});
           userModel = userModel.copyWith(memberCode: newCode);
@@ -265,8 +277,11 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Firestore에 사용자 저장/업데이트
   Future<void> _saveUserToFirestore(User user, UserRole role) async {
     final now = DateTime.now();
-    final roleType =
-        role == UserRole.trainer ? UserRoleType.trainer : UserRoleType.member;
+    final roleType = switch (role) {
+      UserRole.trainer => UserRoleType.trainer,
+      UserRole.member => UserRoleType.member,
+      UserRole.personal => UserRoleType.personal,
+    };
 
     // 1. Firebase Auth UID로 기존 사용자 확인
     var existingUser = await _userRepository.get(user.uid);
@@ -321,14 +336,18 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     // 3. 완전히 새로운 사용자 생성
-    // 회원인 경우 4자리 회원 코드 생성
+    // 회원 또는 개인모드인 경우 4자리 회원 코드 생성
     String? memberCode;
-    if (role == UserRole.member) {
+    if (role == UserRole.member || role == UserRole.personal) {
       memberCode = _generateMemberCode();
     }
 
     // 기본 이름 설정: 역할에 따라 "트레이너" 또는 "회원"
-    final defaultName = role == UserRole.trainer ? '트레이너' : '회원';
+    final defaultName = switch (role) {
+      UserRole.trainer => '트레이너',
+      UserRole.member => '회원',
+      UserRole.personal => '회원',
+    };
 
     final userModel = UserModel(
       uid: user.uid,
@@ -432,15 +451,17 @@ class AuthNotifier extends Notifier<AuthState> {
           await _auth.signOut();
           state = state.copyWith(
             isLoading: false,
-            errorMessage: '가입되지 않은 계정입니다. 회원가입을 먼저 해주세요.',
+            errorMessage: '가입되지 않은 계정이에요. 회원가입을 먼저 해주세요',
           );
-          throw Exception('가입되지 않은 계정입니다. 회원가입을 먼저 해주세요.');
+          throw Exception('가입되지 않은 계정이에요. 회원가입을 먼저 해주세요');
         }
 
         // 4. 기존 사용자는 저장된 역할 사용 (선택된 역할 무시)
-        final finalRole = existingUser.role == UserRoleType.trainer
-            ? UserRole.trainer
-            : UserRole.member;
+        final finalRole = switch (existingUser.role) {
+          UserRoleType.trainer => UserRole.trainer,
+          UserRoleType.member => UserRole.member,
+          UserRoleType.personal => UserRole.personal,
+        };
         debugPrint('[Auth] 이메일 로그인 - 저장된 역할 사용: $finalRole');
 
         // 5. Firestore에 사용자 업데이트 (마이그레이션 등)
@@ -452,8 +473,10 @@ class AuthNotifier extends Notifier<AuthState> {
         // FCM 토큰 저장
         await _saveFcmToken(user.uid);
 
+        debugPrint('[Auth] 이메일 로그인 성공 - isAuthenticated: true, userRole: $finalRole');
         state = state.copyWith(
           isLoading: false,
+          isAuthenticated: true,
           userRole: finalRole,
         );
       }
@@ -468,7 +491,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (state.errorMessage == null) {
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '로그인 중 오류가 발생했습니다.',
+          errorMessage: '로그인 중 문제가 생겼어요',
         );
       }
       rethrow;
@@ -513,7 +536,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: '회원가입 중 오류가 발생했습니다.',
+        errorMessage: '회원가입 중 문제가 생겼어요',
       );
       rethrow;
     }
@@ -541,7 +564,7 @@ class AuthNotifier extends Notifier<AuthState> {
         }
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '구글 로그인에 실패했습니다. 다시 시도해주세요.',
+          errorMessage: '구글 로그인에 실패했어요. 다시 시도해주세요',
         );
         return;
       }
@@ -563,7 +586,7 @@ class AuthNotifier extends Notifier<AuthState> {
         debugPrint('[Auth] 구글 인증 정보 오류: $e');
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '구글 인증 정보를 가져올 수 없습니다.',
+          errorMessage: '구글 인증 정보를 가져올 수 없어요',
         );
         return;
       }
@@ -594,9 +617,11 @@ class AuthNotifier extends Notifier<AuthState> {
         // 3. 기존 사용자인 경우 저장된 역할 사용, 신규면 역할 선택 화면으로
         if (existingUser != null) {
           // 기존 사용자는 저장된 역할 사용
-          final finalRole = existingUser.role == UserRoleType.trainer
-              ? UserRole.trainer
-              : UserRole.member;
+          final finalRole = switch (existingUser.role) {
+            UserRoleType.trainer => UserRole.trainer,
+            UserRoleType.member => UserRole.member,
+            UserRoleType.personal => UserRole.personal,
+          };
           debugPrint('[Auth] 기존 사용자 - 저장된 역할 사용: $finalRole');
 
           // Firestore에 사용자 저장/업데이트
@@ -608,8 +633,10 @@ class AuthNotifier extends Notifier<AuthState> {
           // FCM 토큰 저장
           await _saveFcmToken(user.uid);
 
+          debugPrint('[Auth] 구글 로그인 성공 - isAuthenticated: true, userRole: $finalRole');
           state = state.copyWith(
             isLoading: false,
+            isAuthenticated: true,
             userRole: finalRole,
           );
         } else {
@@ -638,7 +665,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (state.errorMessage == null) {
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '구글 로그인 중 오류가 발생했습니다.',
+          errorMessage: '구글 로그인 중 문제가 생겼어요',
         );
       }
     }
@@ -668,7 +695,7 @@ class AuthNotifier extends Notifier<AuthState> {
         }
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '카카오 로그인에 실패했습니다.',
+          errorMessage: '카카오 로그인에 실패했어요',
         );
         return;
       }
@@ -749,21 +776,25 @@ class AuthNotifier extends Notifier<AuthState> {
         }
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '네이버 로그인에 실패했습니다.',
+          errorMessage: '네이버 로그인에 실패했어요',
         );
         return;
       }
 
       // 에러인 경우 (2.x에서는 cancelledByUser가 error로 통합됨)
       if (result.status == NaverLoginStatus.error) {
+        debugPrint('[Auth] 네이버 로그인 에러 상태 - 취소 또는 오류');
         state = state.copyWith(isLoading: false);
         return;
       }
 
       if (result.status != NaverLoginStatus.loggedIn) {
+        debugPrint('[Auth] 네이버 로그인 실패 - status: ${result.status}');
         state = state.copyWith(isLoading: false);
         return;
       }
+
+      debugPrint('[Auth] 네이버 로그인 성공! status: ${result.status}');
 
       // 2단계: 네이버 사용자 정보 가져오기
       debugPrint('[Auth] 네이버 사용자 정보 조회 중...');
@@ -788,7 +819,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (userId == null || userId.isEmpty) {
         state = state.copyWith(
           isLoading: false,
-          errorMessage: '네이버 사용자 ID를 가져올 수 없습니다.',
+          errorMessage: '네이버 사용자 ID를 가져올 수 없어요',
         );
         return;
       }
@@ -869,7 +900,7 @@ class AuthNotifier extends Notifier<AuthState> {
         }
         state = state.copyWith(
           isLoading: false,
-          errorMessage: 'Apple 로그인에 실패했습니다.',
+          errorMessage: 'Apple 로그인에 실패했어요',
         );
         return;
       }
@@ -900,7 +931,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (userId == null || userId.isEmpty) {
         state = state.copyWith(
           isLoading: false,
-          errorMessage: 'Apple 사용자 ID를 가져올 수 없습니다.',
+          errorMessage: 'Apple 사용자 ID를 가져올 수 없어요',
         );
         return;
       }
@@ -951,7 +982,8 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  /// 랜덤 nonce 문자열 생성
+  /// 랜덤 nonce 문자열 생성 (Apple Sign In용 - 추후 사용 예정)
+  // ignore: unused_element
   String _generateNonce([int length = 32]) {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
@@ -960,7 +992,8 @@ class AuthNotifier extends Notifier<AuthState> {
         .join();
   }
 
-  /// SHA256 해시 생성
+  /// SHA256 해시 생성 (Apple Sign In용 - 추후 사용 예정)
+  // ignore: unused_element
   String _sha256ofString(String input) {
     final bytes = utf8.encode(input);
     final digest = sha256.convert(bytes);
@@ -1005,9 +1038,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
     if (existingUser != null) {
       // 기존 사용자는 저장된 역할 사용
-      final finalRole = existingUser.role == UserRoleType.trainer
-          ? UserRole.trainer
-          : UserRole.member;
+      final finalRole = switch (existingUser.role) {
+        UserRoleType.trainer => UserRole.trainer,
+        UserRoleType.member => UserRole.member,
+        UserRoleType.personal => UserRole.personal,
+      };
       debugPrint('[Auth] 기존 사용자 - 저장된 역할 사용: $finalRole');
 
       // Firestore 업데이트 (마지막 로그인 시간 등)
@@ -1019,8 +1054,10 @@ class AuthNotifier extends Notifier<AuthState> {
       // FCM 토큰 저장
       await _saveFcmToken(user.uid);
 
+      debugPrint('[Auth] 소셜 로그인 성공 - isAuthenticated: true, userRole: $finalRole');
       state = state.copyWith(
         isLoading: false,
+        isAuthenticated: true,
         userRole: finalRole,
       );
     } else {
@@ -1042,7 +1079,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> completeSignupWithRole(UserRole role) async {
     final user = _auth.currentUser;
     if (user == null) {
-      throw Exception('로그인된 사용자가 없습니다.');
+      throw Exception('로그인된 사용자가 없어요');
     }
 
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -1066,7 +1103,7 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint('[Auth] 회원가입 완료 오류: $e');
       state = state.copyWith(
         isLoading: false,
-        errorMessage: '회원가입 중 오류가 발생했습니다.',
+        errorMessage: '회원가입 중 문제가 생겼어요',
       );
       rethrow;
     }
@@ -1140,7 +1177,35 @@ class AuthNotifier extends Notifier<AuthState> {
 
     if (updates.isNotEmpty) {
       await _userRepository.update(state.userId!, updates);
+
+      // 트레이너 이름 변경 시 채팅방의 캐시된 이름도 업데이트
+      if (name != null && state.userRole == UserRole.trainer) {
+        await _syncTrainerNameInChatRooms(state.userId!, name);
+      }
+
       await _loadUserData(state.userId!);
+    }
+  }
+
+  /// 채팅방에 캐시된 트레이너 이름 동기화
+  Future<void> _syncTrainerNameInChatRooms(String trainerId, String newName) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final chatRooms = await firestore
+          .collection('chatRooms')
+          .where('trainerId', isEqualTo: trainerId)
+          .get();
+
+      if (chatRooms.docs.isEmpty) return;
+
+      final batch = firestore.batch();
+      for (final doc in chatRooms.docs) {
+        batch.update(doc.reference, {'trainerName': newName});
+      }
+      await batch.commit();
+      debugPrint('[Auth] 채팅방 ${chatRooms.docs.length}개의 트레이너 이름 동기화 완료');
+    } catch (e) {
+      debugPrint('[Auth] 채팅방 트레이너 이름 동기화 실패: $e');
     }
   }
 
@@ -1165,25 +1230,25 @@ class AuthNotifier extends Notifier<AuthState> {
   String _getErrorMessage(String code) {
     switch (code) {
       case 'user-not-found':
-        return '등록되지 않은 이메일입니다.';
+        return '등록되지 않은 이메일이에요';
       case 'wrong-password':
-        return '비밀번호가 올바르지 않습니다.';
+        return '비밀번호가 올바르지 않아요';
       case 'invalid-email':
-        return '유효하지 않은 이메일 형식입니다.';
+        return '유효하지 않은 이메일 형식이에요';
       case 'user-disabled':
-        return '비활성화된 계정입니다.';
+        return '비활성화된 계정이에요';
       case 'email-already-in-use':
-        return '이미 사용 중인 이메일입니다.';
+        return '이미 사용 중인 이메일이에요';
       case 'weak-password':
-        return '비밀번호가 너무 약합니다. 6자 이상 입력해주세요.';
+        return '비밀번호가 너무 약해요. 6자 이상 입력해주세요';
       case 'operation-not-allowed':
-        return '이메일/비밀번호 로그인이 비활성화되어 있습니다.';
+        return '이메일/비밀번호 로그인이 비활성화되어 있어요';
       case 'too-many-requests':
-        return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
+        return '너무 많은 요청이 발생했어요. 잠시 후 다시 시도해주세요';
       case 'invalid-credential':
-        return '이메일 또는 비밀번호가 올바르지 않습니다.\n소셜 로그인으로 가입했다면 해당 방법으로 로그인해주세요.';
+        return '이메일 또는 비밀번호가 올바르지 않아요.\n소셜 로그인으로 가입했다면 해당 방법으로 로그인해주세요';
       default:
-        return '인증 오류가 발생했습니다. ($code)';
+        return '인증에 문제가 생겼어요. ($code)';
     }
   }
 
@@ -1206,6 +1271,20 @@ class AuthNotifier extends Notifier<AuthState> {
 /// 인증 상태 Provider
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
   return AuthNotifier();
+});
+
+/// GoRouter refresh를 위한 Listenable
+class AuthRefreshNotifier extends ChangeNotifier {
+  AuthRefreshNotifier(Ref ref) {
+    ref.listen(authProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+}
+
+/// GoRouter refreshListenable Provider
+final authRefreshListenableProvider = Provider<AuthRefreshNotifier>((ref) {
+  return AuthRefreshNotifier(ref);
 });
 
 /// 로그인 여부 Provider

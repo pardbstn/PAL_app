@@ -260,7 +260,7 @@ class _FoodSearchBottomSheetState extends ConsumerState<FoodSearchBottomSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              '검색 결과가 없습니다',
+              '검색 결과가 없어요',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.5),
               ),

@@ -135,22 +135,30 @@ function analyzeAttendancePattern(
   // 출석률 50% 이상 하락 시 경고
   if (previousWeeks > 0 && recentWeeks < previousWeeks * 0.5) {
     const dropRate = Math.round((1 - recentWeeks / previousWeeks) * 100);
+
+    // 그래프 데이터 추가 (주간 출석 추이)
+    const graphData = weeklyRecords.reverse().map((count, idx) => ({
+      week: `${idx + 1}주 전`,
+      count,
+    }));
+
     return {
       trainerId: "", // 나중에 설정
       memberId,
       memberName,
       type: "attendanceAlert",
       priority: "high",
-      title: truncateMessage(`${memberName} 출석 경고`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+      title: truncateMessage(`${memberName}님 출석 줄었어요`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
       message: truncateMessage(
-        TRAINER_MESSAGE_TEMPLATES.attendanceAlert.drop(memberName, dropRate),
+        TRAINER_MESSAGE_TEMPLATES.attendanceAlert.drop(memberName, dropRate, recentWeeks, previousWeeks),
         INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
       ),
-      actionSuggestion: "회원에게 연락하세요",
+      actionSuggestion: `이번 주 중 격려 메시지를 보내보세요. 예: "요즘 어떠세요? 함께 목표 달성해봐요!"`,
       data: {
         dropRate,
         recentCount: recentWeeks,
         previousCount: previousWeeks,
+        graphData,
       },
       isRead: false,
       isActionTaken: false,
@@ -183,14 +191,33 @@ function analyzePTExpiry(
   // 7일 이내 종료 예정
   if (daysUntilExpiry > 0 && daysUntilExpiry <= 7) {
     const remainingSessions = member.remainingSessions ?? 0;
+    const totalSessions = member.totalSessions ?? 1;
+    const usedSessions = totalSessions - remainingSessions;
+    const utilizationRate = Math.round((usedSessions / totalSessions) * 100);
+
     let priority: InsightPriority = "medium";
     let expiryMessage: string;
+    let actionSuggestion: string;
 
     if (daysUntilExpiry <= 3) {
       priority = "high";
-      expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.urgent(member.name, daysUntilExpiry);
+      expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.urgent(member.name, daysUntilExpiry, remainingSessions);
+      actionSuggestion = remainingSessions > 0
+        ? `${remainingSessions}회 빠르게 소진할 수 있도록 일정 제안하세요`
+        : "재등록 혜택 제안: '목표 달성까지 함께 가요!' 메시지 추천";
     } else {
-      expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.soon(member.name, daysUntilExpiry);
+      // 세션 이용률 80% 이상이면 재등록 타이밍
+      if (utilizationRate >= 80) {
+        expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.renewal(
+          member.name,
+          daysUntilExpiry,
+          "세션 충실히 이용 중"
+        );
+        actionSuggestion = "재등록 제안 타이밍: '지금까지 잘 하셨어요. 다음 단계로 가볼까요?'";
+      } else {
+        expiryMessage = TRAINER_MESSAGE_TEMPLATES.ptExpiry.soon(member.name, daysUntilExpiry, utilizationRate);
+        actionSuggestion = remainingSessions > 0 ? "남은 세션 일정 확인" : "연장 의사 확인";
+      }
     }
 
     return {
@@ -199,12 +226,14 @@ function analyzePTExpiry(
       memberName: member.name,
       type: "ptExpiry",
       priority,
-      title: truncateMessage(`${member.name} PT 만료`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+      title: truncateMessage(`${member.name}님 PT 곧 끝나요`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
       message: truncateMessage(expiryMessage, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
-      actionSuggestion: remainingSessions > 0 ? "세션 일정 조율" : "연장 확인",
+      actionSuggestion,
       data: {
         daysUntilExpiry,
         remainingSessions,
+        totalSessions,
+        utilizationRate,
         endDate: endDate.toISOString(),
       },
       isRead: false,
@@ -266,19 +295,30 @@ function analyzeWeightProgress(
 
   // 목표 달성 분석
   if (targetWeight && Math.abs(latestWeight - targetWeight) <= 1) {
+    const weeksSinceStart = Math.floor(
+      (Date.now() - (safeToDate(memberRecords[0].recordDate)?.getTime() || Date.now())) /
+      (7 * 24 * 60 * 60 * 1000)
+    );
+    const totalChange = Math.abs(latestWeight - memberRecords[0].weight!);
+
     return {
       trainerId,
       memberId,
       memberName,
       type: "performance",
-      priority: "low",
-      title: `🎉 ${memberName}님 목표 체중 달성!`,
-      message: `현재 체중 ${latestWeight.toFixed(1)}kg으로 목표 체중 ${targetWeight}kg에 도달했습니다.`,
-      actionSuggestion: "회원의 성과를 축하해주고 새로운 목표를 설정해보세요.",
+      priority: "high",
+      title: `🎉 ${memberName}님 목표 달성!`,
+      message: truncateMessage(
+        TRAINER_MESSAGE_TEMPLATES.weightProgress.goal(memberName, targetWeight),
+        INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+      ),
+      actionSuggestion: `축하 메시지: "${weeksSinceStart}주간 ${totalChange.toFixed(1)}kg 변화! 정말 잘하셨어요 🎉 다음 목표를 함께 정해봐요"`,
       data: {
         currentWeight: latestWeight,
         targetWeight,
         achieved: true,
+        weeksTaken: weeksSinceStart,
+        totalChange,
       },
       isRead: false,
       isActionTaken: false,
@@ -291,6 +331,12 @@ function analyzeWeightProgress(
 
   // 다이어트 목표인데 체중 증가 (2% 이상)
   if (memberGoal === "diet" && weightChange > 0 && changePercent >= 2) {
+    const weeksSinceStart = Math.floor(
+      (Date.now() - (safeToDate(memberRecords[0].recordDate)?.getTime() || Date.now())) /
+      (7 * 24 * 60 * 60 * 1000)
+    );
+    const weeksCount = Math.max(1, weeksSinceStart);
+
     return {
       trainerId,
       memberId,
@@ -298,13 +344,18 @@ function analyzeWeightProgress(
       type: "weightProgress",
       priority: "medium",
       title: `${memberName}님 체중 증가 감지`,
-      message: `체중이 ${previousWeight.toFixed(1)}kg에서 ${latestWeight.toFixed(1)}kg으로 ${weightChange.toFixed(1)}kg 증가했습니다.`,
-      actionSuggestion: "식단 관리 상태를 확인하고 필요시 조언을 제공해보세요.",
+      message: truncateMessage(
+        TRAINER_MESSAGE_TEMPLATES.weightProgress.reverseGoal(memberName, weightChange, "다이어트"),
+        INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+      ),
+      actionSuggestion: `식단 점검 필요: "최근 식단이 어떤가요? 함께 체크해봐요" 메시지 추천`,
       data: {
         previousWeight,
         currentWeight: latestWeight,
         change: weightChange,
         changePercent,
+        weeksCount,
+        goal: memberGoal,
       },
       isRead: false,
       isActionTaken: false,
@@ -317,19 +368,35 @@ function analyzeWeightProgress(
 
   // 벌크업 목표인데 꾸준한 증가 (긍정적)
   if (memberGoal === "bulk" && weightChange > 0 && changePercent >= 1) {
+    const weeksSinceStart = Math.floor(
+      (Date.now() - (safeToDate(memberRecords[0].recordDate)?.getTime() || Date.now())) /
+      (7 * 24 * 60 * 60 * 1000)
+    );
+    const weeksCount = Math.max(1, weeksSinceStart);
+    const remaining = targetWeight ? Math.abs(targetWeight - latestWeight) : 0;
+
     return {
       trainerId,
       memberId,
       memberName,
       type: "performance",
-      priority: "low",
-      title: `${memberName}님 벌크업 진행 중`,
-      message: `체중이 ${previousWeight.toFixed(1)}kg에서 ${latestWeight.toFixed(1)}kg으로 ${weightChange.toFixed(1)}kg 증가했습니다. 목표에 맞게 잘 진행되고 있습니다.`,
+      priority: "medium",
+      title: `${memberName}님 벌크업 순조로움`,
+      message: truncateMessage(
+        TRAINER_MESSAGE_TEMPLATES.weightProgress.gained(memberName, weightChange, weeksCount, "벌크업"),
+        INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+      ),
+      actionSuggestion: remaining > 0
+        ? `목표까지 ${remaining.toFixed(1)}kg 남음 - "잘하고 있어요!" 격려 추천`
+        : "긍정적 피드백으로 동기부여 유지",
       data: {
         previousWeight,
         currentWeight: latestWeight,
         change: weightChange,
         changePercent,
+        weeksCount,
+        remainingToTarget: remaining,
+        goal: memberGoal,
       },
       isRead: false,
       isActionTaken: false,
@@ -545,12 +612,19 @@ function analyzeChurnRisk(
 
   // 간결한 메시지 생성
   let churnMessage: string;
+  let actionSuggestion: string;
+  const topFactors = riskFactors.slice(0, 2).join(", ");
+
   if (riskLevel === "CRITICAL") {
-    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.critical(member.name);
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.critical(member.name, attendanceDropPercent, topFactors);
+    actionSuggestion = `즉시 전화 연락 권장: "안녕하세요! 요즘 어떠세요? 운동 스케줄 함께 조정해봐요" - 이탈 패턴 ${churnScore}점`;
   } else if (riskLevel === "HIGH") {
-    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.high(member.name);
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.high(member.name, topFactors);
+    actionSuggestion = `이번 주 중 연락: "${riskFactors[0]} 함께 해결해봐요" - 동기부여 필요`;
   } else {
-    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.medium(member.name);
+    const mainIssue = riskFactors[0] || "관심 필요";
+    churnMessage = TRAINER_MESSAGE_TEMPLATES.churnRisk.medium(member.name, mainIssue);
+    actionSuggestion = `체크인 메시지: "운동 어떠세요? 궁금한 점 있으면 언제든 연락주세요"`;
   }
 
   return {
@@ -559,9 +633,9 @@ function analyzeChurnRisk(
     memberName: member.name,
     type: "churnRisk",
     priority,
-    title: truncateMessage(`${member.name} 이탈위험`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    title: truncateMessage(`${member.name}님 관리 필요`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
     message: truncateMessage(churnMessage, INSIGHT_CONFIG.MAX_MESSAGE_LENGTH),
-    actionSuggestion: riskLevel === "CRITICAL" ? "즉시 연락 필요" : "동기 부여 필요",
+    actionSuggestion,
     data: {
       churnScore,
       riskLevel,
@@ -595,6 +669,87 @@ function analyzeChurnRisk(
         },
       },
       riskFactors,
+    },
+    isRead: false,
+    isActionTaken: false,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    ),
+  };
+}
+
+/**
+ * 수익 분석 (revenue_analysis)
+ * 이번 달 완료된 세션 기반 수익 추정 및 전월 대비 변화
+ */
+function analyzeRevenueProgress(
+  sessions: SessionData[],
+  trainerId: string
+): InsightData | null {
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  // 이번 달 완료된 세션
+  const thisMonthSessions = sessions.filter((s) => {
+    const date = safeToDate(s.scheduledAt);
+    return date && date >= thisMonthStart && s.status === "completed";
+  }).length;
+
+  // 지난 달 완료된 세션
+  const lastMonthSessions = sessions.filter((s) => {
+    const date = safeToDate(s.scheduledAt);
+    return date && date >= lastMonthStart && date <= lastMonthEnd && s.status === "completed";
+  }).length;
+
+  if (thisMonthSessions === 0 && lastMonthSessions === 0) return null;
+
+  // 세션당 평균 수입 가정 (15만원)
+  const avgRevenuePerSession = 15;
+  const thisMonthRevenue = thisMonthSessions * avgRevenuePerSession;
+  const lastMonthRevenue = lastMonthSessions * avgRevenuePerSession;
+
+  const changePercent = lastMonthRevenue > 0
+    ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+    : 0;
+
+  // 이번 주 완료 세션
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thisWeekSessions = sessions.filter((s) => {
+    const date = safeToDate(s.scheduledAt);
+    return date && date >= oneWeekAgo && s.status === "completed";
+  }).length;
+
+  // 이번 주 남은 예정 세션
+  const weekEnd = new Date(now.getTime() + (7 - now.getDay()) * 24 * 60 * 60 * 1000);
+  const remainingThisWeek = sessions.filter((s) => {
+    const date = safeToDate(s.scheduledAt);
+    return date && date >= now && date <= weekEnd && s.status === "scheduled";
+  }).length;
+
+  return {
+    trainerId,
+    type: "performance",
+    priority: "low",
+    title: truncateMessage("이번 달 수익", INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(
+      TRAINER_MESSAGE_TEMPLATES.revenue.monthly(thisMonthSessions, thisMonthRevenue, changePercent),
+      INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+    ),
+    actionSuggestion: remainingThisWeek > 0
+      ? `이번 주 ${remainingThisWeek}회 세션 예정 - 일정 확인하세요`
+      : "다음 주 일정을 미리 계획해보세요",
+    data: {
+      thisMonthSessions,
+      thisMonthRevenue,
+      lastMonthSessions,
+      lastMonthRevenue,
+      changePercent,
+      thisWeekSessions,
+      remainingThisWeek,
+      avgRevenuePerSession,
     },
     isRead: false,
     isActionTaken: false,
@@ -668,21 +823,39 @@ function analyzeRenewalLikelihood(
   // 60% 이상일 때만 인사이트 생성
   if (renewalLikelihood < 60) return null;
 
+  // 재등록 제안 메시지 구성
+  let progressMessage = "";
+  if (goalAchievement >= 80) {
+    progressMessage = "목표 거의 달성";
+  } else if (goalAchievement >= 50) {
+    progressMessage = `목표 ${goalAchievement}% 달성`;
+  } else {
+    progressMessage = `출석률 ${attendanceRate}% 우수`;
+  }
+
+  const actionMessage = renewalLikelihood >= 80
+    ? `재등록 확률 높음 - "목표까지 함께 완주해요! 다음 단계 프로그램 준비했어요" 제안 추천`
+    : `재등록 타이밍 - "지금까지 ${goalAchievement}% 달성! 목표 완성까지 함께 가요" 메시지 추천`;
+
   return {
     trainerId,
     memberId: member.id,
     memberName: member.name,
     type: "renewalLikelihood",
-    priority: "medium",
-    title: `${member.name}님 재등록 가능성 ${renewalLikelihood}%`,
-    message: `${member.name} 회원 재등록 가능성 ${renewalLikelihood}% - 목표 ${goalAchievement}% 달성`,
-    actionSuggestion: "재등록 혜택 제안 타이밍",
+    priority: renewalLikelihood >= 80 ? "high" : "medium",
+    title: truncateMessage(`${member.name}님 재등록 제안해보세요`, INSIGHT_CONFIG.MAX_TITLE_LENGTH),
+    message: truncateMessage(
+      TRAINER_MESSAGE_TEMPLATES.renewal.highChance(member.name, renewalLikelihood, goalAchievement),
+      INSIGHT_CONFIG.MAX_MESSAGE_LENGTH
+    ),
+    actionSuggestion: actionMessage,
     data: {
       renewalLikelihood,
       goalAchievement,
       attendanceRate,
       sessionUtilization,
       daysUntilExpiry,
+      progressMessage,
     },
     isRead: false,
     isActionTaken: false,
@@ -1915,7 +2088,13 @@ async function generateInsightsForTrainer(
     insights.push(rankingInsight);
   }
 
-  // 3-11. AI 기반 종합 추천 (옵션)
+  // 3-11. 수익 분석
+  const revenueInsight = analyzeRevenueProgress(sessions, trainerId);
+  if (revenueInsight) {
+    insights.push(revenueInsight);
+  }
+
+  // 3-12. AI 기반 종합 추천 (옵션)
   if (includeAI && members.length > 0) {
     const aiInsights = await generateAIRecommendations(
       trainerId,

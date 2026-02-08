@@ -39,7 +39,7 @@ class NetworkException extends AppException {
   });
 
   factory NetworkException.timeout({
-    String message = '요청 시간이 초과되었습니다',
+    String message = '요청 시간이 초과됐어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -90,7 +90,7 @@ class AuthException extends AppException {
   });
 
   factory AuthException.tokenExpired({
-    String message = '로그인이 만료되었습니다. 다시 로그인해주세요',
+    String message = '로그인이 만료됐어요. 다시 로그인해주세요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -104,7 +104,7 @@ class AuthException extends AppException {
   }
 
   factory AuthException.invalidCredentials({
-    String message = '이메일 또는 비밀번호가 올바르지 않습니다',
+    String message = '이메일 또는 비밀번호가 올바르지 않아요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -118,7 +118,7 @@ class AuthException extends AppException {
   }
 
   factory AuthException.unauthorized({
-    String message = '접근 권한이 없습니다',
+    String message = '접근 권한이 없어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -132,7 +132,7 @@ class AuthException extends AppException {
   }
 
   factory AuthException.userNotFound({
-    String message = '등록되지 않은 사용자입니다',
+    String message = '등록되지 않은 사용자예요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -168,7 +168,7 @@ class AIServiceException extends AppException {
   });
 
   factory AIServiceException.quotaExceeded({
-    String message = 'AI 서비스 사용량이 초과되었습니다',
+    String message = 'AI 서비스 사용량이 초과됐어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -196,7 +196,7 @@ class AIServiceException extends AppException {
   }
 
   factory AIServiceException.modelError({
-    String message = 'AI 분석 중 오류가 발생했습니다',
+    String message = 'AI 분석 중 문제가 생겼어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -235,7 +235,7 @@ class AppStorageException extends AppException {
   });
 
   factory AppStorageException.uploadFailed({
-    String message = '파일 업로드에 실패했습니다',
+    String message = '파일 업로드에 실패했어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -249,7 +249,7 @@ class AppStorageException extends AppException {
   }
 
   factory AppStorageException.downloadFailed({
-    String message = '파일 다운로드에 실패했습니다',
+    String message = '파일 다운로드에 실패했어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -263,7 +263,7 @@ class AppStorageException extends AppException {
   }
 
   factory AppStorageException.fileTooLarge({
-    String message = '파일 크기가 너무 큽니다',
+    String message = '파일 크기가 너무 커요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -277,7 +277,7 @@ class AppStorageException extends AppException {
   }
 
   factory AppStorageException.invalidFormat({
-    String message = '지원하지 않는 파일 형식입니다',
+    String message = '지원하지 않는 파일 형식이에요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -318,7 +318,7 @@ class ValidationException extends AppException {
     StackTrace? stackTrace,
   }) {
     return ValidationException(
-      message: message ?? '$fieldName은(는) 필수 입력 항목입니다',
+      message: message ?? '$fieldName은(는) 필수 입력 항목이에요',
       code: 'REQUIRED_FIELD',
       originalError: originalError,
       stackTrace: stackTrace,
@@ -333,7 +333,7 @@ class ValidationException extends AppException {
     StackTrace? stackTrace,
   }) {
     return ValidationException(
-      message: message ?? '$fieldName 형식이 올바르지 않습니다',
+      message: message ?? '$fieldName 형식이 올바르지 않아요',
       code: 'INVALID_FORMAT',
       originalError: originalError,
       stackTrace: stackTrace,
@@ -348,7 +348,7 @@ class ValidationException extends AppException {
     StackTrace? stackTrace,
   }) {
     return ValidationException(
-      message: message ?? '$fieldName 값이 허용 범위를 벗어났습니다',
+      message: message ?? '$fieldName 값이 허용 범위를 벗어났어요',
       code: 'OUT_OF_RANGE',
       originalError: originalError,
       stackTrace: stackTrace,
@@ -385,7 +385,7 @@ class CacheException extends AppException {
   });
 
   factory CacheException.notFound({
-    String message = '캐시된 데이터를 찾을 수 없습니다',
+    String message = '캐시된 데이터를 찾을 수 없어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -398,7 +398,7 @@ class CacheException extends AppException {
   }
 
   factory CacheException.writeFailed({
-    String message = '데이터 저장에 실패했습니다',
+    String message = '데이터 저장에 실패했어요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {
@@ -427,7 +427,7 @@ class ServerException extends AppException {
   });
 
   factory ServerException.internalError({
-    String message = '서버 오류가 발생했습니다',
+    String message = '서버에 문제가 생겼어요',
     int? statusCode,
     dynamic originalError,
     StackTrace? stackTrace,
@@ -442,7 +442,7 @@ class ServerException extends AppException {
   }
 
   factory ServerException.serviceUnavailable({
-    String message = '서비스가 일시적으로 이용 불가능합니다',
+    String message = '서비스가 일시적으로 이용 불가능해요',
     dynamic originalError,
     StackTrace? stackTrace,
   }) {

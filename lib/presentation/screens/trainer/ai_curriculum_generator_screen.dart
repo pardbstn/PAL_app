@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
 import 'package:flutter_pal_app/data/models/curriculum_template_model.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart' as member_model;
@@ -157,7 +158,7 @@ class _AiCurriculumGeneratorScreenState
       appBar: AppBar(
         title: Text(_currentStep == 0 ? 'AI 커리큘럼 생성' : '커리큘럼 미리보기'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () {
             if (_currentStep > 0 && !_isGenerating) {
               _goToPreviousStep();
@@ -268,7 +269,7 @@ class _AiCurriculumGeneratorScreenState
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('회원 정보를 불러오는 중...'),
+            Text('회원 정보를 불러오는 중'),
           ],
         ),
       );
@@ -316,7 +317,7 @@ class _AiCurriculumGeneratorScreenState
           // 생성 버튼
           _buildGenerateButton(),
         ],
-      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+      ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
     );
   }
 
@@ -577,7 +578,7 @@ class _AiCurriculumGeneratorScreenState
       controller: _restrictionsController,
       maxLines: 3,
       decoration: InputDecoration(
-        hintText: '부상, 통증, 기타 제한사항을 입력하세요\n예: 무릎 부상으로 스쿼트 불가, 허리 디스크 주의',
+        hintText: '부상, 통증, 기타 제한사항을 입력해주세요\n예: 무릎 부상으로 스쿼트 불가, 허리 디스크 주의',
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         filled: true,
         fillColor: Colors.white,
@@ -714,10 +715,10 @@ class _AiCurriculumGeneratorScreenState
                 size: 40,
               ),
             ),
-            title: const Text('저장된 템플릿이 없습니다'),
+            title: const Text('저장된 템플릿이 없어요'),
             content: const Text(
-              'AI로 커리큘럼을 생성한 후 "템플릿으로 저장" 버튼을 눌러 템플릿을 만들어보세요.\n\n'
-              '템플릿을 저장하면 다른 회원에게도 빠르게 적용할 수 있어 API 호출을 줄일 수 있습니다.',
+              'AI로 커리큘럼을 생성한 후 "템플릿으로 저장" 버튼을 눌러 템플릿을 만들어 보세요.\n\n'
+              '템플릿을 저장하면 다른 회원에게도 빠르게 적용할 수 있어 API 호출을 줄일 수 있어요.',
             ),
             actions: [
               TextButton(
@@ -998,7 +999,7 @@ class _AiCurriculumGeneratorScreenState
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('템플릿 "${template.name}"이 적용되었습니다.'),
+        content: Text('템플릿 "${template.name}"이 적용됐어요'),
         backgroundColor: AppTheme.secondary,
       ),
     );
@@ -1030,7 +1031,7 @@ class _AiCurriculumGeneratorScreenState
           ),
           const SizedBox(height: 24),
           const Text(
-            'AI가 커리큘럼을 생성하고 있습니다',
+            'AI가 커리큘럼을 생성하고 있어요',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1054,14 +1055,14 @@ class _AiCurriculumGeneratorScreenState
           _buildLoadingStatusText(),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   /// 남은 시간 카운트다운 위젯
   Widget _buildCountdownTimer() {
     if (_remainingSeconds <= 0) {
       return Text(
-        '거의 완료되었습니다...',
+        '거의 완료됐어요...',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -1219,8 +1220,8 @@ class _AiCurriculumGeneratorScreenState
             itemBuilder: (context, index) {
               return _buildCurriculumCard(index)
                   .animate()
-                  .fadeIn(delay: (index * 100).ms, duration: 400.ms)
-                  .slideY(begin: 0.05, duration: 400.ms);
+                  .fadeIn(delay: (index * 50).ms, duration: 200.ms)
+                  .slideY(begin: 0.02, duration: 200.ms);
             },
           ),
         ),
@@ -1241,7 +1242,7 @@ class _AiCurriculumGeneratorScreenState
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -1325,7 +1326,7 @@ class _AiCurriculumGeneratorScreenState
           ),
           children: [
             Divider(
-              color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+              color: isDark ? AppColors.darkBorder : AppColors.gray100,
               height: 1,
             ),
             const SizedBox(height: 8),
@@ -1367,7 +1368,7 @@ class _AiCurriculumGeneratorScreenState
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
           width: 0.5,
         ),
       ),
@@ -1377,7 +1378,7 @@ class _AiCurriculumGeneratorScreenState
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2E3B5E) : Colors.grey[100],
+              color: isDark ? AppColors.darkBorder : AppColors.gray100,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -1551,7 +1552,7 @@ class _AiCurriculumGeneratorScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '이 커리큘럼을 템플릿으로 저장하면 다른 회원에게도 적용할 수 있습니다.',
+              '이 커리큘럼을 템플릿으로 저장하면 다른 회원에게도 적용할 수 있어요',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
@@ -1664,7 +1665,7 @@ class _AiCurriculumGeneratorScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('템플릿 "$result"이 저장되었습니다.'),
+            content: Text('템플릿 "$result"이 저장됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -1764,7 +1765,7 @@ class _AiCurriculumGeneratorScreenState
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('AI 서버 연결 실패. 샘플 데이터로 진행합니다.\n($e)'),
+              content: Text('AI 서버 연결 실패. 샘플 데이터로 진행해요.\n($e)'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -2080,7 +2081,7 @@ class _AiCurriculumGeneratorScreenState
     // memberId 확인
     if (widget.memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원 정보가 없습니다.')),
+        const SnackBar(content: Text('회원 정보가 없어요.')),
       );
       return;
     }
@@ -2089,7 +2090,7 @@ class _AiCurriculumGeneratorScreenState
     final trainer = ref.read(currentTrainerProvider);
     if (trainer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('트레이너 정보를 불러올 수 없습니다.')),
+        const SnackBar(content: Text('트레이너 정보를 불러올 수 없어요.')),
       );
       return;
     }
@@ -2160,7 +2161,7 @@ class _AiCurriculumGeneratorScreenState
             ),
             title: const Text('저장 완료'),
             content: Text(
-              '${_generatedCurriculums.length}회차 커리큘럼이 저장되었습니다.',
+              '${_generatedCurriculums.length}회차 커리큘럼이 저장됐어요',
             ),
             actions: [
               ElevatedButton(

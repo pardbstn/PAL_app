@@ -59,7 +59,7 @@ class RetryWidget extends StatelessWidget {
   /// 서버 에러 위젯
   factory RetryWidget.server({
     Key? key,
-    String message = '서버와 통신 중 오류가 발생했습니다',
+    String message = '서버와 통신 중 문제가 생겼어요',
     String? description,
     VoidCallback? onRetry,
     bool compact = false,
@@ -78,7 +78,7 @@ class RetryWidget extends StatelessWidget {
   /// 데이터 로드 실패 위젯
   factory RetryWidget.loadFailed({
     Key? key,
-    String message = '데이터를 불러올 수 없습니다',
+    String message = '데이터를 불러올 수 없어요',
     String? description,
     VoidCallback? onRetry,
     bool compact = false,
@@ -97,7 +97,7 @@ class RetryWidget extends StatelessWidget {
   /// 권한 없음 위젯
   factory RetryWidget.unauthorized({
     Key? key,
-    String message = '접근 권한이 없습니다',
+    String message = '접근 권한이 없어요',
     String? description,
     Widget? customAction,
     bool compact = false,
@@ -116,7 +116,7 @@ class RetryWidget extends StatelessWidget {
   /// 타임아웃 위젯
   factory RetryWidget.timeout({
     Key? key,
-    String message = '요청 시간이 초과되었습니다',
+    String message = '요청 시간이 초과됐어요',
     String? description,
     VoidCallback? onRetry,
     bool compact = false,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 
 /// 웹 전용 디자인 시스템
 /// 프리미엄 느낌의 그림자, 애니메이션, 호버 효과 제공
@@ -45,7 +46,7 @@ class WebTheme {
   static const Color sidebarBgLight = Color(0xFFFFFFFF);
 
   /// 컨텐츠 영역 배경 (라이트)
-  static const Color contentBgLight = Color(0xFFF8FAFC);
+  static const Color contentBgLight = Color(0xFFF4F4F4);
 
   /// 카드 배경 (라이트)
   static const Color cardBgLight = Color(0xFFFFFFFF);
@@ -55,13 +56,13 @@ class WebTheme {
   // ============================================
 
   /// 사이드바 배경 (다크)
-  static const Color sidebarBgDark = Color(0xFF0F172A);
+  static const Color sidebarBgDark = Color(0xFF0E0E0E);
 
   /// 컨텐츠 영역 배경 (다크)
-  static const Color contentBgDark = Color(0xFF1E293B);
+  static const Color contentBgDark = Color(0xFF1A1A1A);
 
   /// 카드 배경 (다크)
-  static const Color cardBgDark = Color(0xFF334155);
+  static const Color cardBgDark = Color(0xFF2A2A2A);
 
   // ============================================
   // 그림자 - 프리미엄 다층 그림자
@@ -70,12 +71,12 @@ class WebTheme {
   /// 카드 기본 그림자 (미묘하고 깊이감 있는 다층 그림자)
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
+          color: Colors.black.withValues(alpha: 0.02),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.02),
+          color: Colors.black.withValues(alpha: 0.01),
           blurRadius: 24,
           offset: const Offset(0, 8),
         ),
@@ -84,12 +85,12 @@ class WebTheme {
   /// 카드 호버 그림자 (더 진하고 떠오르는 느낌)
   static List<BoxShadow> get cardShadowHover => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.08),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 16,
           offset: const Offset(0, 4),
         ),
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
+          color: Colors.black.withValues(alpha: 0.02),
           blurRadius: 32,
           offset: const Offset(0, 12),
         ),
@@ -98,7 +99,7 @@ class WebTheme {
   /// 사이드바 그림자
   static List<BoxShadow> get sidebarShadow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: Colors.black.withValues(alpha: 0.02),
           blurRadius: 20,
           offset: const Offset(4, 0),
         ),
@@ -110,7 +111,7 @@ class WebTheme {
 
   /// 프라이머리 그라데이션 (파랑 -> 초록)
   static LinearGradient get primaryGradient => const LinearGradient(
-        colors: [Color(0xFF2563EB), Color(0xFF10B981)],
+        colors: [Color(0xFF0064FF), Color(0xFF00C471)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
@@ -118,8 +119,8 @@ class WebTheme {
   /// 서브틀 그라데이션 (배경용)
   static LinearGradient get subtleGradient => LinearGradient(
         colors: [
-          const Color(0xFF2563EB).withValues(alpha: 0.05),
-          const Color(0xFF10B981).withValues(alpha: 0.05),
+          const Color(0xFF0064FF).withValues(alpha: 0.05),
+          const Color(0xFF00C471).withValues(alpha: 0.05),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -137,16 +138,10 @@ class WebTheme {
       color: isDark ? cardBgDark : cardBgLight,
       borderRadius: BorderRadius.circular(cardBorderRadius),
       border: Border.all(
-        color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+        color: isDark ? AppColors.darkBorder : AppColors.gray100,
         width: 1,
       ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.03),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
+      boxShadow: AppShadows.sm,
     );
   }
 

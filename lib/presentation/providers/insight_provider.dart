@@ -207,7 +207,7 @@ class InsightsService {
     if (trainerId.isEmpty) {
       return InsightsResult.error(
         errorCode: 'invalid-argument',
-        errorMessage: '트레이너 ID가 필요합니다.',
+        errorMessage: '트레이너 ID가 필요해요',
       );
     }
 
@@ -356,7 +356,7 @@ class InsightsGenerationNotifier extends Notifier<InsightsGenerationState> {
     bool forceRefresh = false,
   }) async {
     if (trainerId.isEmpty) {
-      state = InsightsGenerationState.error('트레이너 정보가 없습니다.');
+      state = InsightsGenerationState.error('트레이너 정보가 없어요');
       return;
     }
 
@@ -372,7 +372,7 @@ class InsightsGenerationNotifier extends Notifier<InsightsGenerationState> {
 
       if (result.hasError) {
         state = InsightsGenerationState.error(
-          result.errorMessage ?? '인사이트 생성에 실패했습니다.',
+          result.errorMessage ?? '인사이트 생성에 실패했어요',
         );
       } else {
         state = InsightsGenerationState.success(result);
@@ -395,11 +395,11 @@ class InsightsGenerationNotifier extends Notifier<InsightsGenerationState> {
 
     // 서버 내부 에러 (INTERNAL)
     if (message == 'INTERNAL' || message.contains('INTERNAL')) {
-      return '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      return '서버 연결에 실패했어요. 잠시 후 다시 시도해주세요';
     }
 
     // 기타 에러는 정제된 메시지 반환
-    return message.isNotEmpty ? message : '인사이트 생성에 실패했습니다.';
+    return message.isNotEmpty ? message : '인사이트 생성 중 문제가 생겼어요';
   }
 
   /// 상태 초기화
@@ -529,9 +529,9 @@ class MemberInsight {
   Color get priorityColor {
     switch (priority) {
       case 'high':
-        return const Color(0xFFEF4444);
+        return const Color(0xFFF04452);
       case 'medium':
-        return const Color(0xFFF59E0B);
+        return const Color(0xFFFF8A00);
       case 'low':
       default:
         return const Color(0xFF3B82F6);
@@ -623,7 +623,7 @@ class MemberInsightsService {
 
       final data = _deepCast(response.data as Map);
       if (data['success'] != true) {
-        throw Exception(data['error'] ?? '인사이트 생성에 실패했습니다.');
+        throw Exception(data['error'] ?? '인사이트 생성에 실패했어요');
       }
 
       final insightsList = (data['insights'] as List<dynamic>)
@@ -632,11 +632,11 @@ class MemberInsightsService {
 
       return insightsList;
     } on FirebaseFunctionsException catch (e) {
-      throw Exception(e.message ?? '인사이트 생성 중 오류가 발생했습니다.');
+      throw Exception(e.message ?? '인사이트 생성 중 문제가 생겼어요');
     }
   }
 
-  /// Cloud Functions 응답의 Map<Object?, Object?>를 Map<String, dynamic>으로 변환
+  /// Cloud Functions 응답의 `Map<Object?, Object?>`를 `Map<String, dynamic>`으로 변환
   static Map<String, dynamic> _deepCast(Map map) {
     return map.map((key, value) {
       if (value is Map) {

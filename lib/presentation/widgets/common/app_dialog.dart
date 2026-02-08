@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// PAL 앱 공통 다이얼로그 위젯
@@ -5,20 +6,20 @@ import 'package:flutter/material.dart';
 abstract class AppDialog {
   AppDialog._();
 
-  /// 제목 텍스트 스타일
+  /// 제목 텍스트 스타일 (Toss Design System)
   static TextStyle _titleStyle(BuildContext context) => TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface,
       );
 
-  /// 메시지 텍스트 스타일
+  /// 메시지 텍스트 스타일 (Toss Design System)
   static TextStyle _messageStyle(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextStyle(
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: FontWeight.normal,
-      color: isDark ? Colors.grey[400] : Colors.grey[600],
+      color: isDark ? const Color(0xFF8B8B8B) : const Color(0xFF6B6B6B),
     );
   }
 
@@ -43,40 +44,53 @@ abstract class AppDialog {
     return _showAnimatedDialog<bool>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => _DialogContainer(
-        width: _getDialogWidth(context),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: _titleStyle(context)),
-            const SizedBox(height: 12),
-            Text(message, style: _messageStyle(context)),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(cancelText ?? '취소'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: isDanger
-                      ? ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onError,
-                        )
-                      : null,
-                  child: Text(confirmText ?? '확인'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return _DialogContainer(
+          width: _getDialogWidth(context),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: _titleStyle(context)),
+              const SizedBox(height: 12),
+              Text(message, style: _messageStyle(context)),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF4F4F4),
+                        foregroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(cancelText ?? '취소'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDanger ? const Color(0xFFF04452) : const Color(0xFF0064FF),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(confirmText ?? '확인'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -182,7 +196,7 @@ abstract class AppDialog {
         return FadeTransition(
           opacity: curvedAnimation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.8, end: 1.0).animate(curvedAnimation),
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(curvedAnimation),
             child: child,
           ),
         );
@@ -204,24 +218,36 @@ class _DialogContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: width,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: width,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.78)
+                  : Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.5),
+                width: 0.5,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );
@@ -268,54 +294,66 @@ class _InputDialogContentState extends State<_InputDialogContent> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: widget.width,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: widget.width,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.78)
+                  : Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.5),
+                width: 0.5,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.title, style: widget.titleStyle),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: widget.hint,
-                  border: const OutlineInputBorder(),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
                 ),
-                onSubmitted: (_) => Navigator.of(context).pop(_controller.text),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(null),
-                    child: const Text('취소'),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.title, style: widget.titleStyle),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: widget.hint,
+                    border: const OutlineInputBorder(),
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(_controller.text),
-                    child: Text(widget.confirmText ?? '확인'),
-                  ),
-                ],
-              ),
-            ],
+                  onSubmitted: (_) => Navigator.of(context).pop(_controller.text),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(null),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(_controller.text),
+                      child: Text(widget.confirmText ?? '확인'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

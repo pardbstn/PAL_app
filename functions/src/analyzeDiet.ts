@@ -87,17 +87,29 @@ export const analyzeDiet = functions
 
       const analysisResult = JSON.parse(content);
 
-      // 5. diet_records 컬렉션에 저장
+      // 5. 신뢰도 확인 - 음식이 아닌 이미지 처리
+      const confidence = Number(analysisResult.confidence) || 0;
+      const calories = Number(analysisResult.calories) || 0;
+
+      // 신뢰도가 낮거나 칼로리가 0이면 음식이 아닌 것으로 판단
+      if (confidence < 0.3 || (calories === 0 && confidence < 0.5)) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "음식을 인식할 수 없습니다. 음식 사진을 다시 촬영해주세요."
+        );
+      }
+
+      // 6. diet_records 컬렉션에 저장
       const dietRecord = {
         memberId,
         mealType,
         imageUrl,
         foodName: analysisResult.foodName || "알 수 없는 음식",
-        calories: Number(analysisResult.calories) || 0,
+        calories: calories,
         protein: Number(analysisResult.protein) || 0,
         carbs: Number(analysisResult.carbs) || 0,
         fat: Number(analysisResult.fat) || 0,
-        confidence: Number(analysisResult.confidence) || 0.5,
+        confidence: confidence,
         analyzedAt: admin.firestore.Timestamp.now(),
         createdAt: admin.firestore.Timestamp.now(),
       };

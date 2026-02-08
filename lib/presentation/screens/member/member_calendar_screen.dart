@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/schedule_model.dart';
 import 'package:flutter_pal_app/data/repositories/schedule_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
@@ -294,22 +296,38 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(theme),
-            Expanded(
-              child: _isWeekView
-                  ? _buildWeekViewWithSwipe()
-                  : _buildMonthViewWithSwipe(),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(theme),
+                Expanded(
+                  child: _isWeekView
+                      ? _buildWeekViewWithSwipe()
+                      : _buildMonthViewWithSwipe(),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddScheduleBottomSheet(),
-        backgroundColor: AppTheme.primary, // 트레이너앱과 동일한 파란색
-        child: const Icon(Icons.add, color: Colors.white),
+          ),
+          Positioned(
+            right: 16,
+            bottom: AppNavGlass.fabBottomPadding,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showAddScheduleBottomSheet(),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('일정 추가'),
+            )
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .shimmer(
+                  duration: 2000.ms,
+                  color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3),
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -317,7 +335,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   /// 헤더 위젯 (년/월 + 오늘 + 뷰 전환)
   Widget _buildHeader(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
           GestureDetector(
@@ -548,7 +566,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         : isToday
                             ? AppTheme.primary.withValues(alpha: 0.1)
                             : null,
-                    borderRadius: BorderRadius.circular(8),
+                    shape: BoxShape.circle,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1076,36 +1094,46 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
         // 범례
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'PT 일정',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.tertiary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '개인 일정',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
+          child: Builder(
+            builder: (context) {
+              final authState = ref.watch(authProvider);
+              final isPersonal = authState.userRole == UserRole.personal;
+
+              return Row(
+                children: [
+                  // PT 일정 - 개인 모드에서는 숨김
+                  if (!isPersonal) ...[
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'PT 일정',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.tertiary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isPersonal ? '일정' : '개인 일정',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 8),
@@ -1135,8 +1163,17 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
 
   /// 빈 상태 위젯
   Widget _buildEmptyState() {
-    return const EmptyState(
-      type: EmptyStateType.sessions,
+    final authState = ref.watch(authProvider);
+    final isPersonal = authState.userRole == UserRole.personal;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: EmptyState(
+        type: EmptyStateType.sessions,
+        customTitle: isPersonal ? '예정된 일정이 없어요' : null,
+        customMessage: isPersonal ? '이 날짜에는 일정이 없어요' : null,
+        iconSize: 48,
+      ),
     );
   }
 
@@ -1147,6 +1184,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   void _showScheduleDetail(ScheduleModel schedule) {
     final isPt = schedule.scheduleType == ScheduleType.pt;
     final isPersonal = schedule.scheduleType == ScheduleType.personal;
+    final authState = ref.watch(authProvider);
+    final isPersonalMode = authState.userRole == UserRole.personal;
 
     showModalBottomSheet(
       context: context,
@@ -1176,7 +1215,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      isPt ? 'PT 일정' : '개인 일정',
+                      isPt ? (isPersonalMode ? '일정' : 'PT 일정') : (isPersonalMode ? '일정' : '개인 일정'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1325,7 +1364,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('일정 삭제'),
-        content: const Text('이 일정을 삭제하시겠습니까?'),
+        content: const Text('이 일정을 삭제할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -1352,8 +1391,11 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   // ============================================================
 
   void _showAddScheduleBottomSheet() {
+    final authState = ref.watch(authProvider);
+    final isPersonalMode = authState.userRole == UserRole.personal;
+
     // 상태 변수
-    ScheduleType scheduleType = ScheduleType.pt; // 기본값: PT 일정
+    ScheduleType scheduleType = isPersonalMode ? ScheduleType.personal : ScheduleType.pt; // 개인 모드는 개인 일정만
     String personalTitle = '';
     DateTime selectedDate = _selectedDate;
     TimeOfDay startTime = const TimeOfDay(hour: 17, minute: 0);
@@ -1388,7 +1430,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   ),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
+                      bottom: BorderSide(color: Theme.of(builderContext).dividerColor),
                     ),
                   ),
                   child: Row(
@@ -1396,11 +1438,12 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     children: [
                       Text(
                         scheduleType == ScheduleType.pt
-                            ? 'PT 일정 추가'
-                            : '개인 일정 추가',
-                        style: const TextStyle(
+                            ? (isPersonalMode ? '일정 추가' : 'PT 일정 추가')
+                            : (isPersonalMode ? '일정 추가' : '개인 일정 추가'),
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(builderContext).colorScheme.onSurface,
                         ),
                       ),
                       IconButton(
@@ -1422,66 +1465,67 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 일정 유형 선택
-                        const Text(
-                          '일정 유형',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setDialogState(
-                                      () => scheduleType = ScheduleType.pt);
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: scheduleType == ScheduleType.pt
-                                        ? AppTheme.primary.withValues(alpha: 0.1)
-                                        : Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: scheduleType == ScheduleType.pt
-                                          ? AppTheme.primary
-                                          : Colors.grey[300]!,
-                                      width:
-                                          scheduleType == ScheduleType.pt ? 2 : 1,
+                        // 일정 유형 선택 (개인 모드에서는 숨김)
+                        if (!isPersonalMode) ...[
+                          Text(
+                            '일정 유형',
+                            style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setDialogState(
+                                        () => scheduleType = ScheduleType.pt);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.fitness_center,
-                                        size: 18,
+                                    decoration: BoxDecoration(
+                                      color: scheduleType == ScheduleType.pt
+                                          ? AppTheme.primary.withValues(alpha: 0.1)
+                                          : Theme.of(builderContext).colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
                                         color: scheduleType == ScheduleType.pt
                                             ? AppTheme.primary
-                                            : Colors.grey[600],
+                                            : Theme.of(builderContext).colorScheme.outline,
+                                        width:
+                                            scheduleType == ScheduleType.pt ? 2 : 1,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'PT 일정',
-                                        style: TextStyle(
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.fitness_center,
+                                          size: 18,
                                           color: scheduleType == ScheduleType.pt
                                               ? AppTheme.primary
-                                              : Colors.grey[600],
-                                          fontWeight:
-                                              scheduleType == ScheduleType.pt
-                                                  ? FontWeight.w600
-                                                  : null,
+                                              : Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'PT 일정',
+                                          style: TextStyle(
+                                            color: scheduleType == ScheduleType.pt
+                                                ? AppTheme.primary
+                                                : Theme.of(builderContext).colorScheme.onSurfaceVariant,
+                                            fontWeight:
+                                                scheduleType == ScheduleType.pt
+                                                    ? FontWeight.w600
+                                                    : null,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: GestureDetector(
@@ -1498,12 +1542,12 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                     color: scheduleType == ScheduleType.personal
                                         ? AppTheme.tertiary
                                             .withValues(alpha: 0.1)
-                                        : Colors.grey[50],
+                                        : Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: scheduleType == ScheduleType.personal
                                           ? AppTheme.tertiary
-                                          : Colors.grey[300]!,
+                                          : Theme.of(builderContext).colorScheme.outline,
                                       width: scheduleType == ScheduleType.personal
                                           ? 2
                                           : 1,
@@ -1518,7 +1562,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                         color:
                                             scheduleType == ScheduleType.personal
                                                 ? AppTheme.tertiary
-                                                : Colors.grey[600],
+                                                : Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
@@ -1527,7 +1571,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                           color: scheduleType ==
                                                   ScheduleType.personal
                                               ? AppTheme.tertiary
-                                              : Colors.grey[600],
+                                              : Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                           fontWeight: scheduleType ==
                                                   ScheduleType.personal
                                               ? FontWeight.w600
@@ -1538,18 +1582,19 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                        ],
 
                         // 제목 입력 (개인 일정일 때만 표시)
                         if (scheduleType == ScheduleType.personal) ...[
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 '제목',
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                               ),
                               const SizedBox(width: 4),
                               const Text(
@@ -1564,19 +1609,19 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               setDialogState(() => personalTitle = v);
                             },
                             decoration: InputDecoration(
-                              hintText: '일정 제목을 입력하세요',
+                              hintText: '일정 제목을 입력해주세요',
                               filled: true,
-                              fillColor: Colors.grey[50],
+                              fillColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
@@ -1591,7 +1636,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         ],
 
                         // 날짜
-                        const Text('날짜', style: TextStyle(color: Colors.grey)),
+                        Text('날짜', style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () async {
@@ -1612,15 +1657,15 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.calendar_today,
-                                  color: Colors.grey[600],
+                                  color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
@@ -1635,7 +1680,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         const SizedBox(height: 24),
 
                         // 시간
-                        const Text('시간', style: TextStyle(color: Colors.grey)),
+                        Text('시간', style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -1660,17 +1705,17 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.grey[200]!,
+                                      color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.access_time,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -1698,17 +1743,17 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.grey[200]!,
+                                      color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.access_time_filled,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -1723,42 +1768,42 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         const SizedBox(height: 24),
 
                         // 메모
-                        const Text(
+                        Text(
                           '메모 (선택)',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 8),
                         TextField(
                           maxLines: 3,
                           onChanged: (v) => memo = v,
                           decoration: InputDecoration(
-                            hintText: '메모를 입력하세요',
+                            hintText: '메모를 입력해주세요',
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[200]!),
+                              borderSide: BorderSide(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[200]!),
+                              borderSide: BorderSide(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                           ),
                         ),
                         const SizedBox(height: 24),
 
                         // 주차별 반복
-                        const Text(
+                        Text(
                           '주차별 반복',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey[50],
+                            color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[200]!),
+                            border: Border.all(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1767,7 +1812,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                 children: [
                                   Icon(
                                     Icons.repeat,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -1775,7 +1820,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                     repeatWeeks == 0
                                         ? '반복 없음'
                                         : '$repeatWeeks주 반복',
-                                    style: TextStyle(color: Colors.grey[600]),
+                                    style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                                   ),
                                 ],
                               ),
@@ -1809,7 +1854,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                           border: Border.all(
                                             color: isSelected
                                                 ? AppTheme.tertiary
-                                                : Colors.grey[300]!,
+                                                : Theme.of(builderContext).colorScheme.outline,
                                           ),
                                         ),
                                         child: Center(
@@ -1830,7 +1875,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                                 style: TextStyle(
                                                   color: isSelected
                                                       ? AppTheme.tertiary
-                                                      : Colors.grey[600],
+                                                      : Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                                   fontWeight: isSelected
                                                       ? FontWeight.w600
                                                       : null,
@@ -1874,7 +1919,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              disabledBackgroundColor: Colors.grey[300],
+                              disabledBackgroundColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                             ),
                             child: Text(
                               repeatWeeks > 0
@@ -1929,7 +1974,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   ),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
+                      bottom: BorderSide(color: Theme.of(pickerContext).dividerColor),
                     ),
                   ),
                   child: Row(
@@ -2042,8 +2087,8 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
           SnackBar(
             content: Text(
               totalSchedules > 1
-                  ? '$typeLabel 일정 $totalSchedules개가 추가되었습니다'
-                  : '$typeLabel 일정이 추가되었습니다',
+                  ? '$typeLabel 일정 $totalSchedules개가 추가됐어요'
+                  : '$typeLabel 일정이 추가됐어요',
             ),
             backgroundColor:
                 scheduleType == ScheduleType.pt ? AppTheme.primary : AppTheme.tertiary,
@@ -2070,6 +2115,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
   // ============================================================
 
   void _showEditScheduleBottomSheet(ScheduleModel schedule) {
+    final authState = ref.watch(authProvider);
+    final isPersonalMode = authState.userRole == UserRole.personal;
+
     // 기존 일정 데이터로 초기화
     final bool isPtSchedule = schedule.scheduleType == ScheduleType.pt;
     String personalTitle = schedule.title ?? '';
@@ -2110,14 +2158,16 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                   ),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
+                      bottom: BorderSide(color: Theme.of(builderContext).dividerColor),
                     ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isPtSchedule ? 'PT 일정 수정' : '개인 일정 수정',
+                        isPtSchedule
+                            ? (isPersonalMode ? '일정 수정' : 'PT 일정 수정')
+                            : (isPersonalMode ? '일정 수정' : '개인 일정 수정'),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -2168,7 +2218,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                isPtSchedule ? 'PT 일정' : '개인 일정',
+                                isPtSchedule
+                                    ? (isPersonalMode ? '일정' : 'PT 일정')
+                                    : (isPersonalMode ? '일정' : '개인 일정'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -2186,9 +2238,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         if (!isPtSchedule) ...[
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 '제목',
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                               ),
                               const SizedBox(width: 4),
                               const Text(
@@ -2204,19 +2256,19 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               setDialogState(() => personalTitle = v);
                             },
                             decoration: InputDecoration(
-                              hintText: '일정 제목을 입력하세요',
+                              hintText: '일정 제목을 입력해주세요',
                               filled: true,
-                              fillColor: Colors.grey[50],
+                              fillColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
@@ -2231,7 +2283,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         ],
 
                         // 날짜
-                        const Text('날짜', style: TextStyle(color: Colors.grey)),
+                        Text('날짜', style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () async {
@@ -2252,15 +2304,15 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.calendar_today,
-                                  color: Colors.grey[600],
+                                  color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
@@ -2275,7 +2327,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         const SizedBox(height: 24),
 
                         // 시간
-                        const Text('시간', style: TextStyle(color: Colors.grey)),
+                        Text('시간', style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -2300,17 +2352,17 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.grey[200]!,
+                                      color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.access_time,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -2338,17 +2390,17 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.grey[200]!,
+                                      color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.access_time_filled,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(builderContext).colorScheme.onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -2363,9 +2415,9 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                         const SizedBox(height: 24),
 
                         // 메모
-                        const Text(
+                        Text(
                           '메모 (선택)',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: Theme.of(builderContext).colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -2373,16 +2425,16 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                           maxLines: 3,
                           onChanged: (v) => memo = v,
                           decoration: InputDecoration(
-                            hintText: '메모를 입력하세요',
+                            hintText: '메모를 입력해주세요',
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[200]!),
+                              borderSide: BorderSide(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[200]!),
+                              borderSide: BorderSide(color: Theme.of(builderContext).colorScheme.outline.withValues(alpha: 0.3)),
                             ),
                           ),
                         ),
@@ -2412,7 +2464,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              disabledBackgroundColor: Colors.grey[300],
+                              disabledBackgroundColor: Theme.of(builderContext).colorScheme.surfaceContainerHighest,
                             ),
                             child: const Text(
                               '일정 수정',
@@ -2478,7 +2530,7 @@ class _MemberCalendarScreenState extends ConsumerState<MemberCalendarScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('일정이 수정되었습니다'),
+            content: Text('일정이 수정됐어요'),
             backgroundColor: AppTheme.tertiary,
             behavior: SnackBarBehavior.floating,
           ),
@@ -2538,8 +2590,8 @@ class _ScheduleCard extends StatelessWidget {
         : isCancelled
             ? Colors.grey.withValues(alpha: 0.3)
             : isDark
-                ? const Color(0xFF374151) // Gray-700 (다크)
-                : const Color(0xFFE5E7EB); // Gray-200 (라이트)
+                ? AppColors.darkBorder
+                : AppColors.gray100;
 
     return GestureDetector(
       onTap: onTap,
@@ -2656,7 +2708,7 @@ class _ScheduleCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
       ),

@@ -247,7 +247,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       decoration: InputDecoration(
         labelText: '회원 코드',
         hintText: '홍길동#1234',
-        helperText: '회원 앱에서 확인할 수 있는 이름#코드를 입력하세요',
+        helperText: '회원 앱에서 확인할 수 있는 이름#코드를 입력해주세요',
         prefixIcon: const Icon(Icons.tag),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -458,7 +458,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       formControlName: 'memo',
       decoration: InputDecoration(
         labelText: '메모 (선택)',
-        hintText: '회원에 대한 메모를 입력하세요',
+        hintText: '회원에 대한 메모를 입력해주세요',
         prefixIcon: const Icon(Icons.note_outlined),
         alignLabelWithHint: true,
         border: OutlineInputBorder(
@@ -564,7 +564,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           _showErrorDialog(
             context,
             title: '트레이너 정보 오류',
-            message: '트레이너 정보를 찾을 수 없습니다.',
+            message: '트레이너 정보를 찾을 수 없어요',
             details: ['앱을 다시 시작하거나 재로그인해주세요'],
           );
         }
@@ -587,7 +587,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           _showErrorDialog(
             context,
             title: '입력 형식 오류',
-            message: '회원 코드 형식이 올바르지 않습니다.',
+            message: '회원 코드 형식이 올바르지 않아요',
             details: ['이름#코드 형식으로 입력해주세요 (예: 홍길동#1234)'],
           );
         }
@@ -603,8 +603,8 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
         if (mounted) {
           _showErrorDialog(
             context,
-            title: '회원을 찾을 수 없습니다',
-            message: '입력하신 정보와 일치하는 회원이 없습니다.',
+            title: '회원을 찾을 수 없어요',
+            message: '입력하신 정보와 일치하는 회원이 없어요',
             details: [
               '회원이 PAL 앱에 가입했는지 확인해주세요',
               '이름과 코드가 정확한지 확인해주세요',
@@ -709,7 +709,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 12),
-                Text('$name 회원이 등록되었습니다.'),
+                Text('$name 회원이 등록됐어요'),
               ],
             ),
             backgroundColor: AppTheme.secondary,
@@ -727,7 +727,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
         _showErrorDialog(
           context,
           title: '회원 등록 실패',
-          message: '회원 등록 중 문제가 발생했습니다.',
+          message: '회원 등록 중 문제가 생겼어요',
           details: [errorMessage],
         );
       }

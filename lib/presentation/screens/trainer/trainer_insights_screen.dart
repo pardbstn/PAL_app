@@ -14,7 +14,6 @@ import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/insight_model.dart';
 import 'package:flutter_pal_app/data/repositories/insight_repository.dart';
 import 'package:flutter_pal_app/presentation/providers/insight_provider.dart';
-import 'package:flutter_pal_app/presentation/widgets/glass_card.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/insight_mini_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/churn_gauge_chart.dart';
 import 'package:flutter_pal_app/presentation/widgets/insights/volume_bar_chart.dart';
@@ -28,9 +27,16 @@ class TrainerInsightsScreen extends ConsumerStatefulWidget {
       _TrainerInsightsScreenState();
 }
 
+/// 필터 카테고리
+enum _FilterCategory {
+  all,
+  urgent,
+  performance,
+  suggestions,
+}
+
 class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
-  InsightType? _selectedFilter;
-  bool _showUnreadOnly = false;
+  _FilterCategory _selectedCategory = _FilterCategory.all;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +63,11 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
               // 앱바
               _buildSliverAppBar(context, unreadCount),
 
+              // 요약 카드
+              SliverToBoxAdapter(
+                child: _buildSummaryCard(context),
+              ),
+
               // 필터 칩
               SliverToBoxAdapter(
                 child: _buildFilterChips(context),
@@ -77,12 +88,15 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _refreshInsights(context),
-        icon: const Icon(Icons.auto_awesome),
-        label: const Text('새 인사이트 생성'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: AppNavGlass.fabBottomPadding),
+        child: FloatingActionButton.extended(
+          onPressed: () => _refreshInsights(context),
+          icon: const Icon(Icons.auto_awesome),
+          label: const Text('새 인사이트 생성'),
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+        ),
       ),
     );
   }
@@ -94,7 +108,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new),
+        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
         onPressed: () => context.pop(),
       ),
       title: Row(
@@ -168,7 +182,92 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
     );
   }
 
-  /// 필터 칩
+  /// 요약 카드 (이번 주 인사이트 N건, 우선순위별 카운트)
+  Widget _buildSummaryCard(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final insightsAsync = ref.watch(trainerInsightsProvider);
+
+    return insightsAsync.when(
+      data: (insights) {
+        final thisWeek = insights.where((i) {
+          final diff = DateTime.now().difference(i.createdAt);
+          return diff.inDays <= 7;
+        }).toList();
+
+        final highCount = thisWeek.where((i) => i.priority == InsightPriority.high).length;
+        final mediumCount = thisWeek.where((i) => i.priority == InsightPriority.medium).length;
+        final lowCount = thisWeek.where((i) => i.priority == InsightPriority.low).length;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.primary.withValues(alpha: 0.1),
+                AppTheme.secondary.withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: AppRadius.lgBorderRadius,
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: AppTheme.primary, size: AppIconSize.md),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  '이번 주 인사이트 ${thisWeek.length}건',
+                  style: TextStyle(
+                    fontSize: AppTextStyle.bodyLarge,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              if (highCount > 0) ...[
+                _buildPriorityBadge('🔴', highCount, const Color(0xFFF04452)),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+              if (mediumCount > 0) ...[
+                _buildPriorityBadge('🟡', mediumCount, const Color(0xFFFF8A00)),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+              if (lowCount > 0) ...[
+                _buildPriorityBadge('🔵', lowCount, const Color(0xFF0064FF)),
+              ],
+            ],
+          ),
+        ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.02, end: 0);
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildPriorityBadge(String emoji, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: AppRadius.mdBorderRadius,
+      ),
+      child: Text(
+        '$emoji $count',
+        style: TextStyle(
+          fontSize: AppTextStyle.caption,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  /// 필터 칩 (4개 카테고리)
   Widget _buildFilterChips(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -180,68 +279,79 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       ),
       child: Row(
         children: [
-          // 읽지 않은 것만 토글
-          FilterChip(
-            label: const Text('읽지 않은 것만'),
-            selected: _showUnreadOnly,
-            onSelected: (selected) {
-              setState(() => _showUnreadOnly = selected);
-            },
-            selectedColor: AppTheme.primary.withValues(alpha: 0.2),
-            checkmarkColor: AppTheme.primary,
-          ),
-          const SizedBox(width: AppSpacing.sm),
           // 전체
-          FilterChip(
-            label: const Text('전체'),
-            selected: _selectedFilter == null,
-            onSelected: (_) {
-              setState(() => _selectedFilter = null);
-            },
-            selectedColor: colorScheme.primary.withValues(alpha: 0.2),
-            checkmarkColor: colorScheme.primary,
+          _buildCategoryChip(
+            context,
+            label: '전체',
+            icon: Icons.grid_view,
+            category: _FilterCategory.all,
+            color: colorScheme.primary,
           ),
           const SizedBox(width: AppSpacing.sm),
-          // 타입별 필터
-          ..._buildTypeFilterChips(context),
+          // 긴급
+          _buildCategoryChip(
+            context,
+            label: '긴급',
+            icon: Icons.warning,
+            category: _FilterCategory.urgent,
+            color: const Color(0xFFF04452),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // 성과
+          _buildCategoryChip(
+            context,
+            label: '성과',
+            icon: Icons.trending_up,
+            category: _FilterCategory.performance,
+            color: const Color(0xFF00C471),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // 제안
+          _buildCategoryChip(
+            context,
+            label: '제안',
+            icon: Icons.lightbulb,
+            category: _FilterCategory.suggestions,
+            color: const Color(0xFF0064FF),
+          ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideX(begin: -0.1, end: 0);
+    ).animate().fadeIn(duration: 200.ms).slideX(begin: -0.02, end: 0);
   }
 
-  List<Widget> _buildTypeFilterChips(BuildContext context) {
-    final filters = [
-      (InsightType.attendanceAlert, '출석 알림', Icons.event_busy),
-      (InsightType.ptExpiry, 'PT 종료', Icons.timer_off),
-      (InsightType.performance, '성과', Icons.trending_up),
-      (InsightType.weightProgress, '체중 변화', Icons.monitor_weight),
-      (InsightType.recommendation, '추천', Icons.recommend),
-      (InsightType.churnRisk, '이탈 위험', Icons.person_off),
-      (InsightType.renewalLikelihood, '재등록', Icons.refresh),
-      (InsightType.plateauDetection, '정체기', Icons.trending_flat),
-      (InsightType.workoutRecommendation, '운동 추천', Icons.sports_gymnastics),
-      (InsightType.noshowPattern, '노쇼 패턴', Icons.event_busy),
-      (InsightType.performanceRanking, '성과 랭킹', Icons.leaderboard),
-    ];
+  Widget _buildCategoryChip(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required _FilterCategory category,
+    required Color color,
+  }) {
+    final isSelected = _selectedCategory == category;
 
-    return filters.map((filter) {
-      return Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.sm),
-        child: FilterChip(
-          avatar: Icon(filter.$3, size: AppIconSize.xs),
-          label: Text(filter.$2),
-          selected: _selectedFilter == filter.$1,
-          onSelected: (_) {
-            setState(() {
-              _selectedFilter =
-                  _selectedFilter == filter.$1 ? null : filter.$1;
-            });
-          },
-          selectedColor: _getTypeColor(filter.$1).withValues(alpha: 0.2),
-          checkmarkColor: _getTypeColor(filter.$1),
+    return FilterChip(
+      avatar: Icon(icon, size: AppIconSize.xs, color: isSelected ? Colors.white : color),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : color,
+          fontWeight: FontWeight.w600,
         ),
-      );
-    }).toList();
+      ),
+      selected: isSelected,
+      onSelected: (_) {
+        setState(() => _selectedCategory = category);
+      },
+      backgroundColor: color.withValues(alpha: 0.1),
+      selectedColor: color,
+      checkmarkColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.lgBorderRadius,
+        side: BorderSide(
+          color: isSelected ? color : color.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+    );
   }
 
   /// 인사이트 목록
@@ -250,14 +360,32 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
     // 필터 적용
     var filteredInsights = insights;
 
-    if (_showUnreadOnly) {
-      filteredInsights =
-          filteredInsights.where((i) => !i.isRead).toList();
-    }
-
-    if (_selectedFilter != null) {
-      filteredInsights =
-          filteredInsights.where((i) => i.type == _selectedFilter).toList();
+    // 카테고리 필터
+    switch (_selectedCategory) {
+      case _FilterCategory.all:
+        // 전체 표시
+        break;
+      case _FilterCategory.urgent:
+        // high priority만
+        filteredInsights = filteredInsights.where((i) => i.priority == InsightPriority.high).toList();
+        break;
+      case _FilterCategory.performance:
+        // 성과 관련
+        filteredInsights = filteredInsights.where((i) {
+          return i.type == InsightType.performance ||
+              i.type == InsightType.workoutVolume ||
+              i.type == InsightType.performanceRanking ||
+              i.type == InsightType.renewalLikelihood;
+        }).toList();
+        break;
+      case _FilterCategory.suggestions:
+        // 제안 관련
+        filteredInsights = filteredInsights.where((i) {
+          return i.type == InsightType.recommendation ||
+              i.type == InsightType.workoutRecommendation ||
+              i.type == InsightType.plateauDetection;
+        }).toList();
+        break;
     }
 
     // CRITICAL/HIGH 이탈 위험 회원 상단 정렬
@@ -292,7 +420,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(20),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
@@ -306,8 +434,8 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
                   : null,
             )
                 .animate()
-                .fadeIn(delay: (50 * index).ms, duration: 300.ms)
-                .slideY(begin: 0.1, end: 0);
+                .fadeIn(delay: (50 * index).ms, duration: 200.ms)
+                .slideY(begin: 0.02, end: 0);
           },
           childCount: filteredInsights.length,
         ),
@@ -318,7 +446,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
   /// 로딩 스켈레톤
   Widget _buildLoadingSkeleton() {
     return SliverPadding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(20),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) => _buildSkeletonCard(context),
@@ -365,9 +493,9 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            _selectedFilter != null || _showUnreadOnly
-                ? '해당 조건의 인사이트가 없습니다'
-                : '아직 인사이트가 없습니다',
+            _selectedCategory != _FilterCategory.all
+                ? '해당 조건의 인사이트가 없어요'
+                : '아직 인사이트가 없어요',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
@@ -382,7 +510,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.9, 0.9));
+    ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9));
   }
 
   /// 에러 상태
@@ -399,7 +527,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              '인사이트를 불러오지 못했습니다',
+              '인사이트를 불러오지 못했어요',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -442,7 +570,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('모두 읽음 처리'),
-        content: const Text('모든 인사이트를 읽음 처리하시겠습니까?'),
+        content: const Text('모든 인사이트를 읽음 처리할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -466,7 +594,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('모든 인사이트를 읽음 처리했습니다')),
+        const SnackBar(content: Text('모든 인사이트를 읽음 처리했어요')),
       );
     }
   }
@@ -487,7 +615,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
           children: [
             CircularProgressIndicator(),
             SizedBox(width: AppSpacing.md),
-            Text('AI가 회원 데이터를 분석 중입니다...'),
+            Text('AI가 회원 데이터를 분석하고 있어요...'),
           ],
         ),
       ),
@@ -499,7 +627,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('트레이너 정보를 찾을 수 없습니다'),
+            content: const Text('트레이너 정보를 찾을 수 없어요'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -520,7 +648,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${result?.stats?.newSaved ?? result?.count ?? 0}개의 새 인사이트가 생성되었습니다'),
+          content: Text('${result?.stats?.newSaved ?? result?.count ?? 0}개의 새 인사이트가 생성됐어요'),
           backgroundColor: AppTheme.secondary,
         ),
       );
@@ -529,53 +657,13 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('인사이트 생성 실패: $e'),
+          content: Text('인사이트 생성에 실패했어요: $e'),
           backgroundColor: AppTheme.error,
         ),
       );
     }
   }
 
-  Color _getTypeColor(InsightType type) {
-    switch (type) {
-      // 기존 트레이너 인사이트
-      case InsightType.attendanceAlert:
-        return AppTheme.error;
-      case InsightType.ptExpiry:
-        return AppTheme.tertiary;
-      case InsightType.performance:
-        return AppTheme.secondary;
-      case InsightType.recommendation:
-        return AppTheme.primary;
-      case InsightType.weightProgress:
-        return const Color(0xFF8B5CF6); // 보라색
-      case InsightType.workoutVolume:
-        return AppColors.secondary;
-      // 신규 트레이너 인사이트
-      case InsightType.churnRisk:
-        return AppColors.error;
-      case InsightType.renewalLikelihood:
-        return AppColors.secondary;
-      case InsightType.plateauDetection:
-        return AppColors.tertiary;
-      case InsightType.workoutRecommendation:
-        return AppTheme.primary;
-      case InsightType.noshowPattern:
-        return AppColors.error;
-      case InsightType.performanceRanking:
-        return const Color(0xFF8B5CF6); // 보라색 - 랭킹
-      // 회원 인사이트 (필터에는 나오지 않지만 처리)
-      case InsightType.bodyPrediction:
-      case InsightType.workoutAchievement:
-      case InsightType.attendanceHabit:
-      case InsightType.nutritionBalance:
-      case InsightType.bodyChangeReport:
-      case InsightType.conditionPattern:
-      case InsightType.goalProgress:
-      case InsightType.benchmark:
-        return AppTheme.primary;
-    }
-  }
 }
 
 /// 인사이트 카드 위젯
@@ -592,22 +680,11 @@ class _InsightCard extends StatelessWidget {
     this.onActionTaken,
   });
 
-  /// 우선순위 색상 반환
-  Color _getPriorityColor(InsightPriority priority) {
-    switch (priority) {
-      case InsightPriority.high:
-        return AppColors.error;
-      case InsightPriority.medium:
-        return AppColors.tertiary;
-      case InsightPriority.low:
-        return AppColors.primary;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final priorityColor = _getPriorityColor(insight.priority);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final typeColor = insight.typeColor; // 새로운 typeColor 사용
     final hasGraph = insight.graphData != null &&
                      insight.graphData!.isNotEmpty &&
                      insight.graphType != null;
@@ -624,42 +701,55 @@ class _InsightCard extends StatelessWidget {
             onTap();
           }
         },
-        child: GlassCard(
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.gray100,
+            ),
+            boxShadow: AppShadows.sm,
+          ),
           child: Stack(
             children: [
-              // 읽지 않은 표시
+              // 읽지 않은 표시 (좌측 파란 dot)
               if (!insight.isRead)
                 Positioned(
-                  top: AppSpacing.md,
-                  right: AppSpacing.md,
+                  top: AppSpacing.lg,
+                  left: AppSpacing.md,
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(
-                      color: priorityColor,
+                      color: AppTheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: EdgeInsets.fromLTRB(
+                  !insight.isRead ? AppSpacing.lg + 4 : AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 헤더
                     Row(
                       children: [
-                        // 타입 아이콘
+                        // 타입 아이콘 (원형 배경)
                         Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: priorityColor.withValues(alpha: 0.15),
-                            borderRadius: AppRadius.smBorderRadius,
+                            color: typeColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
                           ),
                           child: Icon(
                             insight.typeIcon,
-                            color: priorityColor,
-                            size: AppIconSize.sm,
+                            color: typeColor,
+                            size: AppIconSize.md,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),
@@ -670,47 +760,68 @@ class _InsightCard extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      insight.title,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: insight.isRead
-                                                ? colorScheme.outline
-                                                : colorScheme.onSurface,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  // 우선순위 배지
+                                  // 유형 태그 (pill shape)
                                   Container(
-                                    margin: const EdgeInsets.only(left: AppSpacing.sm),
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: AppSpacing.sm,
-                                      vertical: 2,
+                                      vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: priorityColor.withValues(alpha: 0.15),
-                                      borderRadius: AppRadius.mdBorderRadius,
+                                      color: typeColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _getPriorityLabel(insight.priority),
+                                      _getTypeLabel(insight.type),
                                       style: TextStyle(
                                         fontSize: AppTextStyle.caption,
-                                        fontWeight: FontWeight.w600,
-                                        color: priorityColor,
+                                        fontWeight: FontWeight.bold,
+                                        color: typeColor,
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: AppSpacing.xs),
+                                  // 우선순위 배지
+                                  if (insight.priority == InsightPriority.high)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF04452).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '긴급',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFFF04452),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               ),
+                              const SizedBox(height: AppSpacing.xs),
+                              // 제목
+                              Text(
+                                insight.title,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: insight.isRead
+                                          ? colorScheme.outline
+                                          : colorScheme.onSurface,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              // 회원명
                               if (insight.memberName != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                                  padding: const EdgeInsets.only(top: 2),
                                   child: Text(
                                     insight.memberName!,
                                     style: Theme.of(context)
@@ -763,7 +874,7 @@ class _InsightCard extends StatelessWidget {
                           data: insight.graphData!,
                           height: 60,
                           width: MediaQuery.of(context).size.width - 96,
-                          primaryColor: priorityColor,
+                          primaryColor: typeColor,
                         ),
                       ),
                     ],
@@ -775,45 +886,19 @@ class _InsightCard extends StatelessWidget {
                             color: insight.isRead
                                 ? colorScheme.outline
                                 : colorScheme.onSurface,
+                            height: 1.4,
                           ),
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    // 조치 제안
+                    // 액션 버튼 (actionSuggestion이 있는 경우)
                     if (insight.actionSuggestion != null) ...[
                       const SizedBox(height: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.08),
-                          borderRadius: AppRadius.smBorderRadius,
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb_outline,
-                              size: AppIconSize.xs,
-                              color: AppTheme.primary,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                insight.actionSuggestion!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppTheme.primary,
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildActionButton(context, insight, typeColor),
+                        ],
                       ),
                     ],
                   ],
@@ -826,14 +911,90 @@ class _InsightCard extends StatelessWidget {
     );
   }
 
-  String _getPriorityLabel(InsightPriority priority) {
-    switch (priority) {
-      case InsightPriority.high:
-        return '즉시 확인';
-      case InsightPriority.medium:
-        return '확인 권장';
-      case InsightPriority.low:
-        return '참고';
+  /// 액션 버튼 (인사이트 타입별 다른 액션)
+  Widget _buildActionButton(BuildContext context, InsightModel insight, Color color) {
+    String label;
+    IconData icon;
+
+    switch (insight.type) {
+      case InsightType.churnRisk:
+      case InsightType.attendanceAlert:
+      case InsightType.noshowPattern:
+        label = '메시지 보내기';
+        icon = Icons.chat_bubble_outline;
+        break;
+      case InsightType.renewalLikelihood:
+      case InsightType.ptExpiry:
+        label = '리마인드 보내기';
+        icon = Icons.notifications_outlined;
+        break;
+      case InsightType.performance:
+      case InsightType.workoutVolume:
+        label = '칭찬 메시지';
+        icon = Icons.thumb_up_outlined;
+        break;
+      default:
+        label = '자세히 보기';
+        icon = Icons.arrow_forward_rounded;
+    }
+
+    return ElevatedButton.icon(
+      onPressed: () {
+        // 읽음 처리
+        if (!insight.isRead) {
+          onMarkAsRead();
+        }
+        // 회원 상세로 이동 (메시지 탭)
+        if (insight.memberId != null) {
+          context.push('/trainer/members/${insight.memberId}');
+        }
+      },
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withValues(alpha: 0.1),
+        foregroundColor: color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withValues(alpha: 0.3)),
+        ),
+      ),
+    );
+  }
+
+  String _getTypeLabel(InsightType type) {
+    switch (type) {
+      case InsightType.churnRisk:
+        return '이탈 위험';
+      case InsightType.attendanceAlert:
+        return '출석 알림';
+      case InsightType.noshowPattern:
+        return '노쇼 패턴';
+      case InsightType.renewalLikelihood:
+        return '재등록 가능성';
+      case InsightType.ptExpiry:
+        return 'PT 종료';
+      case InsightType.performance:
+        return '성과';
+      case InsightType.workoutVolume:
+        return '운동량';
+      case InsightType.performanceRanking:
+        return '성과 랭킹';
+      case InsightType.recommendation:
+        return '추천';
+      case InsightType.workoutRecommendation:
+        return '운동 추천';
+      case InsightType.plateauDetection:
+        return '정체기';
+      case InsightType.weightProgress:
+        return '체중 변화';
+      default:
+        return '기타';
     }
   }
 
@@ -947,12 +1108,12 @@ class _InsightDetailSheet extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSpacing.md),
                           decoration: BoxDecoration(
                             color:
-                                insight.priorityColor.withValues(alpha: 0.15),
+                                insight.typeColor.withValues(alpha: 0.15),
                             borderRadius: AppRadius.mdBorderRadius,
                           ),
                           child: Icon(
                             insight.typeIcon,
-                            color: insight.priorityColor,
+                            color: insight.typeColor,
                             size: AppIconSize.lg,
                           ),
                         ),
@@ -991,7 +1152,7 @@ class _InsightDetailSheet extends StatelessWidget {
                       children: [
                         _buildBadge(
                           context,
-                          _getPriorityLabel(insight.priority),
+                          _getPriorityText(insight.priority),
                           insight.priorityColor,
                         ),
                         const SizedBox(width: AppSpacing.sm),
@@ -1141,7 +1302,7 @@ class _InsightDetailSheet extends StatelessWidget {
     );
   }
 
-  String _getPriorityLabel(InsightPriority priority) {
+  String _getPriorityText(InsightPriority priority) {
     switch (priority) {
       case InsightPriority.high:
         return '즉시 확인';

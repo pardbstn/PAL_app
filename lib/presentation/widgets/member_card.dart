@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 
 /// 회원 카드 위젯
@@ -90,7 +91,7 @@ class MemberCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('회원 삭제'),
         content: Text(
-          '${memberName ?? '회원'}님을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+          '${memberName ?? '회원'}님을 삭제할까요?\n이 작업은 되돌릴 수 없어요',
         ),
         actions: [
           TextButton(
@@ -153,16 +154,10 @@ class _MemberCardContent extends StatelessWidget {
                 color: AppTheme.tertiary.withValues(alpha: 0.3), width: 1.5)
             : isCompleted
                 ? Border.all(
-                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB))
+                    color: isDark ? AppColors.darkBorder : AppColors.gray100)
                 : Border.all(
-                    color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+                    color: isDark ? AppColors.darkBorder : AppColors.gray100),
+        boxShadow: AppShadows.md,
       ),
       child: Row(
         children: [
@@ -547,14 +542,8 @@ class MemberCardCompact extends StatelessWidget {
               ? Border.all(
                   color: AppTheme.tertiary.withValues(alpha: 0.3), width: 1.5)
               : Border.all(
-                  color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+                  color: isDark ? AppColors.darkBorder : AppColors.gray100),
+          boxShadow: AppShadows.md,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

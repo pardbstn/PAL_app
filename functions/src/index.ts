@@ -528,3 +528,24 @@ export {
 
 // Kakao, Naver 소셜 로그인을 위한 Custom Token 생성
 export {createCustomToken} from "./auth/createCustomToken";
+
+// ============================================
+// 트레이너 이관 Functions
+// ============================================
+
+// 트레이너 이관 요청 및 응답
+export {initiateTrainerTransfer, respondTrainerTransfer} from "./trainerTransfer";
+
+// ============================================
+// 회원 데이터 삭제 Functions
+// ============================================
+
+// 특정 트레이너와 관련된 회원 데이터 삭제
+export {deleteUserTrainerData} from "./deleteUserTrainerData";
+
+// ============================================
+// 푸시 알림 Functions
+// ============================================
+
+// 범용 푸시 알림 전송
+export {sendPushNotification} from "./pushNotification";

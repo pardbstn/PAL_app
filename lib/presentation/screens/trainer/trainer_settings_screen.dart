@@ -32,7 +32,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('설정'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.go('/trainer/home'),
         ),
       ),
@@ -41,8 +41,8 @@ class TrainerSettingsScreen extends ConsumerWidget {
           // 프로필 섹션
           _buildProfileSection(context, authState)
               .animate()
-              .fadeIn(duration: 300.ms)
-              .slideY(begin: 0.1, end: 0),
+              .fadeIn(duration: 200.ms)
+              .slideY(begin: 0.02, end: 0),
           const SizedBox(height: AppSpacing.xl),
 
           // 앱 설정
@@ -59,12 +59,10 @@ class TrainerSettingsScreen extends ConsumerWidget {
                   onTap: () => _showEditProfileDialog(context, ref, authState),
                 ),
                 AppListTile(
-                  leading: const Icon(Icons.notifications_outlined),
+                  leading: const Icon(Icons.notifications_none_rounded),
                   title: '알림 설정',
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: 알림 설정 화면
-                  },
+                  onTap: () => context.push('/notification-settings'),
                 ),
                 AppListTile(
                   leading: const Icon(Icons.dark_mode_outlined),
@@ -132,7 +130,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
 
           // 로그아웃
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.05),
@@ -169,8 +167,8 @@ class TrainerSettingsScreen extends ConsumerWidget {
             ),
           )
               .animate()
-              .fadeIn(duration: 300.ms, delay: 300.ms)
-              .slideY(begin: 0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 150.ms)
+              .slideY(begin: 0.02, end: 0),
           const SizedBox(height: AppSpacing.md),
 
           // 회원 탈퇴
@@ -194,7 +192,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
 
   Widget _buildProfileSection(BuildContext context, AuthState authState) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           // 프로필 이미지
@@ -277,7 +275,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
+        content: const Text('로그아웃할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -308,7 +306,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('회원 탈퇴'),
         content: const Text(
-          '정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
+          '정말 탈퇴할까요?\n모든 데이터가 삭제되며 복구할 수 없어요.',
         ),
         actions: [
           TextButton(
@@ -349,7 +347,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
           controller: nameController,
           decoration: const InputDecoration(
             labelText: '이름',
-            hintText: '이름을 입력하세요',
+            hintText: '이름을 입력해주세요',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -364,7 +362,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
               final newName = nameController.text.trim();
               if (newName.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('이름을 입력해주세요.')),
+                  const SnackBar(content: Text('이름을 입력해주세요')),
                 );
                 return;
               }
@@ -378,7 +376,7 @@ class TrainerSettingsScreen extends ConsumerWidget {
 
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('프로필이 수정되었습니다.')),
+                  const SnackBar(content: Text('프로필이 수정됐어요')),
                 );
               }
             },

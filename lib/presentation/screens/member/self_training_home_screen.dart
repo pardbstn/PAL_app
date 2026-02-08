@@ -41,7 +41,7 @@ class SelfTrainingHomeScreen extends ConsumerWidget {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -74,7 +74,7 @@ class SelfTrainingHomeScreen extends ConsumerWidget {
               _FreeFeatureCard(
                 icon: Icons.fitness_center,
                 title: '체중/운동 기록',
-                description: '오늘의 운동과 체중을 기록하세요',
+                description: '오늘의 운동과 체중을 기록해보세요',
                 color: AppTheme.primary,
                 onTap: () => context.push('/member/records'),
               ).animateListItem(3),
@@ -155,7 +155,7 @@ class SelfTrainingHomeScreen extends ConsumerWidget {
                 child: _PremiumFeatureCard(
                   icon: Icons.assessment,
                   title: '월간 리포트',
-                  description: '이번 달 운동 성과를 한눈에 확인하세요',
+                  description: '이번 달 운동 성과를 한눈에 확인해보세요',
                   color: AppTheme.primary,
                   onTap: () {
                     // TODO: 월간 리포트 화면으로 이동
@@ -192,13 +192,13 @@ class SelfTrainingHomeScreen extends ConsumerWidget {
       centerTitle: false,
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_outlined),
+          icon: const Icon(Icons.notifications_none_rounded),
           onPressed: () {
             // TODO: 알림 화면으로 이동
           },
         ),
         IconButton(
-          icon: const Icon(Icons.settings_outlined),
+          icon: const Icon(Icons.settings_rounded),
           onPressed: () => context.go('/member/settings'),
         ),
       ],
@@ -486,7 +486,7 @@ class _ProgressGraphCard extends ConsumerWidget {
                   ? _buildMiniWeightChart(context, ref, member.id)
                   : Center(
                       child: Text(
-                        '기록을 시작해보세요',
+                        '기록을 시작해볼까요?',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark ? Colors.white54 : Colors.black45,
                         ),
@@ -508,7 +508,7 @@ class _ProgressGraphCard extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => Center(
         child: Text(
-          '데이터를 불러올 수 없습니다',
+          '데이터를 불러올 수 없어요',
           style: theme.textTheme.bodySmall,
         ),
       ),
@@ -866,7 +866,7 @@ class _UpgradeCta extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'AI 기반 맞춤 분석으로\n목표에 더 빠르게 도달하세요',
+            'AI 기반 맞춤 분석으로\n목표에 더 빠르게 도달해보세요',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,

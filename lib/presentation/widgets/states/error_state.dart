@@ -139,16 +139,16 @@ class ErrorState extends StatelessWidget {
 
     // Firebase 에러 변환
     if (message.contains('permission-denied')) {
-      return '접근 권한이 없습니다.';
+      return '접근 권한이 없어요.';
     }
     if (message.contains('unavailable')) {
-      return '서버에 연결할 수 없습니다.';
+      return '서버에 연결할 수 없어요.';
     }
     if (message.contains('not-found')) {
-      return '요청한 데이터를 찾을 수 없습니다.';
+      return '요청한 데이터를 찾을 수 없어요.';
     }
     if (message.contains('unauthenticated')) {
-      return '로그인이 필요합니다.';
+      return '로그인이 필요해요';
     }
 
     // 네트워크 에러
@@ -171,31 +171,31 @@ class ErrorState extends StatelessWidget {
         return _ErrorStateConfig(
           icon: Icons.cloud_off,
           title: '서버 오류',
-          message: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          message: '잠시 문제가 생겼어요. 다시 시도해주세요.',
         );
       case ErrorType.auth:
         return _ErrorStateConfig(
           icon: Icons.lock_outline,
           title: '인증 오류',
-          message: '로그인이 필요하거나 세션이 만료되었습니다.',
+          message: '로그인이 필요하거나 세션이 만료됐어요',
         );
       case ErrorType.permission:
         return _ErrorStateConfig(
           icon: Icons.block,
           title: '권한 오류',
-          message: '이 작업을 수행할 권한이 없습니다.',
+          message: '이 작업을 수행할 권한이 없어요.',
         );
       case ErrorType.notFound:
         return _ErrorStateConfig(
           icon: Icons.search_off,
           title: '찾을 수 없음',
-          message: '요청한 데이터를 찾을 수 없습니다.',
+          message: '요청한 데이터를 찾을 수 없어요.',
         );
       case ErrorType.generic:
         return _ErrorStateConfig(
           icon: Icons.error_outline,
           title: '오류 발생',
-          message: '오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          message: '잠시 문제가 생겼어요. 다시 시도해주세요.',
         );
     }
   }

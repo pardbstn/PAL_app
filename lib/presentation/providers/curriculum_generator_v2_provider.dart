@@ -97,7 +97,7 @@ class CurriculumGeneratorV2Notifier
         if (exercises.isEmpty && i == 0) {
           state = state.copyWith(
             status: CurriculumGeneratorStatus.error,
-            error: '조건에 맞는 운동을 찾을 수 없습니다. 설정을 변경해주세요.',
+            error: '조건에 맞는 운동을 찾을 수 없어요. 설정을 변경해주세요',
           );
           return;
         }
@@ -115,7 +115,7 @@ class CurriculumGeneratorV2Notifier
     } catch (e) {
       state = state.copyWith(
         status: CurriculumGeneratorStatus.error,
-        error: '커리큘럼 생성에 실패했습니다: ${e.toString()}',
+        error: '커리큘럼 생성에 실패했어요: ${e.toString()}',
       );
     }
   }
@@ -209,7 +209,7 @@ class CurriculumGeneratorV2Notifier
       }
       return true;
     } catch (e) {
-      state = state.copyWith(error: '저장에 실패했습니다: ${e.toString()}');
+      state = state.copyWith(error: '저장에 실패했어요: ${e.toString()}');
       return false;
     }
   }

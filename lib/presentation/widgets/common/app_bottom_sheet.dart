@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// PAL 앱 공통 바텀 시트 위젯
@@ -40,7 +41,7 @@ abstract class AppBottomSheet {
       backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
+          top: Radius.circular(24),
         ),
       ),
       builder: (context) => _BottomSheetContent(
@@ -70,80 +71,96 @@ class _BottomSheetContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final screenHeight = MediaQuery.of(context).size.height;
     final viewInsets = MediaQuery.of(context).viewInsets;
 
-    // 배경색: Theme의 surface 색상 사용
-    final backgroundColor = colorScheme.surface;
+    final isDark = theme.brightness == Brightness.dark;
 
-    // 드래그 핸들 색상: Theme의 outline 또는 onSurfaceVariant 사용
-    final dragHandleColor = colorScheme.outlineVariant;
+    // 드래그 핸들 색상 (Toss 스타일)
+    final dragHandleColor = const Color(0xFFD9D9D9);
 
     // 최대 높이 계산 (기본값: 화면의 90%)
     final effectiveMaxHeight = maxHeight ?? screenHeight * 0.9;
 
-    return Padding(
-      // 키보드가 올라올 때 시트가 위로 밀림
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: effectiveMaxHeight,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20),
-            ),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+      child: Padding(
+        // 키보드가 올라올 때 시트가 위로 밀림
+        padding: EdgeInsets.only(bottom: viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: effectiveMaxHeight,
           ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 드래그 핸들
-                if (showDragHandle) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: dragHandleColor,
-                      borderRadius: BorderRadius.circular(2),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.92),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 드래그 핸들 (Toss 스타일) - 애니메이션 추가
+                  if (showDragHandle) ...[
+                    const SizedBox(height: 12),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: Opacity(
+                            opacity: value,
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: dragHandleColor,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                // 제목
-                if (title != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Text(
-                      title!,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height: 8),
+                  ],
+                  // 제목 (Toss 스타일)
+                  if (title != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
                       ),
-                      textAlign: TextAlign.center,
+                      child: Text(
+                        title!,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  // 콘텐츠 (Toss 스타일)
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
+                      child: child,
                     ),
                   ),
-                  const SizedBox(height: 8),
                 ],
-                // 콘텐츠
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    child: child,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

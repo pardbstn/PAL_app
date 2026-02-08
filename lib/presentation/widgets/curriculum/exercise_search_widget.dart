@@ -82,7 +82,7 @@ class _ExerciseSearchWidgetState extends ConsumerState<ExerciseSearchWidget> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: const Color(0xFF10B981).withOpacity(0.5),
+                color: const Color(0xFF00C471).withOpacity(0.5),
                 width: 2,
               ),
             ),
@@ -147,7 +147,7 @@ class _ExerciseSearchWidgetState extends ConsumerState<ExerciseSearchWidget> {
           return Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '검색 결과가 없습니다.',
+              '검색 결과가 없어요',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),

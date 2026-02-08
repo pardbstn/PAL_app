@@ -264,7 +264,7 @@ class PaymentNotifier extends AsyncNotifier<void> {
     try {
       final trainer = ref.read(currentTrainerProvider);
       if (trainer == null) {
-        throw Exception('트레이너 정보를 찾을 수 없습니다.');
+        throw Exception('트레이너 정보를 찾을 수 없어요');
       }
 
       final payment = PaymentRecordModel(
@@ -308,7 +308,7 @@ class PaymentNotifier extends AsyncNotifier<void> {
 
       if (payment == null) {
         state = AsyncValue.error(
-          Exception('결제 기록을 찾을 수 없습니다.'),
+          Exception('결제 기록을 찾을 수 없어요'),
           StackTrace.current,
         );
         return false;
@@ -342,7 +342,7 @@ class PaymentNotifier extends AsyncNotifier<void> {
 
       if (payment == null) {
         state = AsyncValue.error(
-          Exception('결제 기록을 찾을 수 없습니다.'),
+          Exception('결제 기록을 찾을 수 없어요'),
           StackTrace.current,
         );
         return false;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_pal_app/core/constants/routes.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 
 /// 스플래시 화면
 class SplashScreen extends ConsumerStatefulWidget {
@@ -35,7 +36,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF1A2140)  // 다크모드: 네이티브 darkbackground.png와 일치
+          ? AppColors.darkBackground  // 다크모드: 네이티브 darkbackground.png와 일치
           : const Color(0xFFDBE1FE), // 라이트모드: 네이티브 background.png와 일치
       body: const SizedBox.shrink(), // 배경색만 표시 (로고 없음)
     );

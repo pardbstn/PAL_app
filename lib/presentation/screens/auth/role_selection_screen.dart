@@ -48,7 +48,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
-                ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0),
+                ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.02, end: 0),
 
                 const SizedBox(height: 8),
 
@@ -57,7 +57,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   style: textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
-                ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+                ).animate().fadeIn(duration: 200.ms, delay: 50.ms),
 
                 const SizedBox(height: 48),
 
@@ -81,6 +81,18 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   title: '회원',
                   description: '운동 기록을 관리하고\n트레이너와 소통해요',
                   delay: 300,
+                ),
+
+                const SizedBox(height: 16),
+
+                // 개인모드 카드
+                _buildRoleCard(
+                  context,
+                  role: UserRole.personal,
+                  icon: Icons.self_improvement,
+                  title: '개인 모드',
+                  description: '혼자서 운동을 기록하고\nAI 분석을 받아요',
+                  delay: 400,
                 ),
 
                 const Spacer(),
@@ -115,7 +127,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                             ),
                           ),
                   ),
-                ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
+                ).animate().fadeIn(duration: 200.ms, delay: 200.ms),
 
                 const SizedBox(height: 16),
               ],
@@ -218,7 +230,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: Duration(milliseconds: delay)).slideX(begin: 0.1, end: 0);
+    ).animate().fadeIn(duration: 200.ms, delay: Duration(milliseconds: delay)).slideX(begin: 0.02, end: 0);
   }
 
   Future<void> _handleStart() async {
@@ -232,7 +244,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
+          SnackBar(content: Text('문제가 생겼어요: $e')),
         );
       }
     } finally {

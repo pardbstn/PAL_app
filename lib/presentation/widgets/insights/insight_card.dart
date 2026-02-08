@@ -38,14 +38,14 @@ class InsightCard extends StatelessWidget {
       // 왼쪽 스와이프 → 읽음 처리
       background: _buildSwipeBackground(
         alignment: Alignment.centerLeft,
-        color: const Color(0xFF10B981), // success 색상
+        color: const Color(0xFF00C471), // success 색상
         icon: Icons.done,
         label: '읽음',
       ),
       // 오른쪽 스와이프 → 삭제
       secondaryBackground: _buildSwipeBackground(
         alignment: Alignment.centerRight,
-        color: const Color(0xFFEF4444), // error 색상
+        color: const Color(0xFFF04452), // error 색상
         icon: Icons.delete_outline,
         label: '삭제',
       ),
@@ -134,7 +134,7 @@ class InsightCard extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
+                  backgroundColor: const Color(0xFFF04452),
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('삭제'),
@@ -301,7 +301,7 @@ class _InsightCardContent extends StatelessWidget {
       width: 8,
       height: 8,
       decoration: const BoxDecoration(
-        color: Color(0xFFEF4444),
+        color: Color(0xFFF04452),
         shape: BoxShape.circle,
       ),
     );
@@ -366,10 +366,10 @@ class _InsightCardContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              color: const Color(0xFFFF8A00).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.3),
               ),
             ),
             child: const Row(
@@ -378,7 +378,7 @@ class _InsightCardContent extends StatelessWidget {
                 Icon(
                   Icons.touch_app,
                   size: 12,
-                  color: Color(0xFFF59E0B),
+                  color: Color(0xFFFF8A00),
                 ),
                 SizedBox(width: 4),
                 Text(
@@ -386,7 +386,7 @@ class _InsightCardContent extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFF59E0B),
+                    color: Color(0xFFFF8A00),
                   ),
                 ),
               ],
@@ -513,7 +513,7 @@ class InsightCardCompact extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
+                  color: Color(0xFFF04452),
                   shape: BoxShape.circle,
                 ),
               ),

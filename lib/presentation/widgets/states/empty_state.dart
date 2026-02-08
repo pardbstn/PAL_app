@@ -112,7 +112,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.members:
         return _EmptyStateConfig(
           icon: Icons.people_outline,
-          title: '아직 등록된 회원이 없습니다',
+          title: '아직 등록된 회원이 없어요',
           message: '새 회원을 등록해보세요',
           actionLabel: '회원 등록',
           actionIcon: Icons.person_add,
@@ -121,7 +121,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.curriculums:
         return _EmptyStateConfig(
           icon: Icons.fitness_center,
-          title: '아직 커리큘럼이 없습니다',
+          title: '아직 커리큘럼이 없어요',
           message: 'AI로 맞춤 커리큘럼을 생성해보세요',
           actionLabel: 'AI 커리큘럼 생성',
           actionIcon: Icons.auto_awesome,
@@ -130,7 +130,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.bodyRecords:
         return _EmptyStateConfig(
           icon: Icons.insert_chart_outlined,
-          title: '아직 체성분 기록이 없습니다',
+          title: '아직 체성분 기록이 없어요',
           message: '체성분을 기록하면 변화 그래프를 볼 수 있어요',
           actionLabel: '기록 추가',
           actionIcon: Icons.add,
@@ -139,7 +139,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.dietRecords:
         return _EmptyStateConfig(
           icon: Icons.restaurant_outlined,
-          title: '아직 식단 기록이 없습니다',
+          title: '아직 식단 기록이 없어요',
           message: '오늘 먹은 음식을 기록해보세요',
           actionLabel: '식단 기록',
           actionIcon: Icons.add_a_photo,
@@ -148,7 +148,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.messages:
         return _EmptyStateConfig(
           icon: Icons.chat_bubble_outline,
-          title: '아직 메시지가 없습니다',
+          title: '아직 메시지가 없어요',
           message: '트레이너와 대화를 시작해보세요',
           actionLabel: '메시지 보내기',
           actionIcon: Icons.send,
@@ -157,7 +157,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.sessions:
         return _EmptyStateConfig(
           icon: Icons.event_available,
-          title: '예정된 수업이 없습니다',
+          title: '예정된 수업이 없어요',
           message: '이 날짜에는 수업이 없어요',
           actionLabel: null,
           actionIcon: null,
@@ -166,8 +166,8 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.signatures:
         return _EmptyStateConfig(
           icon: Icons.draw_outlined,
-          title: '서명 기록이 없습니다',
-          message: '수업 완료 시 서명 기록이 저장됩니다',
+          title: '서명 기록이 없어요',
+          message: '수업 완료 시 서명 기록이 저장돼요',
           actionLabel: null,
           actionIcon: null,
           lottieAsset: 'assets/lottie/empty_signature.json',
@@ -175,7 +175,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.search:
         return _EmptyStateConfig(
           icon: Icons.search_off,
-          title: '검색 결과가 없습니다',
+          title: '검색 결과가 없어요',
           message: '다른 검색어로 시도해보세요',
           actionLabel: null,
           actionIcon: null,
@@ -184,7 +184,7 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.generic:
         return _EmptyStateConfig(
           icon: Icons.inbox_outlined,
-          title: '데이터가 없습니다',
+          title: '아직 데이터가 없어요',
           message: '아직 데이터가 없어요',
           actionLabel: null,
           actionIcon: null,

@@ -19,16 +19,23 @@ export 'diet_analysis_model.dart' hide MealType;
 export 'notification_model.dart';
 export 'reregistration_alert_model.dart';
 
-// 스트릭 시스템
-export 'streak_model.dart';
-export 'badge_model.dart';
-
-// 평점 + 배지 시스템
+// 평점 시스템
 export 'trainer_rating_model.dart';
 export 'member_review_model.dart';
-export 'trainer_badge_model.dart';
 export 'trainer_stats_model.dart';
 
 // 셀프 트레이닝
 export 'subscription_model.dart';
 export 'trainer_request_model.dart';
+
+// 운동 기록
+export 'workout_log_model.dart';
+
+// 트레이너 전환
+export 'trainer_transfer_model.dart';
+
+// 인바디 OCR
+export 'inbody_ocr_result.dart';
+
+// 알림 설정
+export 'notification_settings_model.dart';

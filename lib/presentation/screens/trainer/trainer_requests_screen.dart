@@ -32,7 +32,7 @@ class _TrainerRequestsScreenState extends ConsumerState<TrainerRequestsScreen> {
       return Scaffold(
         appBar: AppBar(title: const Text('회원 요청')),
         body: const Center(
-          child: Text('트레이너 정보를 불러올 수 없습니다.'),
+          child: Text('트레이너 정보를 불러올 수 없어요'),
         ),
       );
     }
@@ -77,7 +77,7 @@ class _TrainerRequestsScreenState extends ConsumerState<TrainerRequestsScreen> {
           // 이번 달 수익 요약
           _RevenueSummaryCard(
             trainerId: trainerId,
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.02, end: 0),
 
           // 필터 탭
           _FilterTabs(
@@ -123,7 +123,7 @@ class _RevenueSummaryCard extends ConsumerWidget {
     final pendingCountAsync = ref.watch(pendingRequestCountProvider(trainerId));
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -309,7 +309,7 @@ class _FilterTabs extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: RequestFilterType.values.map((filter) {
           final isSelected = filter == selectedFilter;
@@ -370,7 +370,7 @@ class _RequestList extends ConsumerWidget {
             ref.invalidate(trainerPendingRequestsProvider(trainerId));
           },
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             itemCount: filteredRequests.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
@@ -408,11 +408,11 @@ class _RequestList extends ConsumerWidget {
   String _getEmptyTitle(RequestFilterType filter) {
     switch (filter) {
       case RequestFilterType.pending:
-        return '대기 중인 요청이 없습니다';
+        return '대기 중인 요청이 없어요';
       case RequestFilterType.answered:
-        return '답변한 요청이 없습니다';
+        return '답변한 요청이 없어요';
       case RequestFilterType.all:
-        return '요청이 없습니다';
+        return '요청이 없어요';
     }
   }
 
@@ -433,7 +433,7 @@ class _RequestList extends ConsumerWidget {
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         itemCount: 5,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) => Container(
@@ -643,7 +643,7 @@ class _RequestList extends ConsumerWidget {
                                   Navigator.of(context).pop();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('답변이 전송되었습니다.'),
+                                      content: Text('답변이 전송됐어요.'),
                                       backgroundColor: AppTheme.secondary,
                                     ),
                                   );
@@ -652,7 +652,7 @@ class _RequestList extends ConsumerWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('오류가 발생했습니다: $e'),
+                                      content: Text('오류가 발생했어요: $e'),
                                       backgroundColor: AppTheme.error,
                                     ),
                                   );

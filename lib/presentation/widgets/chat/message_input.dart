@@ -95,7 +95,7 @@ class _MessageInputState extends State<MessageInput> {
           // 이미지 업로드 실패하고 텍스트도 없으면 중단
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('이미지 업로드에 실패했습니다')),
+              const SnackBar(content: Text('이미지 업로드에 실패했어요')),
             );
           }
           return;
@@ -209,7 +209,7 @@ class _MessageInputState extends State<MessageInput> {
                         textInputAction: TextInputAction.newline,
                         enabled: !_isSending,
                         decoration: InputDecoration(
-                          hintText: '메시지를 입력하세요',
+                          hintText: '메시지를 입력해주세요',
                           hintStyle: TextStyle(
                             color: colorScheme.onSurface.withValues(alpha: 0.5),
                           ),

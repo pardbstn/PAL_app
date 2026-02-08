@@ -181,7 +181,7 @@ class InbodyNotifier extends AsyncNotifier<void> {
       ref.invalidate(inbodyAnalysisSummaryProvider(memberId));
 
       if (!success) {
-        return (count: 0, error: message ?? '인바디 데이터를 가져오는 중 오류가 발생했습니다.');
+        return (count: 0, error: message ?? '인바디 데이터를 가져오는 중 문제가 생겼어요');
       }
 
       return (count: savedCount, error: null);
@@ -192,28 +192,28 @@ class InbodyNotifier extends AsyncNotifier<void> {
       String errorMessage;
       switch (e.code) {
         case 'not-found':
-          errorMessage = '해당 전화번호로 등록된 인바디 기록이 없습니다.';
+          errorMessage = '해당 전화번호로 등록된 인바디 기록이 없어요';
           break;
         case 'permission-denied':
-          errorMessage = '룩인바디 서비스 접근 권한이 없습니다.';
+          errorMessage = '룩인바디 서비스 접근 권한이 없어요';
           break;
         case 'unavailable':
-          errorMessage = '룩인바디 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+          errorMessage = '룩인바디 서비스에 연결할 수 없어요. 잠시 후 다시 시도해주세요';
           break;
         case 'invalid-argument':
           errorMessage = '올바른 전화번호 형식을 입력해주세요.';
           break;
         case 'failed-precondition':
-          errorMessage = '룩인바디 API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.';
+          errorMessage = '룩인바디 API 설정이 완료되지 않았어요. 관리자에게 문의해주세요';
           break;
         default:
-          errorMessage = e.message ?? '인바디 데이터를 가져오는 중 오류가 발생했습니다.';
+          errorMessage = e.message ?? '인바디 데이터를 가져오는 중 문제가 생겼어요';
       }
 
       return (count: 0, error: errorMessage);
     } catch (e, st) {
       state = AsyncError(e, st);
-      return (count: 0, error: '인바디 데이터를 가져오는 중 오류가 발생했습니다: $e');
+      return (count: 0, error: '인바디 데이터를 가져오는 중 문제가 생겼어요: $e');
     }
   }
 }
@@ -321,7 +321,7 @@ class InbodyAnalysisNotifier extends Notifier<InbodyAnalysisState> {
       } else {
         state = state.copyWith(
           isAnalyzing: false,
-          error: result.error ?? '분석에 실패했습니다.',
+          error: result.error ?? '분석에 실패했어요',
         );
       }
 

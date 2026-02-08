@@ -64,14 +64,14 @@ class ErrorHandler {
     // 타임아웃 에러 처리
     if (error is TimeoutException) {
       return NetworkFailure.timeout(
-        message: '요청 시간이 초과되었습니다. 다시 시도해주세요',
+        message: '요청 시간이 초과됐어요. 다시 시도해주세요',
       );
     }
 
     // 포맷 에러 처리
     if (error is FormatException) {
       return const ValidationFailure(
-        message: '데이터 형식이 올바르지 않습니다',
+        message: '데이터 형식이 올바르지 않아요',
         code: 'FORMAT_ERROR',
       );
     }
@@ -86,7 +86,7 @@ class ErrorHandler {
 
     // 알 수 없는 에러
     return UnknownFailure(
-      message: error?.toString() ?? '알 수 없는 오류가 발생했습니다',
+      message: error?.toString() ?? '알 수 없는 문제가 생겼어요',
       originalError: error,
     );
   }
@@ -159,7 +159,7 @@ class ErrorHandler {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
         return NetworkFailure.timeout(
-          message: '서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요',
+          message: '서버 응답이 지연되고 있어요. 잠시 후 다시 시도해주세요',
         );
 
       case DioExceptionType.connectionError:
@@ -169,7 +169,7 @@ class ErrorHandler {
 
       case DioExceptionType.badCertificate:
         return const NetworkFailure(
-          message: '보안 연결에 실패했습니다',
+          message: '보안 연결에 실패했어요',
           code: 'BAD_CERTIFICATE',
         );
 
@@ -178,7 +178,7 @@ class ErrorHandler {
 
       case DioExceptionType.cancel:
         return const NetworkFailure(
-          message: '요청이 취소되었습니다',
+          message: '요청이 취소됐어요',
           code: 'CANCELLED',
         );
 
@@ -189,7 +189,7 @@ class ErrorHandler {
           return NetworkFailure.noConnection();
         }
         return const UnknownFailure(
-          message: '네트워크 오류가 발생했습니다',
+          message: '네트워크에 문제가 생겼어요',
         );
     }
   }
@@ -201,38 +201,38 @@ class ErrorHandler {
     switch (statusCode) {
       case 400:
         return ServerFailure.badRequest(
-          message: serverMessage ?? '잘못된 요청입니다',
+          message: serverMessage ?? '잘못된 요청이에요',
         );
       case 401:
         return AuthFailure.unauthorized(
-          message: serverMessage ?? '로그인이 필요합니다',
+          message: serverMessage ?? '로그인이 필요해요',
         );
       case 403:
         return const AuthFailure(
-          message: '접근이 거부되었습니다',
+          message: '접근이 거부됐어요',
           code: 'FORBIDDEN',
         );
       case 404:
         return ServerFailure.notFound(
-          message: serverMessage ?? '요청한 정보를 찾을 수 없습니다',
+          message: serverMessage ?? '요청한 정보를 찾을 수 없어요',
         );
       case 408:
         return NetworkFailure.timeout();
       case 429:
         return AIServiceFailure.rateLimited(
-          message: serverMessage ?? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요',
+          message: serverMessage ?? '요청이 너무 많아요. 잠시 후 다시 시도해주세요',
         );
       case 500:
       case 501:
       case 502:
       case 503:
         return ServerFailure.internalError(
-          message: serverMessage ?? '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요',
+          message: serverMessage ?? '서버에 문제가 생겼어요. 잠시 후 다시 시도해주세요',
           statusCode: statusCode,
         );
       default:
         return ServerFailure(
-          message: serverMessage ?? '서버 오류가 발생했습니다',
+          message: serverMessage ?? '서버에 문제가 생겼어요',
           statusCode: statusCode,
         );
     }
@@ -241,25 +241,25 @@ class ErrorHandler {
   /// Firebase Auth 에러 처리
   static Failure _handleFirebaseAuthException(FirebaseAuthException error) {
     final message = switch (error.code) {
-      'user-not-found' => '등록되지 않은 이메일입니다',
-      'wrong-password' => '비밀번호가 올바르지 않습니다',
-      'invalid-email' => '유효하지 않은 이메일 형식입니다',
-      'user-disabled' => '비활성화된 계정입니다. 관리자에게 문의해주세요',
-      'email-already-in-use' => '이미 사용 중인 이메일입니다',
-      'operation-not-allowed' => '허용되지 않은 작업입니다',
-      'weak-password' => '비밀번호가 너무 약합니다. 6자 이상 입력해주세요',
-      'invalid-credential' => '로그인 정보가 올바르지 않습니다',
+      'user-not-found' => '등록되지 않은 이메일이에요',
+      'wrong-password' => '비밀번호가 올바르지 않아요',
+      'invalid-email' => '유효하지 않은 이메일 형식이에요',
+      'user-disabled' => '비활성화된 계정이에요. 관리자에게 문의해주세요',
+      'email-already-in-use' => '이미 사용 중인 이메일이에요',
+      'operation-not-allowed' => '허용되지 않은 작업이에요',
+      'weak-password' => '비밀번호가 너무 약해요. 6자 이상 입력해주세요',
+      'invalid-credential' => '로그인 정보가 올바르지 않아요',
       'account-exists-with-different-credential' =>
-        '다른 로그인 방식으로 가입된 계정입니다',
+        '다른 로그인 방식으로 가입된 계정이에요',
       'requires-recent-login' => '보안을 위해 다시 로그인해주세요',
-      'provider-already-linked' => '이미 연결된 계정입니다',
-      'credential-already-in-use' => '다른 계정에서 사용 중인 인증 정보입니다',
-      'invalid-verification-code' => '인증 코드가 올바르지 않습니다',
-      'invalid-verification-id' => '인증 ID가 유효하지 않습니다',
-      'network-request-failed' => '네트워크 오류가 발생했습니다',
-      'too-many-requests' => '요청이 너무 많습니다. 잠시 후 다시 시도해주세요',
-      'expired-action-code' => '인증 코드가 만료되었습니다',
-      _ => error.message ?? '인증 오류가 발생했습니다',
+      'provider-already-linked' => '이미 연결된 계정이에요',
+      'credential-already-in-use' => '다른 계정에서 사용 중인 인증 정보예요',
+      'invalid-verification-code' => '인증 코드가 올바르지 않아요',
+      'invalid-verification-id' => '인증 ID가 유효하지 않아요',
+      'network-request-failed' => '네트워크에 문제가 생겼어요',
+      'too-many-requests' => '요청이 너무 많아요. 잠시 후 다시 시도해주세요',
+      'expired-action-code' => '인증 코드가 만료됐어요',
+      _ => error.message ?? '인증에 문제가 생겼어요',
     };
 
     if (error.code == 'network-request-failed') {
@@ -280,21 +280,21 @@ class ErrorHandler {
   /// Firebase 일반 에러 처리
   static Failure _handleFirebaseException(FirebaseException error) {
     final message = switch (error.code) {
-      'permission-denied' => '접근 권한이 없습니다',
-      'unavailable' => '서비스가 일시적으로 이용 불가능합니다',
-      'not-found' => '요청한 데이터를 찾을 수 없습니다',
-      'already-exists' => '이미 존재하는 데이터입니다',
-      'resource-exhausted' => '요청 한도를 초과했습니다',
-      'cancelled' => '작업이 취소되었습니다',
-      'data-loss' => '데이터 손실이 발생했습니다',
-      'deadline-exceeded' => '요청 시간이 초과되었습니다',
-      'failed-precondition' => '작업 조건이 충족되지 않았습니다',
-      'internal' => '서버 내부 오류가 발생했습니다',
-      'invalid-argument' => '잘못된 요청 데이터입니다',
-      'out-of-range' => '요청 범위를 벗어났습니다',
-      'unauthenticated' => '인증이 필요합니다',
-      'unimplemented' => '지원하지 않는 기능입니다',
-      _ => error.message ?? '오류가 발생했습니다',
+      'permission-denied' => '접근 권한이 없어요',
+      'unavailable' => '서비스가 일시적으로 이용 불가능해요',
+      'not-found' => '요청한 데이터를 찾을 수 없어요',
+      'already-exists' => '이미 존재하는 데이터예요',
+      'resource-exhausted' => '요청 한도를 초과했어요',
+      'cancelled' => '작업이 취소됐어요',
+      'data-loss' => '데이터 손실이 발생했어요',
+      'deadline-exceeded' => '요청 시간이 초과됐어요',
+      'failed-precondition' => '작업 조건이 충족되지 않았어요',
+      'internal' => '서버에 문제가 생겼어요',
+      'invalid-argument' => '잘못된 요청 데이터예요',
+      'out-of-range' => '요청 범위를 벗어났어요',
+      'unauthenticated' => '인증이 필요해요',
+      'unimplemented' => '지원하지 않는 기능이에요',
+      _ => error.message ?? '문제가 생겼어요',
     };
 
     if (error.code == 'permission-denied' || error.code == 'unauthenticated') {
@@ -318,20 +318,20 @@ class ErrorHandler {
 
     if (message.contains('not found')) {
       return const StorageFailure(
-        message: '파일을 찾을 수 없습니다',
+        message: '파일을 찾을 수 없어요',
         code: 'NOT_FOUND',
       );
     }
 
     if (message.contains('permission') || message.contains('unauthorized')) {
       return const AuthFailure(
-        message: '파일 접근 권한이 없습니다',
+        message: '파일 접근 권한이 없어요',
         code: 'STORAGE_UNAUTHORIZED',
       );
     }
 
     return StorageFailure(
-      message: '파일 처리 중 오류가 발생했습니다: $message',
+      message: '파일 처리 중 문제가 생겼어요: $message',
       code: error.statusCode,
     );
   }

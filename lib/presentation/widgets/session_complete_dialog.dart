@@ -168,7 +168,7 @@ class _SessionCompleteDialogState extends ConsumerState<SessionCompleteDialog> {
           controller: _memoController,
           maxLines: 2,
           decoration: InputDecoration(
-            hintText: '오늘 수업에 대한 메모를 입력하세요...',
+            hintText: '오늘 수업에 대한 메모를 입력해주세요...',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -364,7 +364,7 @@ class _SessionCompleteDialogState extends ConsumerState<SessionCompleteDialog> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${widget.curriculum.sessionNumber}회차 수업이 완료되었습니다',
+              '${widget.curriculum.sessionNumber}회차 수업이 완료됐어요',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -461,7 +461,7 @@ class _SessionCompleteDialogState extends ConsumerState<SessionCompleteDialog> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '저장 중 오류가 발생했습니다: $e';
+          _errorMessage = '저장 중 문제가 생겼어요: $e';
         });
       }
     }
@@ -571,7 +571,7 @@ class SignatureViewDialog extends StatelessWidget {
                               color: Colors.grey[400], size: 48),
                           const SizedBox(height: 8),
                           Text(
-                            '이미지를 불러올 수 없습니다',
+                            '이미지를 불러올 수 없어요',
                             style: TextStyle(color: Colors.grey[500]),
                           ),
                         ],

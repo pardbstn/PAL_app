@@ -23,7 +23,7 @@ class ChipButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
     final dangerColor = theme.colorScheme.error;
 
     Color backgroundColor;

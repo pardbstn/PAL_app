@@ -104,7 +104,7 @@ class _CurriculumSettingsScreenState
   Future<void> _generate() async {
     if (widget.memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원 정보가 없습니다.')),
+        const SnackBar(content: Text('회원 정보가 없어요.')),
       );
       return;
     }
@@ -129,13 +129,13 @@ class _CurriculumSettingsScreenState
   Future<void> _generateWithDefaults() async {
     if (widget.memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원 정보가 없습니다.')),
+        const SnackBar(content: Text('회원 정보가 없어요.')),
       );
       return;
     }
 
-    // 기본 설정으로 바로 생성
-    const settings = CurriculumSettings();
+    // 현재 UI 설정값으로 생성
+    final settings = _buildSettings();
 
     context.push(
       '/trainer/curriculum/result',
@@ -143,7 +143,7 @@ class _CurriculumSettingsScreenState
         'memberId': widget.memberId,
         'memberName': widget.memberName,
         'settings': settings,
-        'excludedExerciseIds': <String>[],
+        'excludedExerciseIds': _excludedExercises.map((e) => e.id).toList(),
       },
     );
   }
@@ -151,7 +151,7 @@ class _CurriculumSettingsScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const emerald = Color(0xFF10B981);
+    const emerald = Color(0xFF00C471);
 
     // 프리셋 로드 (최초 1회)
     // Note: In real usage, trainerId would come from auth state
@@ -160,7 +160,7 @@ class _CurriculumSettingsScreenState
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -178,7 +178,7 @@ class _CurriculumSettingsScreenState
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -302,7 +302,7 @@ class _CurriculumSettingsScreenState
                 maxLines: 2,
                 style: theme.textTheme.bodyMedium,
                 decoration: InputDecoration(
-                  hintText: '추가 요청사항을 입력하세요...',
+                  hintText: '추가 요청사항을 입력해주세요...',
                   hintStyle: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
@@ -349,7 +349,7 @@ class _CurriculumSettingsScreenState
                       ),
                     ),
                     child: Text(
-                      '스킵하고 바로 생성',
+                      '바로 만들기',
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
@@ -361,7 +361,7 @@ class _CurriculumSettingsScreenState
                   child: ElevatedButton.icon(
                     onPressed: _generate,
                     icon: const Icon(Icons.auto_awesome, size: 18),
-                    label: const Text('설정 적용 후 생성'),
+                    label: const Text('설정하고 만들기'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: emerald,
                       foregroundColor: Colors.white,
@@ -488,14 +488,14 @@ class _TemplateLoadSection extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '저장된 템플릿이 없습니다',
+                    '저장된 템플릿이 없어요',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.5),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '커리큘럼 생성 후 템플릿으로 저장할 수 있습니다',
+                    '커리큘럼 생성 후 템플릿으로 저장할 수 있어요',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.4),
                       fontSize: 11,
@@ -753,7 +753,7 @@ class _TemplateListTile extends ConsumerWidget {
   void _applyTemplate(BuildContext context, WidgetRef ref) {
     if (memberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원 정보가 없습니다.')),
+        const SnackBar(content: Text('회원 정보가 없어요.')),
       );
       return;
     }

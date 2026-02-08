@@ -112,7 +112,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   /// 상단 툴바 빌드
@@ -191,7 +191,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 100.ms, duration: 300.ms);
+    ).animate().fadeIn(delay: 50.ms, duration: 200.ms);
   }
 
   /// 필터 탭 빌드
@@ -277,7 +277,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 150.ms, duration: 300.ms);
+    ).animate().fadeIn(delay: 75.ms, duration: 200.ms);
   }
 
   /// 필터 탭 버튼 빌드
@@ -861,7 +861,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
             ),
             const SizedBox(height: 24),
             const Text(
-              '회원 목록을 불러오지 못했습니다',
+              '회원 목록을 불러오지 못했어요',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -913,7 +913,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
             ),
             const SizedBox(height: 24),
             Text(
-              isSearching ? '검색 결과가 없습니다' : '아직 등록된 회원이 없습니다',
+              isSearching ? '검색 결과가 없어요' : '아직 등록된 회원이 없어요',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -983,7 +983,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('$memberName 회원 수정'),
-        content: const Text('회원 상세 페이지에서 수정하시겠습니까?'),
+        content: const Text('회원 상세 페이지에서 수정할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1008,7 +1008,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('회원 삭제'),
-        content: Text('$memberName 회원을 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        content: Text('$memberName 회원을 정말 삭제할까요?\n이 작업은 되돌릴 수 없어요'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1022,7 +1022,7 @@ class _TrainerMembersWebScreenState extends ConsumerState<TrainerMembersWebScree
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('회원이 삭제되었습니다.'),
+                      content: const Text('회원이 삭제됐어요'),
                       backgroundColor: AppTheme.secondary,
                     ),
                   );
@@ -1140,13 +1140,13 @@ class _GoalBadge extends StatelessWidget {
   (String, Color) _getGoalStyle(String goal) {
     switch (goal) {
       case '다이어트':
-        return ('🔥', const Color(0xFFEF4444));
+        return ('🔥', const Color(0xFFF04452));
       case '벌크업':
-        return ('💪', const Color(0xFF2563EB));
+        return ('💪', const Color(0xFF0064FF));
       case '체력 향상':
-        return ('🏃', const Color(0xFF10B981));
+        return ('🏃', const Color(0xFF00C471));
       case '재활':
-        return ('🩹', const Color(0xFFF59E0B));
+        return ('🩹', const Color(0xFFFF8A00));
       default:
         return ('🎯', Colors.grey);
     }
@@ -1171,7 +1171,7 @@ class _ExperienceBadge extends StatelessWidget {
           index < stars ? Icons.star : Icons.star_border,
           size: 14,
           color: index < stars
-              ? const Color(0xFFF59E0B)
+              ? const Color(0xFFFF8A00)
               : (isDark ? Colors.white24 : Colors.grey[300]),
         );
       }),

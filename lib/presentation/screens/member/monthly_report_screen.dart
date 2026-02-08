@@ -50,7 +50,7 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
       return Scaffold(
         appBar: AppBar(title: const Text('월간 리포트')),
         body: const Center(
-          child: Text('회원 정보를 불러올 수 없습니다.'),
+          child: Text('회원 정보를 불러올 수 없어요'),
         ),
       );
     }
@@ -93,9 +93,10 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
 
   void _shareReport(BuildContext context) {
     final monthText = '${_selectedMonth.year}년 ${_selectedMonth.month}월';
+    // ignore: deprecated_member_use
     Share.share(
       'PAL 월간 피트니스 리포트 - $monthText\n\n'
-      '더 자세한 내용은 PAL 앱에서 확인하세요!',
+      '더 자세한 내용은 PAL 앱에서 확인해보세요!',
       subject: 'PAL 월간 리포트',
     );
   }
@@ -167,7 +168,7 @@ class _MonthlyReportContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -175,28 +176,28 @@ class _MonthlyReportContent extends ConsumerWidget {
           _SummarySection(
             memberId: memberId,
             selectedMonth: selectedMonth,
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
           const SizedBox(height: 24),
 
           // 체중 변화 차트
           _WeightTrendSection(
             memberId: memberId,
             selectedMonth: selectedMonth,
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms, delay: 50.ms).slideY(begin: 0.02, end: 0),
           const SizedBox(height: 24),
 
           // 운동 빈도 차트
           _WorkoutFrequencySection(
             memberId: memberId,
             selectedMonth: selectedMonth,
-          ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms, delay: 100.ms).slideY(begin: 0.02, end: 0),
           const SizedBox(height: 24),
 
           // AI 추천 섹션
           _AIRecommendationsSection(
             memberId: memberId,
             selectedMonth: selectedMonth,
-          ).animate().fadeIn(duration: 300.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms, delay: 150.ms).slideY(begin: 0.02, end: 0),
           const SizedBox(height: 32),
         ],
       ),
@@ -448,12 +449,12 @@ class _WeightTrendSection extends ConsumerWidget {
             child: weightHistoryAsync.when(
               loading: () => _buildChartSkeleton(context),
               error: (error, _) => Center(
-                child: Text('데이터를 불러올 수 없습니다.'),
+                child: Text('데이터를 불러올 수 없어요.'),
               ),
               data: (history) {
                 if (history.length < 2) {
                   return const Center(
-                    child: Text('데이터가 부족합니다.\n2개 이상의 기록이 필요해요.'),
+                    child: Text('2개 이상의 기록이 필요해요.'),
                   );
                 }
                 return _buildWeightChart(context, history);
@@ -800,7 +801,7 @@ class _AIRecommendationsSection extends StatelessWidget {
       _RecommendationItem(
         icon: Icons.bedtime,
         title: '휴식일 확보 필요',
-        description: '연속 5일 이상 운동한 주가 2번 있었습니다. 적절한 휴식으로 회복을 도와주세요.',
+        description: '연속 5일 이상 운동한 주가 2번 있었어요. 적절한 휴식으로 회복을 도와주세요',
         color: AppTheme.tertiary,
       ),
     ];

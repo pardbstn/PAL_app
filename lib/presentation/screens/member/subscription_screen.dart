@@ -45,7 +45,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
               const SizedBox(height: 16),
-              Text('오류가 발생했습니다\n$error', textAlign: TextAlign.center),
+              Text('문제가 생겼어요\n$error', textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -69,9 +69,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         children: [
           // 헤더 섹션
           _buildHeaderSection(context, isPremium).animate().fadeIn().slideY(
-                begin: -0.1,
+                begin: -0.02,
                 end: 0,
-                duration: 400.ms,
+                duration: 200.ms,
               ),
           const SizedBox(height: 32),
 
@@ -81,7 +81,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
-          ).animate().fadeIn(delay: 100.ms),
+          ).animate().fadeIn(delay: 50.ms),
           const SizedBox(height: 16),
 
           // 프리미엄 카드 (추천)
@@ -93,10 +93,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             isRecommended: !isPremium,
             isLoading: _isProcessing,
             onSelect: isPremium ? null : () => _startPremium(userId),
-          ).animate().fadeIn(delay: 200.ms).slideX(
-                begin: 0.05,
+          ).animate().fadeIn(delay: 100.ms).slideX(
+                begin: 0.02,
                 end: 0,
-                duration: 400.ms,
+                duration: 200.ms,
               ),
           const SizedBox(height: 16),
 
@@ -108,10 +108,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             isCurrentPlan: !isPremium,
             isRecommended: false,
             onSelect: null,
-          ).animate().fadeIn(delay: 300.ms).slideX(
-                begin: 0.05,
+          ).animate().fadeIn(delay: 150.ms).slideX(
+                begin: 0.02,
                 end: 0,
-                duration: 400.ms,
+                duration: 200.ms,
               ),
           const SizedBox(height: 32),
 
@@ -122,11 +122,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ],
 
           // FAQ 섹션
-          _buildFaqSection(context).animate().fadeIn(delay: 400.ms),
+          _buildFaqSection(context).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 32),
 
           // 결제 안내
-          _buildPaymentInfo(context).animate().fadeIn(delay: 500.ms),
+          _buildPaymentInfo(context).animate().fadeIn(delay: 250.ms),
           const SizedBox(height: 40),
         ],
       ),
@@ -195,7 +195,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           Text(
             isPremium
                 ? '모든 프리미엄 기능을 이용 중입니다'
-                : 'AI 기반 맞춤 분석으로 목표에 더 빠르게 도달하세요',
+                : 'AI 기반 맞춤 분석으로 목표에 더 빠르게 도달해보세요',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isPremium
@@ -278,7 +278,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            '구독을 해지하면 다음 결제일부터 무료 플랜으로 전환됩니다.\n현재 결제 기간이 끝날 때까지는 프리미엄 기능을 계속 이용할 수 있습니다.',
+            '구독을 해지하면 다음 결제일부터 무료 플랜으로 전환돼요.\n현재 결제 기간이 끝날 때까지는 프리미엄 기능을 계속 이용할 수 있어요.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: isDark ? Colors.white54 : Colors.black45,
               height: 1.5,
@@ -295,7 +295,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 350.ms);
+    ).animate().fadeIn(delay: 175.ms);
   }
 
   Widget _buildFaqSection(BuildContext context) {
@@ -313,15 +313,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         const SizedBox(height: 12),
         _FaqItem(
           question: '프리미엄은 언제 시작되나요?',
-          answer: '결제 완료 즉시 프리미엄 기능을 이용할 수 있습니다.',
+          answer: '결제 완료 즉시 프리미엄 기능을 이용할 수 있어요.',
         ),
         _FaqItem(
           question: '언제든지 해지할 수 있나요?',
-          answer: '네, 언제든지 해지 가능합니다. 해지 후에도 결제 기간이 끝날 때까지는 프리미엄 기능을 이용할 수 있습니다.',
+          answer: '네, 언제든지 해지 가능해요. 해지 후에도 결제 기간이 끝날 때까지는 프리미엄 기능을 이용할 수 있어요.',
         ),
         _FaqItem(
           question: '트레이너 질문은 어떻게 사용하나요?',
-          answer: '프리미엄 회원은 매월 3회까지 이전 담당 트레이너에게 운동, 식단 관련 질문을 할 수 있습니다.',
+          answer: '프리미엄 회원은 매월 3회까지 이전 담당 트레이너에게 운동, 식단 관련 질문을 할 수 있어요.',
         ),
       ],
     );
@@ -347,7 +347,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '결제는 안전하게 처리되며,\n개인정보는 암호화되어 보호됩니다.',
+              '결제는 안전하게 처리되며,\n개인정보는 암호화되어 보호돼요.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: isDark ? Colors.white54 : Colors.black45,
                 height: 1.4,
@@ -370,7 +370,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('프리미엄이 시작되었습니다!'),
+            content: Text('프리미엄이 시작됐어요!'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -379,7 +379,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('문제가 생겼어요: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -397,9 +397,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       builder: (context) => AlertDialog(
         title: const Text('구독 해지'),
         content: const Text(
-          '정말 프리미엄 구독을 해지하시겠습니까?\n\n'
+          '정말 프리미엄 구독을 해지할까요?\n\n'
           '해지 후에도 현재 결제 기간이 끝날 때까지는\n'
-          '프리미엄 기능을 이용할 수 있습니다.',
+          '프리미엄 기능을 이용할 수 있어요.',
         ),
         actions: [
           TextButton(
@@ -412,7 +412,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               await _cancelPremium(userId);
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-            child: const Text('해지하기'),
+            child: const Text('해지할게요'),
           ),
         ],
       ),
@@ -428,7 +428,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('구독이 해지되었습니다'),
+            content: Text('구독이 해지됐어요'),
           ),
         );
       }
@@ -436,7 +436,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('문제가 생겼어요: $e'),
             backgroundColor: AppTheme.error,
           ),
         );

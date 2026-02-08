@@ -58,7 +58,7 @@ class ChatListScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.error,
               ),
               const SizedBox(height: 16),
-              Text('채팅 목록을 불러올 수 없습니다'),
+              Text('채팅 목록을 불러올 수 없어요'),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () => ref.invalidate(myChatRoomsProvider),
@@ -140,7 +140,7 @@ class _ChatRoomTile extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              room.lastMessage ?? '새로운 대화를 시작하세요',
+              room.lastMessage ?? '새로운 대화를 시작해보세요',
               style: TextStyle(
                 fontSize: 14,
                 color: hasUnread

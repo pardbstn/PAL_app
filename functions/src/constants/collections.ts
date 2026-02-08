@@ -19,6 +19,8 @@ export const Collections = {
   SESSIONS: "sessions",
   BADGES: "badges",
   NOTIFICATIONS: "notifications",
+  TRAINER_TRANSFERS: "trainer_transfers",
+  NOTIFICATION_SETTINGS: "notification_settings",
 } as const;
 
 export type CollectionName = typeof Collections[keyof typeof Collections];

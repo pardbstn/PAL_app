@@ -242,7 +242,7 @@ class AIService {
       final data = _convertToStringDynamic(result.data);
 
       if (data['success'] != true) {
-        throw Exception('커리큘럼 생성에 실패했습니다.');
+        throw Exception('커리큘럼 생성에 실패했어요');
       }
 
       final curriculumsList = data['curriculums'] as List<dynamic>? ?? [];
@@ -288,7 +288,7 @@ class AIService {
 
       if (data['success'] != true) {
         final error = data['error'] as Map<dynamic, dynamic>?;
-        throw Exception(error?['message']?.toString() ?? '체중 예측에 실패했습니다.');
+        throw Exception(error?['message']?.toString() ?? '체중 예측에 실패했어요');
       }
 
       final predictionData = data['prediction'] as Map<dynamic, dynamic>;
@@ -330,7 +330,7 @@ class AIService {
     } on FirebaseFunctionsException catch (e) {
       return InsightsResult.error(
         errorCode: e.code,
-        errorMessage: e.message ?? '인사이트 생성에 실패했습니다.',
+        errorMessage: e.message ?? '인사이트 생성에 실패했어요',
       );
     } catch (e) {
       return InsightsResult.error(
@@ -380,17 +380,17 @@ class AIService {
       case 'unauthenticated':
         return Exception('로그인이 필요합니다.');
       case 'permission-denied':
-        return Exception('권한이 없습니다.');
+        return Exception('권한이 없어요');
       case 'invalid-argument':
         return Exception(e.message ?? '잘못된 입력입니다.');
       case 'resource-exhausted':
-        return Exception(e.message ?? '사용량 한도를 초과했습니다.');
+        return Exception(e.message ?? '사용량 한도를 초과했어요');
       case 'not-found':
-        return Exception(e.message ?? '데이터를 찾을 수 없습니다.');
+        return Exception(e.message ?? '데이터를 찾을 수 없어요');
       case 'failed-precondition':
-        return Exception(e.message ?? '사전 조건이 충족되지 않았습니다.');
+        return Exception(e.message ?? '사전 조건이 충족되지 않았어요');
       default:
-        return Exception(e.message ?? '오류가 발생했습니다.');
+        return Exception(e.message ?? '문제가 생겼어요');
     }
   }
 }

@@ -53,6 +53,7 @@ android/key.properties
 # Firebase secrets
 scripts/serviceAccountKey.json
 **/serviceAccountKey.json
+service-account.json
 
 # Scripts dependencies
 scripts/node_modules/

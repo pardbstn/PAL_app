@@ -90,7 +90,7 @@ class _TrainerMemberDetailWebScreenState
 
     if (memberId == null || memberId.isEmpty) {
       return const Scaffold(
-        body: Center(child: Text('회원 ID가 없습니다.')),
+        body: Center(child: Text('회원 ID가 없어요')),
       );
     }
 
@@ -292,7 +292,7 @@ class _TrainerMemberDetailWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
+    ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.02, end: 0);
   }
 
   // ============================================================================
@@ -306,18 +306,18 @@ class _TrainerMemberDetailWebScreenState
         children: [
           _buildProfileCard(context, memberWithUser)
               .animate()
-              .fadeIn(duration: 400.ms, delay: 100.ms)
-              .slideX(begin: -0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 50.ms)
+              .slideX(begin: -0.02, end: 0),
           const SizedBox(height: 20),
           _buildPtInfoCard(context, memberWithUser)
               .animate()
-              .fadeIn(duration: 400.ms, delay: 200.ms)
-              .slideX(begin: -0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 100.ms)
+              .slideX(begin: -0.02, end: 0),
           const SizedBox(height: 20),
           _buildContactCard(context, memberWithUser)
               .animate()
-              .fadeIn(duration: 400.ms, delay: 300.ms)
-              .slideX(begin: -0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 150.ms)
+              .slideX(begin: -0.02, end: 0),
         ],
       ),
     );
@@ -621,7 +621,7 @@ class _TrainerMemberDetailWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms, delay: 150.ms).slideX(begin: 0.1, end: 0);
+    ).animate().fadeIn(duration: 200.ms, delay: 75.ms).slideX(begin: 0.02, end: 0);
   }
 
   // 기록 탭 - 운동 기록 및 메모
@@ -662,7 +662,7 @@ class _TrainerMemberDetailWebScreenState
                             );
                         setState(() => _isMemoEditing = false);
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('메모가 저장되었습니다')));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('메모가 저장됐어요')));
                       },
                       child: const Text('저장'),
                     ),
@@ -690,7 +690,7 @@ class _TrainerMemberDetailWebScreenState
                       expands: true,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: '회원에 대한 메모를 입력하세요...\n(부상 이력, 주의사항, 특이사항 등)',
+                        hintText: '회원에 대한 메모를 입력해주세요...\n(부상 이력, 주의사항, 특이사항 등)',
                       ),
                       style: Theme.of(context).textTheme.bodyMedium,
                     )
@@ -698,7 +698,7 @@ class _TrainerMemberDetailWebScreenState
                       child: Text(
                         memberWithUser.member.memo?.isNotEmpty == true
                             ? memberWithUser.member.memo!
-                            : '등록된 메모가 없습니다.',
+                            : '등록된 메모가 없어요',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: memberWithUser.member.memo?.isNotEmpty == true
                                   ? null
@@ -710,7 +710,7 @@ class _TrainerMemberDetailWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   // 그래프 탭 - AI 예측선 포함
@@ -879,7 +879,7 @@ class _TrainerMemberDetailWebScreenState
                 maxX: 11,
               ),
             ),
-          ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
+          ).animate().fadeIn(duration: 200.ms, delay: 100.ms),
 
           const SizedBox(height: 40),
 
@@ -946,13 +946,13 @@ class _TrainerMemberDetailWebScreenState
                   LineChartBarData(
                     spots: muscleData,
                     isCurved: true,
-                    color: const Color(0xFF10B981),
+                    color: const Color(0xFF00C471),
                     barWidth: 3,
                     dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
                         radius: 4,
-                        color: const Color(0xFF10B981),
+                        color: const Color(0xFF00C471),
                         strokeWidth: 2,
                         strokeColor: Colors.white,
                       ),
@@ -963,8 +963,8 @@ class _TrainerMemberDetailWebScreenState
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          const Color(0xFF10B981).withValues(alpha: 0.3),
-                          const Color(0xFF10B981).withValues(alpha: 0.0),
+                          const Color(0xFF00C471).withValues(alpha: 0.3),
+                          const Color(0xFF00C471).withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -993,7 +993,7 @@ class _TrainerMemberDetailWebScreenState
                 maxX: 11,
               ),
             ),
-          ).animate().fadeIn(duration: 500.ms, delay: 300.ms),
+          ).animate().fadeIn(duration: 200.ms, delay: 150.ms),
 
           const SizedBox(height: 16),
           Text(
@@ -1060,7 +1060,7 @@ class _TrainerMemberDetailWebScreenState
             Icon(Icons.fitness_center_rounded, size: 64, color: colorScheme.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
             Text(
-              '아직 진행한 세션이 없습니다',
+              '아직 진행한 세션이 없어요',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
@@ -1137,19 +1137,19 @@ class _TrainerMemberDetailWebScreenState
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                      color: const Color(0xFF00C471).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       '완료',
-                      style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Color(0xFF00C471), fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-        ).animate().fadeIn(duration: 300.ms, delay: (50 * index).ms).slideX(begin: 0.05, end: 0);
+        ).animate().fadeIn(duration: 200.ms, delay: (50 * index).ms).slideX(begin: 0.02, end: 0);
       },
     );
   }
@@ -1168,7 +1168,7 @@ class _TrainerMemberDetailWebScreenState
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text('오류가 발생했습니다: $e'),
+            Text('문제가 생겼어요: $e'),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => ref.invalidate(inbodyHistoryProvider(memberId)),
@@ -1195,7 +1195,7 @@ class _TrainerMemberDetailWebScreenState
           Icon(Icons.assessment_outlined, size: 64, color: colorScheme.primary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
-            '인바디 기록이 없습니다',
+            '인바디 기록이 없어요',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
@@ -1208,7 +1208,7 @@ class _TrainerMemberDetailWebScreenState
                 ),
           ),
         ],
-      ).animate().fadeIn(duration: 300.ms),
+      ).animate().fadeIn(duration: 200.ms),
     );
   }
 
@@ -1293,7 +1293,7 @@ class _TrainerMemberDetailWebScreenState
                   ),
                 ],
               ),
-            ).animate().fadeIn(duration: 300.ms, delay: (100 * index).ms).slideY(begin: 0.1, end: 0);
+            ).animate().fadeIn(duration: 200.ms, delay: (50 * index).ms).slideY(begin: 0.02, end: 0);
           }),
         ],
       ),
@@ -1305,7 +1305,7 @@ class _TrainerMemberDetailWebScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('기록 삭제'),
-        content: const Text('이 인바디 기록을 삭제하시겠습니까?'),
+        content: const Text('이 인바디 기록을 삭제할까요?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('취소')),
           FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('삭제')),
@@ -1317,7 +1317,7 @@ class _TrainerMemberDetailWebScreenState
       final success = await notifier.deleteRecord(memberId, record.id);
       if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('기록이 삭제되었습니다'), behavior: SnackBarBehavior.floating),
+          const SnackBar(content: Text('기록이 삭제됐어요'), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -1331,7 +1331,7 @@ class _TrainerMemberDetailWebScreenState
     if (change != null && change != 0) {
       final isPositiveChange = change > 0;
       final isGood = increaseIsGood ? isPositiveChange : !isPositiveChange;
-      changeColor = isGood ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+      changeColor = isGood ? const Color(0xFF00C471) : const Color(0xFFF04452);
       changeIcon = isPositiveChange ? Icons.arrow_upward : Icons.arrow_downward;
     }
 
@@ -1396,7 +1396,7 @@ class _TrainerMemberDetailWebScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            '채팅방으로 이동하여 회원과 대화할 수 있습니다.',
+            '채팅방으로 이동하여 회원과 대화할 수 있어요',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 24),
@@ -1410,7 +1410,7 @@ class _TrainerMemberDetailWebScreenState
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 200.ms);
   }
 
   // ============================================================================
@@ -1422,7 +1422,7 @@ class _TrainerMemberDetailWebScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('회원 삭제'),
-        content: Text('${memberWithUser.name} 회원을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        content: Text('${memberWithUser.name} 회원을 삭제할까요?\n이 작업은 되돌릴 수 없어요'),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('취소')),
           FilledButton(
@@ -1438,16 +1438,16 @@ class _TrainerMemberDetailWebScreenState
       await ref.read(membersNotifierProvider.notifier).deleteMember(memberWithUser.member.id);
       if (!context.mounted) return;
       context.pop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('회원이 삭제되었습니다')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('회원이 삭제됐어요')));
     }
   }
 
   Color _getGoalColor(FitnessGoal goal) {
     return switch (goal) {
-      FitnessGoal.diet => const Color(0xFF10B981),
-      FitnessGoal.bulk => const Color(0xFFF59E0B),
-      FitnessGoal.fitness => const Color(0xFF2563EB),
-      FitnessGoal.rehab => const Color(0xFFEF4444),
+      FitnessGoal.diet => const Color(0xFF00C471),
+      FitnessGoal.bulk => const Color(0xFFFF8A00),
+      FitnessGoal.fitness => const Color(0xFF0064FF),
+      FitnessGoal.rehab => const Color(0xFFF04452),
     };
   }
 
@@ -1520,7 +1520,7 @@ class _TrainerMemberDetailWebScreenState
         children: [
           Icon(Icons.error_outline_rounded, size: 64, color: colorScheme.error),
           const SizedBox(height: 16),
-          Text('회원 정보를 불러올 수 없습니다', style: Theme.of(context).textTheme.titleMedium),
+          Text('회원 정보를 불러올 수 없어요', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
             error.toString(),
@@ -1553,7 +1553,7 @@ class _TrainerMemberDetailWebScreenState
         children: [
           Icon(Icons.person_off_outlined, size: 64, color: colorScheme.onSurface.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
-          Text('회원을 찾을 수 없습니다', style: Theme.of(context).textTheme.titleMedium),
+          Text('회원을 찾을 수 없어요', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 24),
           OutlinedButton.icon(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back), label: const Text('돌아가기')),
         ],

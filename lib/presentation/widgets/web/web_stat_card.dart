@@ -81,8 +81,8 @@ class _WebStatCardState extends State<WebStatCard> {
     final colorScheme = Theme.of(context).colorScheme;
     return switch (widget.variant) {
       WebStatCardVariant.primary => colorScheme.primary,
-      WebStatCardVariant.success => const Color(0xFF10B981),
-      WebStatCardVariant.warning => const Color(0xFFF59E0B),
+      WebStatCardVariant.success => const Color(0xFF00C471),
+      WebStatCardVariant.warning => const Color(0xFFFF8A00),
       WebStatCardVariant.error => colorScheme.error,
       WebStatCardVariant.info => const Color(0xFF3B82F6),
     };
@@ -90,8 +90,8 @@ class _WebStatCardState extends State<WebStatCard> {
 
   Color _getTrendColor() {
     if (widget.trend == null) return Colors.grey;
-    if (widget.trend! > 0) return const Color(0xFF10B981);
-    if (widget.trend! < 0) return const Color(0xFFEF4444);
+    if (widget.trend! > 0) return const Color(0xFF00C471);
+    if (widget.trend! < 0) return const Color(0xFFF04452);
     return Colors.grey;
   }
 
@@ -123,24 +123,12 @@ class _WebStatCardState extends State<WebStatCard> {
             border: Border.all(
               color: _isHovered
                   ? variantColor.withValues(alpha: 0.5)
-                  : (isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+                  : (isDark ? AppColors.darkBorder : AppColors.gray100),
               width: _isHovered ? 2 : 1,
             ),
             boxShadow: _isHovered
-                ? [
-                    BoxShadow(
-                      color: variantColor.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                ? AppShadows.lg
+                : AppShadows.sm,
           ),
           transform: _isHovered ? Matrix4.diagonal3Values(1.02, 1.02, 1.0) : Matrix4.identity(),
           child: widget.isLoading ? _buildLoadingSkeleton(context) : _buildContent(context),
@@ -340,18 +328,12 @@ class WebStatCardLarge extends StatelessWidget {
     return Container(
       constraints: minHeight != null ? BoxConstraints(minHeight: minHeight!) : null,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isDark ? AppColors.darkBackground : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -102,15 +102,15 @@ class _BenchmarkDistributionChartState extends State<BenchmarkDistributionChart>
   /// 백분위에 따른 색상 반환
   Color _getPercentileColor(int percentile) {
     if (percentile <= 20) {
-      return const Color(0xFF10B981); // Green - 상위 20%
+      return const Color(0xFF00C471); // Green - 상위 20%
     } else if (percentile <= 40) {
-      return const Color(0xFF2563EB); // Blue - 상위 40%
+      return const Color(0xFF0064FF); // Blue - 상위 40%
     } else if (percentile <= 60) {
       return const Color(0xFFFBBF24); // Yellow - 상위 60%
     } else if (percentile <= 80) {
-      return const Color(0xFFF59E0B); // Orange - 상위 80%
+      return const Color(0xFFFF8A00); // Orange - 상위 80%
     } else {
-      return const Color(0xFFEF4444); // Red - 하위 20%
+      return const Color(0xFFF04452); // Red - 하위 20%
     }
   }
 
@@ -502,11 +502,11 @@ class _BenchmarkDistributionChartState extends State<BenchmarkDistributionChart>
   /// 범례
   Widget _buildLegend(ColorScheme colorScheme) {
     final legendItems = [
-      ('상위 20%', const Color(0xFF10B981)),
-      ('상위 40%', const Color(0xFF2563EB)),
+      ('상위 20%', const Color(0xFF00C471)),
+      ('상위 40%', const Color(0xFF0064FF)),
       ('상위 60%', const Color(0xFFFBBF24)),
-      ('하위 40%', const Color(0xFFF59E0B)),
-      ('하위 20%', const Color(0xFFEF4444)),
+      ('하위 40%', const Color(0xFFFF8A00)),
+      ('하위 20%', const Color(0xFFF04452)),
     ];
 
     return Container(
@@ -573,15 +573,15 @@ class BenchmarkDetailChart extends StatelessWidget {
 
   Color _getPercentileColor(int percentile) {
     if (percentile <= 20) {
-      return const Color(0xFF10B981);
+      return const Color(0xFF00C471);
     } else if (percentile <= 40) {
-      return const Color(0xFF2563EB);
+      return const Color(0xFF0064FF);
     } else if (percentile <= 60) {
       return const Color(0xFFFBBF24);
     } else if (percentile <= 80) {
-      return const Color(0xFFF59E0B);
+      return const Color(0xFFFF8A00);
     } else {
-      return const Color(0xFFEF4444);
+      return const Color(0xFFF04452);
     }
   }
 

@@ -45,7 +45,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('$memberName 서명 기록'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.pop(),
         ),
       ),
@@ -67,7 +67,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         itemCount: 5,
         itemBuilder: (context, index) {
           return Container(
@@ -101,7 +101,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              '서명 기록을 불러오지 못했습니다',
+              '서명 기록을 불러오지 못했어요',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -147,7 +147,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              '아직 서명 기록이 없습니다',
+              '아직 서명 기록이 없어요',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -156,7 +156,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '수업 완료 시 서명을 받으면 여기에 표시됩니다',
+              '수업 완료 시 서명을 받으면 여기에 표시돼요',
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
@@ -170,7 +170,7 @@ class SessionSignaturesScreen extends ConsumerWidget {
     List<SessionSignatureModel> signatures,
   ) {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       itemCount: signatures.length,
       itemBuilder: (context, index) {
         final signature = signatures[index];

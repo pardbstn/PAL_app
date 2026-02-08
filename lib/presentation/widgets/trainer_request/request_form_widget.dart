@@ -82,7 +82,7 @@ class _RequestFormWidgetState extends ConsumerState<RequestFormWidget> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('첨부파일 없음'),
-          content: const Text('폼체크 요청에는 운동 영상이나 사진을 첨부하는 것이 좋습니다.\n그래도 진행하시겠습니까?'),
+          content: const Text('폼체크 요청에는 운동 영상이나 사진을 첨부하는 것이 좋아요.\n그래도 진행할까요?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -116,7 +116,7 @@ class _RequestFormWidgetState extends ConsumerState<RequestFormWidget> {
       if (requestId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('질문이 전송되었습니다.'),
+            content: Text('질문이 전송됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -132,7 +132,7 @@ class _RequestFormWidgetState extends ConsumerState<RequestFormWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('문제가 생겼어요: $e'),
             backgroundColor: AppTheme.error,
           ),
         );

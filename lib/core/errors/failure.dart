@@ -31,7 +31,7 @@ class NetworkFailure extends Failure {
   });
 
   factory NetworkFailure.timeout({
-    String message = '요청 시간이 초과되었습니다',
+    String message = '요청 시간이 초과됐어요',
   }) {
     return NetworkFailure(
       message: message,
@@ -63,7 +63,7 @@ class ServerFailure extends Failure {
   });
 
   factory ServerFailure.internalError({
-    String message = '서버 오류가 발생했습니다',
+    String message = '서버에 문제가 생겼어요',
     int? statusCode,
   }) {
     return ServerFailure(
@@ -74,7 +74,7 @@ class ServerFailure extends Failure {
   }
 
   factory ServerFailure.notFound({
-    String message = '요청한 데이터를 찾을 수 없습니다',
+    String message = '요청한 데이터를 찾을 수 없어요',
   }) {
     return ServerFailure(
       message: message,
@@ -84,7 +84,7 @@ class ServerFailure extends Failure {
   }
 
   factory ServerFailure.badRequest({
-    String message = '잘못된 요청입니다',
+    String message = '잘못된 요청이에요',
   }) {
     return ServerFailure(
       message: message,
@@ -103,19 +103,19 @@ class CacheFailure extends Failure {
   });
 
   factory CacheFailure.notFound({
-    String message = '캐시된 데이터가 없습니다',
+    String message = '캐시된 데이터가 없어요',
   }) {
     return const CacheFailure(
-      message: '캐시된 데이터가 없습니다',
+      message: '캐시된 데이터가 없어요',
       code: 'NOT_FOUND',
     );
   }
 
   factory CacheFailure.expired({
-    String message = '캐시가 만료되었습니다',
+    String message = '캐시가 만료됐어요',
   }) {
     return const CacheFailure(
-      message: '캐시가 만료되었습니다',
+      message: '캐시가 만료됐어요',
       code: 'EXPIRED',
     );
   }
@@ -135,7 +135,7 @@ class AuthFailure extends Failure {
   });
 
   factory AuthFailure.tokenExpired({
-    String message = '로그인이 만료되었습니다',
+    String message = '로그인이 만료됐어요',
   }) {
     return AuthFailure(
       message: message,
@@ -145,7 +145,7 @@ class AuthFailure extends Failure {
   }
 
   factory AuthFailure.unauthorized({
-    String message = '접근 권한이 없습니다',
+    String message = '접근 권한이 없어요',
   }) {
     return AuthFailure(
       message: message,
@@ -155,7 +155,7 @@ class AuthFailure extends Failure {
   }
 
   factory AuthFailure.invalidCredentials({
-    String message = '로그인 정보가 올바르지 않습니다',
+    String message = '로그인 정보가 올바르지 않아요',
   }) {
     return AuthFailure(
       message: message,
@@ -182,7 +182,7 @@ class ValidationFailure extends Failure {
     String? message,
   }) {
     return ValidationFailure(
-      message: message ?? '$fieldName은(는) 필수입니다',
+      message: message ?? '$fieldName은(는) 필수예요',
       code: 'REQUIRED',
       field: fieldName,
     );
@@ -193,7 +193,7 @@ class ValidationFailure extends Failure {
     String? message,
   }) {
     return ValidationFailure(
-      message: message ?? '$fieldName 형식이 올바르지 않습니다',
+      message: message ?? '$fieldName 형식이 올바르지 않아요',
       code: 'INVALID_FORMAT',
       field: fieldName,
     );
@@ -214,7 +214,7 @@ class AIServiceFailure extends Failure {
   });
 
   factory AIServiceFailure.quotaExceeded({
-    String message = 'AI 서비스 사용량이 초과되었습니다',
+    String message = 'AI 서비스 사용량이 초과됐어요',
   }) {
     return AIServiceFailure(
       message: message,
@@ -234,7 +234,7 @@ class AIServiceFailure extends Failure {
   }
 
   factory AIServiceFailure.analysisError({
-    String message = 'AI 분석에 실패했습니다',
+    String message = 'AI 분석에 실패했어요',
   }) {
     return AIServiceFailure(
       message: message,
@@ -252,7 +252,7 @@ class StorageFailure extends Failure {
   });
 
   factory StorageFailure.uploadFailed({
-    String message = '파일 업로드에 실패했습니다',
+    String message = '파일 업로드에 실패했어요',
   }) {
     return StorageFailure(
       message: message,
@@ -261,7 +261,7 @@ class StorageFailure extends Failure {
   }
 
   factory StorageFailure.downloadFailed({
-    String message = '파일 다운로드에 실패했습니다',
+    String message = '파일 다운로드에 실패했어요',
   }) {
     return StorageFailure(
       message: message,
@@ -270,7 +270,7 @@ class StorageFailure extends Failure {
   }
 
   factory StorageFailure.fileTooLarge({
-    String message = '파일이 너무 큽니다',
+    String message = '파일이 너무 커요',
   }) {
     return StorageFailure(
       message: message,
@@ -282,7 +282,7 @@ class StorageFailure extends Failure {
 /// 알 수 없는 실패
 class UnknownFailure extends Failure {
   const UnknownFailure({
-    super.message = '알 수 없는 오류가 발생했습니다',
+    super.message = '알 수 없는 문제가 생겼어요',
     super.code = 'UNKNOWN',
     super.originalError,
   });

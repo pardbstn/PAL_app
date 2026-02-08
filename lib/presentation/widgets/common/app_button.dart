@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/utils/haptic_utils.dart';
 
 /// 버튼 변형 타입
 enum AppButtonVariant {
@@ -68,11 +69,11 @@ class _AppButtonState extends State<AppButton> {
   double get _verticalPadding {
     switch (widget.size) {
       case AppButtonSize.sm:
-        return 8;
+        return 10;
       case AppButtonSize.md:
-        return 12;
-      case AppButtonSize.lg:
         return 16;
+      case AppButtonSize.lg:
+        return 18;
     }
   }
 
@@ -80,11 +81,11 @@ class _AppButtonState extends State<AppButton> {
   double get _horizontalPadding {
     switch (widget.size) {
       case AppButtonSize.sm:
-        return 16;
-      case AppButtonSize.md:
         return 20;
-      case AppButtonSize.lg:
+      case AppButtonSize.md:
         return 24;
+      case AppButtonSize.lg:
+        return 28;
     }
   }
 
@@ -103,6 +104,10 @@ class _AppButtonState extends State<AppButton> {
   /// 변형별 배경색 (다크모드 지원)
   Color _getBackgroundColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isDisabled) {
+      return isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF4F4F4);
+    }
 
     switch (widget.variant) {
       case AppButtonVariant.primary:
@@ -127,6 +132,10 @@ class _AppButtonState extends State<AppButton> {
   /// 변형별 텍스트/아이콘 색상 (다크모드 지원)
   Color _getForegroundColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isDisabled) {
+      return const Color(0xFFB0B0B0);
+    }
 
     switch (widget.variant) {
       case AppButtonVariant.primary:
@@ -230,7 +239,12 @@ class _AppButtonState extends State<AppButton> {
         onTapCancel: () {
           setState(() => _isPressed = false);
         },
-        onTap: _isDisabled ? null : widget.onPressed,
+        onTap: _isDisabled
+            ? null
+            : () {
+                HapticUtils.light();
+                widget.onPressed?.call();
+              },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeInOut,
@@ -240,7 +254,7 @@ class _AppButtonState extends State<AppButton> {
           ),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: border,
           ),
           child: buttonContent,
@@ -248,26 +262,23 @@ class _AppButtonState extends State<AppButton> {
       ),
     );
 
-    // 비활성화 상태일 때 투명도 적용
+    // 비활성화 상태일 때 포인터 이벤트 차단
     if (_isDisabled) {
-      button = Opacity(
-        opacity: 0.5,
-        child: AbsorbPointer(child: button),
-      );
+      button = AbsorbPointer(child: button);
     } else {
       // hover/tap 애니메이션 적용
       button = button
           .animate(target: _isHovered ? 1 : 0)
           .scale(
             begin: const Offset(1.0, 1.0),
-            end: const Offset(1.02, 1.02),
+            end: const Offset(1.01, 1.01),
             duration: 150.ms,
             curve: Curves.easeOut,
           )
           .animate(target: _isPressed ? 1 : 0)
           .scale(
             begin: const Offset(1.0, 1.0),
-            end: const Offset(0.98, 0.98),
+            end: const Offset(0.97, 0.97),
             duration: 100.ms,
             curve: Curves.easeOut,
           );

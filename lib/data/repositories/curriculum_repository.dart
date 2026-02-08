@@ -202,4 +202,44 @@ class CurriculumRepository extends BaseRepository<CurriculumModel> {
         .map((doc) => CurriculumModel.fromFirestore(doc))
         .toList();
   }
+
+  /// 커리큘럼 일괄 생성 (추가 회차용)
+  Future<void> createBatch(List<CurriculumModel> curriculums) async {
+    final batch = firestore.batch();
+    for (final curriculum in curriculums) {
+      final docRef = collection.doc();
+      batch.set(docRef, curriculum.toFirestore());
+    }
+    await batch.commit();
+  }
+
+  /// 회원의 최대 회차 번호 가져오기
+  Future<int> getMaxSessionNumber(String memberId) async {
+    try {
+      final snapshot = await collection
+          .where('memberId', isEqualTo: memberId)
+          .orderBy('sessionNumber', descending: true)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return 0;
+      final lastCurriculum = CurriculumModel.fromFirestore(snapshot.docs.first);
+      return lastCurriculum.sessionNumber;
+    } catch (e) {
+      // 복합 인덱스 미생성 시 fallback
+      try {
+        final snapshot = await collection
+            .where('memberId', isEqualTo: memberId)
+            .get();
+        if (snapshot.docs.isEmpty) return 0;
+        int maxSession = 0;
+        for (final doc in snapshot.docs) {
+          final num = doc.data()['sessionNumber'] as int? ?? 0;
+          if (num > maxSession) maxSession = num;
+        }
+        return maxSession;
+      } catch (_) {
+        return 0;
+      }
+    }
+  }
 }

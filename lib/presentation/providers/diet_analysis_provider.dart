@@ -164,7 +164,7 @@ class DietAnalysisService {
 
       if (data['success'] != true) {
         return DietAnalysisResult.failure(
-          data['error'] ?? '분석에 실패했습니다.',
+          data['error'] ?? '분석에 실패했어요',
         );
       }
 
@@ -196,9 +196,9 @@ class DietAnalysisService {
 
       return DietAnalysisResult.success(record, usage);
     } on FirebaseFunctionsException catch (e) {
-      return DietAnalysisResult.failure(e.message ?? '분석 중 오류가 발생했습니다.');
+      return DietAnalysisResult.failure(e.message ?? '분석 중 문제가 생겼어요');
     } catch (e) {
-      return DietAnalysisResult.failure('분석 중 오류가 발생했습니다: $e');
+      return DietAnalysisResult.failure('분석 중 문제가 생겼어요: $e');
     }
   }
 
@@ -222,7 +222,7 @@ class DietAnalysisService {
       );
 
       if (pickedFile == null) {
-        return DietAnalysisResult.failure('이미지를 선택하지 않았습니다.');
+        return DietAnalysisResult.failure('이미지를 선택하지 않았어요');
       }
 
       // iPad 호환성을 위해 XFile에서 바이트로 직접 읽기
@@ -233,7 +233,7 @@ class DietAnalysisService {
         mealType: mealType,
       );
     } catch (e) {
-      return DietAnalysisResult.failure('이미지 선택 중 오류가 발생했습니다: $e');
+      return DietAnalysisResult.failure('이미지 선택 중 문제가 생겼어요: $e');
     }
   }
 
@@ -341,7 +341,7 @@ class DietAnalysisNotifier extends Notifier<DietAnalysisState> {
     } catch (e) {
       state = state.copyWith(
         status: AnalysisStatus.failure,
-        errorMessage: '분석 중 오류가 발생했습니다: $e',
+        errorMessage: '분석 중 문제가 생겼어요: $e',
       );
     }
   }

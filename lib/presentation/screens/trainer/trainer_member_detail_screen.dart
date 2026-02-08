@@ -7,7 +7,10 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/utils/animation_utils.dart';
 import '../../widgets/animated/animated_widgets.dart';
 import '../../../presentation/widgets/states/states.dart';
+import 'package:flutter_pal_app/presentation/widgets/skeleton/skeleton_base.dart';
+import 'package:flutter_pal_app/presentation/widgets/animated/micro_interactions.dart';
 import 'package:flutter_pal_app/core/theme/app_theme.dart';
+import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/data/models/member_model.dart';
 import 'package:flutter_pal_app/data/models/user_model.dart';
 import 'package:flutter_pal_app/data/models/curriculum_model.dart';
@@ -33,6 +36,8 @@ import 'package:flutter_pal_app/data/models/body_record_model.dart';
 import 'package:flutter_pal_app/data/repositories/body_record_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/trainer_transfer_provider.dart';
 
 // ============================================================================
 // Providers
@@ -49,7 +54,7 @@ final memberDetailProvider =
 
       final member = await memberRepository.get(memberId);
       if (member == null) {
-        throw Exception('회원을 찾을 수 없습니다.');
+        throw Exception('회원을 찾을 수 없어요.');
       }
 
       final user = await userRepository.get(member.userId);
@@ -66,11 +71,13 @@ class TrainerMemberDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // GoRouter에서 memberId 가져오기
-    final memberId = GoRouterState.of(context).pathParameters['id'] ?? '';
+    // GoRouter에서 memberId와 tab 파라미터 가져오기
+    final routerState = GoRouterState.of(context);
+    final memberId = routerState.pathParameters['id'] ?? '';
+    final initialTab = int.tryParse(routerState.uri.queryParameters['tab'] ?? '') ?? 0;
 
     if (memberId.isEmpty) {
-      return _buildErrorScaffold(context, ref, '회원 ID가 없습니다.', memberId);
+      return _buildErrorScaffold(context, ref, '회원 ID가 없어요.', memberId);
     }
 
     final memberDetailAsync = ref.watch(memberDetailProvider(memberId));
@@ -83,6 +90,7 @@ class TrainerMemberDetailScreen extends ConsumerWidget {
         memberId: memberId,
         member: data.member,
         user: data.user,
+        initialTabIndex: initialTab,
       ),
     );
   }
@@ -92,50 +100,11 @@ class TrainerMemberDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('회원 상세'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/trainer/members'),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => context.pop(),
         ),
       ),
-      body: _buildShimmerLoading(context),
-    );
-  }
-
-  Widget _buildShimmerLoading(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      highlightColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 프로필 헤더 스켈레톤
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // 정보 섹션 스켈레톤
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              height: 280,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: const MemberDetailSkeleton(),
     );
   }
 
@@ -149,8 +118,8 @@ class TrainerMemberDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('회원 상세'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/trainer/members'),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => context.pop(),
         ),
       ),
       body: ErrorState.fromError(
@@ -171,11 +140,13 @@ class _MemberDetailContent extends ConsumerStatefulWidget {
   final String memberId;
   final MemberModel member;
   final UserModel? user;
+  final int initialTabIndex;
 
   const _MemberDetailContent({
     required this.memberId,
     required this.member,
     this.user,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -183,22 +154,50 @@ class _MemberDetailContent extends ConsumerStatefulWidget {
       _MemberDetailContentState();
 }
 
-class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
+class _MemberDetailContentState extends ConsumerState<_MemberDetailContent>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   String get memberName => widget.user?.name ?? '회원';
   String? get profileImageUrl => widget.user?.profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 4),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 5,
+      initialIndex: widget.initialTabIndex.clamp(0, 4),
       child: Scaffold(
         appBar: AppBar(
           title: Text(memberName),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.go('/trainer/members'),
+            onPressed: () => context.pop(),
           ),
           actions: [
+            IconButton(
+              icon: Icon(
+                Icons.swap_horiz_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              tooltip: '회원 이관',
+              onPressed: () => _showTransferMemberDialog(),
+            ),
             IconButton(
               icon: Icon(
                 Icons.edit_outlined,
@@ -221,7 +220,7 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
             tabs: [
               Tab(text: '기본정보'),
               Tab(text: '그래프'),
-              Tab(text: '인바디'),
+              Tab(text: 'AI 분석'),
               Tab(text: '커리큘럼'),
               Tab(text: '메모'),
             ],
@@ -255,13 +254,97 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
     );
   }
 
+  void _showTransferMemberDialog() {
+    final memberName = widget.user?.name ?? '회원';
+    final trainerIdController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('회원 이관'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$memberName 회원을 다른 트레이너에게 이관할까요?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: trainerIdController,
+              decoration: const InputDecoration(
+                labelText: '새 트레이너 ID',
+                hintText: '트레이너 ID를 입력해주세요',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final toTrainerId = trainerIdController.text.trim();
+              if (toTrainerId.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('트레이너 ID를 입력해주세요')),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              try {
+                final authState = ref.read(authProvider);
+                final currentTrainerId = authState.userId ?? '';
+                final currentTrainerName = authState.displayName ?? '트레이너';
+
+                // TODO: 새 트레이너 이름 조회 (현재는 임시로 처리)
+                final toTrainerName = '새 트레이너';
+
+                await ref
+                    .read(trainerTransferNotifierProvider.notifier)
+                    .initiateTransfer(
+                      memberId: widget.memberId,
+                      memberName: memberName,
+                      fromTrainerId: currentTrainerId,
+                      fromTrainerName: currentTrainerName,
+                      toTrainerId: toTrainerId,
+                      toTrainerName: toTrainerName,
+                    );
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('이관 요청을 보냈어요'),
+                      backgroundColor: const Color(0xFF00C471),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('이관 요청 실패: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('이관하기'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteMemberDialog() {
     final memberName = widget.user?.name ?? '회원';
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('회원 삭제'),
-        content: Text('$memberName 회원을 삭제하시겠습니까?\n\n삭제된 회원 정보는 복구할 수 없습니다.'),
+        content: Text('$memberName 회원을 삭제할까요?\n\n삭제된 회원 정보는 복구할 수 없어요.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -276,14 +359,14 @@ class _MemberDetailContentState extends ConsumerState<_MemberDetailContent> {
                     .deleteMember(widget.memberId);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('$memberName 회원이 삭제되었습니다.')),
+                    SnackBar(content: Text('$memberName 회원이 삭제됐어요')),
                   );
                   context.go('/trainer/members');
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('회원 삭제 중 오류가 발생했습니다.')),
+                    const SnackBar(content: Text('회원 삭제 중 문제가 생겼어요')),
                   );
                 }
               }
@@ -320,12 +403,13 @@ class _InfoTab extends StatelessWidget {
     }
     return e;
   }
+
   String get phone => user?.phone ?? '-';
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -501,7 +585,7 @@ class _InfoTab extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
           width: 1,
         ),
         boxShadow: [
@@ -577,6 +661,41 @@ class _GraphTab extends ConsumerStatefulWidget {
 
 class _GraphTabState extends ConsumerState<_GraphTab> {
   GraphMetricType _selectedMetric = GraphMetricType.weight;
+  bool _hasAutoFetched = false; // 자동 예측 실행 여부
+
+  @override
+  void initState() {
+    super.initState();
+    // 화면 로드 후 자동 예측 실행
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryAutoPredict();
+    });
+  }
+
+  /// 자동 예측 시도 (기록이 4개 이상이고 아직 예측이 없을 때)
+  void _tryAutoPredict() async {
+    if (_hasAutoFetched) return;
+
+    final bodyRecordsAsync = ref.read(bodyRecordsProvider(widget.memberId));
+    final bodyCompPredictionState = ref.read(bodyCompositionPredictionProvider);
+
+    // 데이터가 로드되지 않았으면 다시 시도
+    if (bodyRecordsAsync.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) _tryAutoPredict();
+      return;
+    }
+
+    final records = bodyRecordsAsync.value ?? [];
+    final hasPrediction = bodyCompPredictionState.prediction != null;
+    final isLoading = bodyCompPredictionState.isLoading;
+
+    // 기록이 4개 이상이고, 예측이 없고, 로딩 중이 아닐 때 자동 예측
+    if (records.length >= 4 && !hasPrediction && !isLoading) {
+      _hasAutoFetched = true;
+      ref.read(bodyCompositionPredictionProvider.notifier).predictBodyComposition(widget.memberId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -635,7 +754,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -757,7 +876,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -789,7 +908,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                       error: (e, st) => const Center(child: Text('데이터 로드 실패')),
                       data: (history) {
                         if (history.isEmpty) {
-                          return const Center(child: Text('데이터가 없습니다'));
+                          return const Center(child: Text('데이터가 없어요'));
                         }
                         return GoalProgressIndicator(
                           currentValue: record.weight,
@@ -883,7 +1002,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(32),
-                child: Text('그래프를 표시하려면 2개 이상의 기록이 필요합니다'),
+                child: Text('그래프를 표시하려면 2개 이상의 기록이 필요해요'),
               ),
             );
           }
@@ -994,7 +1113,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text('${_selectedMetric.label} 데이터가 부족합니다'),
+          child: Text('${_selectedMetric.label} 데이터가 부족해요'),
         ),
       );
     }
@@ -1229,7 +1348,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
-          child: Text('표시할 데이터가 부족합니다'),
+          child: Text('표시할 데이터가 부족해요'),
         ),
       );
     }
@@ -1278,7 +1397,10 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                 show: true,
                 drawVerticalLine: false,
                 // horizontalInterval이 0이 되지 않도록 최소값 보장
-                horizontalInterval: ((maxY - minY) / 4).clamp(0.1, double.infinity),
+                horizontalInterval: ((maxY - minY) / 4).clamp(
+                  0.1,
+                  double.infinity,
+                ),
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                   strokeWidth: 1,
@@ -1304,10 +1426,12 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
                     reservedSize: 30,
                     getTitlesWidget: (value, meta) {
                       final index = value.toInt();
-                      if (index < 0 || index >= maxLength)
+                      if (index < 0 || index >= maxLength) {
                         return const SizedBox();
-                      if (index % 2 != 0 && maxLength > 6)
+                      }
+                      if (index % 2 != 0 && maxLength > 6) {
                         return const SizedBox();
+                      }
 
                       // weightData 기준으로 라벨 표시
                       String label = '';
@@ -1486,7 +1610,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('AI가 체성분 변화를 분석 중입니다...'),
+                Text('AI가 체성분 변화를 분석하고 있어요...'),
               ],
             ),
           ),
@@ -1503,7 +1627,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('체성분 예측이 완료되었습니다!'),
+            content: Text('체성분 예측이 완료됐어요!'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -1537,8 +1661,8 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
           const SizedBox(height: 12),
           Text(
             canPredict
-                ? '체성분 예측을 실행해보세요\n체중, 골격근량, 체지방률 변화를 예측합니다'
-                : '예측을 위해 최소 4개의 기록이 필요합니다',
+                ? '체성분 예측을 실행해 보세요\n체중, 골격근량, 체지방률 변화를 예측해요'
+                : '예측을 위해 최소 4개의 기록이 필요해요',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             textAlign: TextAlign.center,
           ),
@@ -1602,7 +1726,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1747,7 +1871,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
         ),
         boxShadow: [
           BoxShadow(
@@ -1980,7 +2104,7 @@ class _GraphTabState extends ConsumerState<_GraphTab> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
           width: 1,
         ),
         boxShadow: [
@@ -2086,8 +2210,8 @@ class _BodyRecordCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark
-                    ? const Color(0xFF2E3B5E)
-                    : const Color(0xFFE5E7EB),
+                    ? AppColors.darkBorder
+                    : AppColors.gray100,
               ),
               boxShadow: [
                 BoxShadow(
@@ -2136,7 +2260,7 @@ class _BodyRecordCard extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'InBody',
+                              'AI 분석',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: AppTheme.secondary,
                                 fontWeight: FontWeight.w500,
@@ -2197,8 +2321,8 @@ class _BodyRecordCard extends ConsumerWidget {
           ),
         )
         .animate()
-        .fadeIn(duration: 300.ms, delay: (50 * index).ms)
-        .slideX(begin: 0.1, end: 0, duration: 300.ms, delay: (50 * index).ms);
+        .fadeIn(duration: 200.ms, delay: (50 * index).ms)
+        .slideX(begin: 0.02, end: 0, duration: 200.ms, delay: (50 * index).ms);
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref) {
@@ -2222,7 +2346,7 @@ class _BodyRecordCard extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('기록이 삭제되었습니다'),
+                      content: Text('기록이 삭제됐어요'),
                       backgroundColor: AppTheme.secondary,
                     ),
                   );
@@ -2293,15 +2417,20 @@ final signatureByCurriculumProvider =
       return repo.watchByCurriculumId(curriculumId);
     });
 
-class _CurriculumTab extends ConsumerWidget {
+class _CurriculumTab extends ConsumerStatefulWidget {
   final String memberId;
 
   const _CurriculumTab({required this.memberId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final curriculumsAsync = ref.watch(curriculumsProvider(memberId));
-    final statsAsync = ref.watch(curriculumStatsProvider(memberId));
+  ConsumerState<_CurriculumTab> createState() => _CurriculumTabState();
+}
+
+class _CurriculumTabState extends ConsumerState<_CurriculumTab> {
+  @override
+  Widget build(BuildContext context) {
+    final curriculumsAsync = ref.watch(curriculumsProvider(widget.memberId));
+    final statsAsync = ref.watch(curriculumStatsProvider(widget.memberId));
 
     return curriculumsAsync.when(
       loading: () => _buildShimmerLoading(context),
@@ -2313,6 +2442,166 @@ class _CurriculumTab extends ConsumerWidget {
         return _buildCurriculumContent(context, ref, curriculums, statsAsync);
       },
     );
+  }
+
+  /// 커리큘럼 추가 다이얼로그
+  Future<void> _showAddCurriculumDialog(
+    BuildContext context,
+    String trainerId,
+    int currentMaxSession,
+  ) async {
+    int additionalSessions = 10; // 기본값
+    bool useAI = false; // AI 생성 여부
+    final maxAllowed = 70 - currentMaxSession; // 최대 추가 가능 회차
+
+    if (maxAllowed <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미 최대 회차(70회)에 도달했어요')),
+      );
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('커리큘럼 추가'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '현재 $currentMaxSession회차까지 있어요.\n추가할 회차 수를 선택해주세요.',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('추가 회차: '),
+                  const SizedBox(width: 8),
+                  DropdownButton<int>(
+                    value: additionalSessions.clamp(1, maxAllowed),
+                    items: List.generate(
+                      maxAllowed.clamp(1, 50),
+                      (i) => DropdownMenuItem(
+                        value: i + 1,
+                        child: Text('${i + 1}회'),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => additionalSessions = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '→ ${currentMaxSession + 1}회차 ~ ${currentMaxSession + additionalSessions}회차 추가',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // AI 생성 옵션
+              Container(
+                decoration: BoxDecoration(
+                  color: useAI
+                      ? AppTheme.primary.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: useAI
+                        ? AppTheme.primary.withValues(alpha: 0.3)
+                        : Colors.grey.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: CheckboxListTile(
+                  value: useAI,
+                  onChanged: (value) {
+                    setState(() => useAI = value ?? false);
+                  },
+                  title: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
+                      SizedBox(width: 8),
+                      Text('AI로 커리큘럼 생성', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  subtitle: Text(
+                    useAI
+                        ? '회원 정보 기반 맞춤 커리큘럼을 AI가 생성해요'
+                        : '빈 커리큘럼이 생성돼요',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  controlAffinity: ListTileControlAffinity.trailing,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '(최대 70회차까지, 한 번에 최대 50회 추가 가능)',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {
+                'sessions': additionalSessions,
+                'useAI': useAI,
+              }),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(useAI ? 'AI 생성' : '추가'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result['sessions'] != null && result['sessions'] > 0) {
+      final sessions = result['sessions'] as int;
+      final shouldUseAI = result['useAI'] as bool? ?? false;
+
+      if (shouldUseAI) {
+        // AI 커리큘럼 생성 화면으로 이동
+        if (mounted) {
+          context.push(
+            '/trainer/curriculum/create?memberId=${widget.memberId}&additionalSessions=$sessions&startSession=${currentMaxSession + 1}',
+          );
+        }
+      } else {
+        // 빈 커리큘럼 추가
+        try {
+          await ref.read(curriculumsNotifierProvider.notifier).addAdditionalSessions(
+            memberId: widget.memberId,
+            trainerId: trainerId,
+            additionalSessions: sessions,
+          );
+          ref.invalidate(curriculumsProvider(widget.memberId));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$sessions개 회차가 추가됐어요')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('추가 실패: $e')),
+            );
+          }
+        }
+      }
+    }
   }
 
   Widget _buildShimmerLoading(BuildContext context) {
@@ -2339,7 +2628,7 @@ class _CurriculumTab extends ConsumerWidget {
   Widget _buildErrorView(BuildContext context, WidgetRef ref, Object error) {
     return ErrorState.fromError(
       error,
-      onRetry: () => ref.invalidate(curriculumsProvider(memberId)),
+      onRetry: () => ref.invalidate(curriculumsProvider(widget.memberId)),
     );
   }
 
@@ -2347,7 +2636,7 @@ class _CurriculumTab extends ConsumerWidget {
     return EmptyState(
       type: EmptyStateType.curriculums,
       onAction: () =>
-          context.go('/trainer/curriculum/create?memberId=$memberId'),
+          context.go('/trainer/curriculum/create?memberId=${widget.memberId}'),
     );
   }
 
@@ -2359,52 +2648,72 @@ class _CurriculumTab extends ConsumerWidget {
   ) {
     // 첫 번째 커리큘럼에서 trainerId 가져오기
     final trainerId = curriculums.isNotEmpty ? curriculums.first.trainerId : '';
+    final maxSession = curriculums.isNotEmpty
+        ? curriculums.map((c) => c.sessionNumber).reduce((a, b) => a > b ? a : b)
+        : 0;
 
-    return Column(
+    return Stack(
       children: [
-        // 진행률 헤더
-        statsAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (e, st) => const SizedBox.shrink(),
-          data: (stats) => _buildStatsHeader(stats),
-        ),
+        Column(
+          children: [
+            // 진행률 헤더
+            statsAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (e, st) => const SizedBox.shrink(),
+              data: (stats) => _buildStatsHeader(stats, trainerId, maxSession),
+            ),
 
-        // 커리큘럼 목록 - 스태거 애니메이션 적용
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: curriculums.length,
-            itemBuilder: (context, index) {
-              final curriculum = curriculums[index];
-              return _CurriculumCard(
-                    curriculum: curriculum,
-                    memberId: memberId,
-                    trainerId: trainerId,
-                    onToggleComplete: () async {
-                      final notifier = ref.read(
-                        curriculumsNotifierProvider.notifier,
-                      );
-                      if (curriculum.isCompleted) {
-                        await notifier.markAsIncomplete(curriculum.id);
-                      } else {
-                        await notifier.markAsCompleted(curriculum.id);
-                      }
-                    },
-                  )
-                  .animate()
-                  .fadeIn(
-                    delay: Duration(milliseconds: index * 80),
-                    duration: 300.ms,
-                  )
-                  .slideY(begin: 0.03, duration: 300.ms);
-            },
-          ),
+            // 커리큘럼 목록 - 스태거 애니메이션 적용
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: curriculums.length,
+                itemBuilder: (context, index) {
+                  final curriculum = curriculums[index];
+                  return _CurriculumCard(
+                        curriculum: curriculum,
+                        memberId: widget.memberId,
+                        trainerId: trainerId,
+                        onToggleComplete: () async {
+                          final notifier = ref.read(
+                            curriculumsNotifierProvider.notifier,
+                          );
+                          if (curriculum.isCompleted) {
+                            await notifier.markAsIncomplete(curriculum.id);
+                          } else {
+                            await notifier.markAsCompleted(curriculum.id);
+                          }
+                        },
+                      )
+                      .animate()
+                      .fadeIn(
+                        delay: Duration(milliseconds: index * 40),
+                        duration: 200.ms,
+                      )
+                      .slideY(begin: 0.02, duration: 200.ms);
+                },
+              ),
+            ),
+          ],
         ),
+        // FAB - 커리큘럼 추가 버튼 (최대 70회차 미만일 때만 표시)
+        if (maxSession < 70)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showAddCurriculumDialog(context, trainerId, maxSession),
+              backgroundColor: AppTheme.secondary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('회차 추가'),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildStatsHeader(CurriculumStats stats) {
+  Widget _buildStatsHeader(CurriculumStats stats, String trainerId, int maxSession) {
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -2541,7 +2850,7 @@ class _CurriculumCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('제목이 수정되었습니다')));
+        ).showSnackBar(const SnackBar(content: Text('제목이 수정됐어요')));
       }
     }
   }
@@ -2671,7 +2980,7 @@ class _CurriculumCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('운동이 수정되었습니다')));
+        ).showSnackBar(const SnackBar(content: Text('운동이 수정됐어요')));
       }
     }
   }
@@ -2794,7 +3103,7 @@ class _CurriculumCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('운동이 추가되었습니다')));
+        ).showSnackBar(const SnackBar(content: Text('운동이 추가됐어요')));
       }
     }
   }
@@ -2834,7 +3143,7 @@ class _CurriculumCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('운동이 삭제되었습니다')));
+        ).showSnackBar(const SnackBar(content: Text('운동이 삭제됐어요')));
       }
     }
   }
@@ -2884,7 +3193,7 @@ class _CurriculumCard extends ConsumerWidget {
                   color: AppTheme.secondary,
                 ),
                 title: const Text('운동 추가'),
-                subtitle: const Text('새로운 운동을 추가합니다'),
+                subtitle: const Text('새로운 운동을 추가해요'),
                 onTap: () {
                   Navigator.pop(context);
                   _showAddExerciseDialog(context, ref);
@@ -2903,11 +3212,75 @@ class _CurriculumCard extends ConsumerWidget {
                     _showExerciseListDialog(context, ref);
                   },
                 ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                ),
+                title: const Text(
+                  '커리큘럼 삭제',
+                  style: TextStyle(color: Colors.red),
+                ),
+                subtitle: const Text('이 회차를 삭제해요'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteCurriculumDialog(context, ref);
+                },
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// 커리큘럼 삭제 확인 다이얼로그
+  Future<void> _showDeleteCurriculumDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('커리큘럼 삭제'),
+        content: Text(
+          '${curriculum.sessionNumber}회차 "${curriculum.title}"를 삭제할까요?\n\n이 작업은 되돌릴 수 없어요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(curriculumsNotifierProvider.notifier).deleteCurriculum(curriculum.id);
+        ref.invalidate(curriculumsProvider(memberId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('커리큘럼이 삭제됐어요')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('삭제 실패: $e')),
+          );
+        }
+      }
+    }
   }
 
   /// 운동 목록 관리 다이얼로그
@@ -2979,7 +3352,7 @@ class _CurriculumCard extends ConsumerWidget {
         border: Border.all(
           color: !isCompleted
               ? AppTheme.primary.withValues(alpha: 0.2)
-              : (isDark ? const Color(0xFF2E3B5E) : const Color(0xFFE5E7EB)),
+              : (isDark ? AppColors.darkBorder : AppColors.gray100),
           width: !isCompleted ? 1.5 : 1,
         ),
         boxShadow: [
@@ -3071,7 +3444,7 @@ class _CurriculumCard extends ConsumerWidget {
         trailing: IconButton(
           icon: Icon(
             Icons.more_vert,
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           onPressed: () => _showEditOptions(context, ref),
           tooltip: '수정',
@@ -3109,7 +3482,7 @@ class _CurriculumCard extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
-                '운동 목록이 없습니다',
+                '운동 목록이 없어요',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -3238,7 +3611,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3251,8 +3624,8 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark
-                    ? const Color(0xFF2E3B5E)
-                    : const Color(0xFFE5E7EB),
+                    ? AppColors.darkBorder
+                    : AppColors.gray100,
                 width: 1,
               ),
               boxShadow: [
@@ -3312,8 +3685,8 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark
-                        ? const Color(0xFF2E3B5E)
-                        : const Color(0xFFE5E7EB),
+                        ? AppColors.darkBorder
+                        : AppColors.gray100,
                     width: 1,
                   ),
                   boxShadow: [
@@ -3366,7 +3739,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
             ),
             const SizedBox(height: 12),
             Text(
-              '메모가 없습니다',
+              '메모가 없어요',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -3392,7 +3765,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
           controller: _memoController,
           maxLines: 8,
           decoration: InputDecoration(
-            hintText: '회원에 대한 메모를 입력하세요...',
+            hintText: '회원에 대한 메모를 입력해주세요...',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -3452,7 +3825,7 @@ class _MemoTabState extends ConsumerState<_MemoTab> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('메모가 저장되었습니다'),
+            content: Text('메모가 저장됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );
@@ -3498,7 +3871,7 @@ class _InbodyTab extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('오류가 발생했습니다\n$e'),
+              Text('문제가 생겼어요\n$e'),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => ref.invalidate(latestInbodyProvider(memberId)),
@@ -3533,14 +3906,14 @@ class _InbodyTab extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '인바디 기록이 없습니다',
+            '인바디 기록이 없어요',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '회원이 인바디 결과지를 촬영하면 여기에 표시됩니다',
+            '회원이 인바디 결과지를 촬영하면 여기에 표시돼요',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.5),
             ),
@@ -3569,7 +3942,7 @@ class _InbodyTab extends ConsumerWidget {
             ),
           ),
         ],
-      ).animate().fadeIn(duration: 300.ms),
+      ).animate().fadeIn(duration: 200.ms),
     );
   }
 
@@ -3582,22 +3955,22 @@ class _InbodyTab extends ConsumerWidget {
   ) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 최신 인바디 결과 카드
           _InbodyResultCardCompact(
             record: latest,
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.02, end: 0),
 
           const SizedBox(height: 16),
 
           // 체성분 도넛 차트
           _InbodyPieChartCard(record: latest)
               .animate()
-              .fadeIn(duration: 300.ms, delay: 100.ms)
-              .slideY(begin: 0.1, end: 0),
+              .fadeIn(duration: 200.ms, delay: 50.ms)
+              .slideY(begin: 0.02, end: 0),
 
           const SizedBox(height: 16),
 
@@ -3611,8 +3984,8 @@ class _InbodyTab extends ConsumerWidget {
               }
               return _InbodyLineChartCard(records: history)
                   .animate()
-                  .fadeIn(duration: 300.ms, delay: 200.ms)
-                  .slideY(begin: 0.1, end: 0);
+                  .fadeIn(duration: 200.ms, delay: 100.ms)
+                  .slideY(begin: 0.02, end: 0);
             },
           ),
 
@@ -3650,7 +4023,7 @@ class _InbodyTab extends ConsumerWidget {
           error: (e, st) => Text('오류: $e'),
           data: (history) {
             if (history.isEmpty) {
-              return const Text('기록이 없습니다');
+              return const Text('기록이 없어요');
             }
             return ListView.separated(
               shrinkWrap: true,
@@ -3705,7 +4078,7 @@ class _InbodyTab extends ConsumerWidget {
       if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('기록이 삭제되었습니다'),
+            content: Text('기록이 삭제됐어요'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -4259,7 +4632,7 @@ class _InbodyHistoryListTile extends StatelessWidget {
                       children: [
                         Icon(Icons.error_outline, size: 48),
                         SizedBox(height: 8),
-                        Text('이미지를 불러올 수 없습니다'),
+                        Text('이미지를 불러올 수 없어요'),
                       ],
                     ),
                   ),
@@ -4451,8 +4824,9 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
                   return DropdownMenuItem(value: exp, child: Text(exp));
                 }).toList(),
                 onChanged: (value) {
-                  if (value != null)
+                  if (value != null) {
                     setState(() => _selectedExperience = value);
+                  }
                 },
               ),
               const SizedBox(height: 12),
@@ -4606,7 +4980,7 @@ class _EditMemberDialogState extends ConsumerState<_EditMemberDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('회원 정보가 수정되었습니다'),
+            content: Text('회원 정보가 수정됐어요'),
             backgroundColor: AppTheme.secondary,
           ),
         );

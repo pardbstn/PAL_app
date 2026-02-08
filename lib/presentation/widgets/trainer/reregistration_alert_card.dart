@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/reregistration_alert_model.dart';
 import '../../providers/reregistration_provider.dart';
 
@@ -41,19 +42,13 @@ class ReregistrationAlertCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : colorScheme.surface,
+        color: isDark ? AppColors.darkSurface : colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          color: isDark ? AppColors.darkBorder : AppColors.gray100,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         children: [
@@ -581,7 +576,7 @@ class ReregistrationAlertList extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '재등록 대기 회원이 없습니다',
+            '재등록 대기 회원이 없어요',
             style: TextStyle(
               fontSize: 14,
               color: colorScheme.onSurfaceVariant,
@@ -620,7 +615,7 @@ class ReregistrationAlertList extends ConsumerWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '데이터를 불러오는 중 오류가 발생했습니다',
+              '데이터를 불러오는 중 문제가 생겼어요',
               style: TextStyle(
                 fontSize: 13,
                 color: colorScheme.onSurface,

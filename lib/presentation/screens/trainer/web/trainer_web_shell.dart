@@ -43,7 +43,7 @@ class TrainerWebShell extends ConsumerWidget {
                 Expanded(
                   child: Container(
                     color: isDark
-                        ? const Color(0xFF1E293B)
+                        ? const Color(0xFF1A1A1A)
                         : const Color(0xFFF8FAFC),
                     // 페이지별 고유 키 + AnimatedSwitcher로 이전 페이지 잔상 방지
                     child: AnimatedSwitcher(
@@ -90,7 +90,7 @@ class _WebSidebar extends ConsumerWidget {
       width: isExpanded ? 280 : 72,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        color: isDark ? const Color(0xFF0E0E0E) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -112,7 +112,7 @@ class _WebSidebar extends ConsumerWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppTheme.primary, Color(0xFF10B981)],
+                      colors: [AppTheme.primary, Color(0xFF00C471)],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -134,7 +134,7 @@ class _WebSidebar extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      color: isDark ? Colors.white : const Color(0xFF0E0E0E),
                     ),
                   ),
                 ],
@@ -401,7 +401,7 @@ class _WebHeader extends ConsumerWidget {
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        color: isDark ? const Color(0xFF0E0E0E) : Colors.white,
         border: Border(
           bottom: BorderSide(
             color: isDark ? Colors.white12 : Colors.black12,
@@ -415,7 +415,7 @@ class _WebHeader extends ConsumerWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0E0E0E),
             ),
           ),
           const Spacer(),

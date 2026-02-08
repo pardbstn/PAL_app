@@ -84,7 +84,7 @@ class ErrorDialog extends StatelessWidget {
   static Future<bool?> showServerError({
     required BuildContext context,
     VoidCallback? onRetry,
-    String message = '서버와 통신 중 오류가 발생했습니다',
+    String message = '서버와 통신 중 문제가 생겼어요',
   }) {
     return show(
       context: context,
@@ -99,7 +99,7 @@ class ErrorDialog extends StatelessWidget {
   /// 인증 에러 다이얼로그
   static Future<bool?> showAuthError({
     required BuildContext context,
-    String message = '로그인이 필요합니다',
+    String message = '로그인이 필요해요',
     VoidCallback? onConfirm,
   }) {
     return show(
@@ -120,7 +120,7 @@ class ErrorDialog extends StatelessWidget {
     return show(
       context: context,
       title: '오류',
-      message: message ?? '오류가 발생했습니다',
+      message: message ?? '잠시 문제가 생겼어요',
       onRetry: onRetry,
     );
   }

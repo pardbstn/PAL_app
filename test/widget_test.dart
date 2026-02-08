@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
+// PAL 앱 기본 테스트
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Firebase 앱은 통합 테스트가 필요하므로
+// 여기서는 기본 유닛 테스트만 수행
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_pal_app/main.dart';
+import 'package:flutter_pal_app/data/models/member_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('MemberModel 테스트', () {
+    test('FitnessGoal 라벨이 올바르게 반환되어야 함', () {
+      // 다이어트 목표 테스트
+      expect(FitnessGoal.diet.name, 'diet');
+      expect(FitnessGoal.bulk.name, 'bulk');
+      expect(FitnessGoal.fitness.name, 'fitness');
+      expect(FitnessGoal.rehab.name, 'rehab');
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('ExperienceLevel 값이 올바르게 정의되어야 함', () {
+      expect(ExperienceLevel.beginner.name, 'beginner');
+      expect(ExperienceLevel.intermediate.name, 'intermediate');
+      expect(ExperienceLevel.advanced.name, 'advanced');
+    });
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('PtInfo 테스트', () {
+    test('PtInfo 생성이 올바르게 되어야 함', () {
+      final ptInfo = PtInfo(
+        totalSessions: 30,
+        completedSessions: 10,
+        startDate: DateTime(2024, 1, 1),
+      );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      expect(ptInfo.totalSessions, 30);
+      expect(ptInfo.completedSessions, 10);
+    });
   });
 }

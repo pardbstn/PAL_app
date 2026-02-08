@@ -93,12 +93,12 @@ class _PaymentFormDialogState extends ConsumerState<PaymentFormDialog> {
               const SizedBox(height: 8),
               membersAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('회원 로딩 실패: $e'),
+                error: (e, _) => Text('회원을 불러오지 못했어요'),
                 data: (members) {
                   return DropdownButtonFormField<String>(
                     initialValue: _selectedMemberId,
                     decoration: const InputDecoration(
-                      hintText: '회원을 선택하세요',
+                      hintText: '회원을 선택해주세요',
                       prefixIcon: Icon(Icons.person_outline),
                     ),
                     items: members.map((mwu) {
@@ -282,7 +282,7 @@ class _PaymentFormDialogState extends ConsumerState<PaymentFormDialog> {
               TextFormField(
                 controller: _memoController,
                 decoration: const InputDecoration(
-                  hintText: '메모를 입력하세요',
+                  hintText: '메모를 입력해주세요',
                   prefixIcon: Icon(Icons.note_outlined),
                 ),
                 maxLines: 2,
@@ -425,7 +425,7 @@ class _PaymentFormDialogState extends ConsumerState<PaymentFormDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('결제가 등록되었습니다'),
+            content: const Text('결제가 등록됐어요'),
             backgroundColor: AppTheme.secondary,
             behavior: SnackBarBehavior.floating,
           ),
@@ -435,7 +435,7 @@ class _PaymentFormDialogState extends ConsumerState<PaymentFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('결제 등록 실패: $e'),
+            content: Text('결제 등록에 실패했어요'),
             backgroundColor: AppTheme.error,
             behavior: SnackBarBehavior.floating,
           ),

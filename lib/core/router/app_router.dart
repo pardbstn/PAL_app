@@ -39,6 +39,7 @@ import 'package:flutter_pal_app/presentation/screens/onboarding/onboarding_scree
 import 'package:flutter_pal_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/chat/chat_room_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/common/notifications_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/common/notification_settings_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/member_review_trainer_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/subscription_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/member/self_training_home_screen.dart';
@@ -46,6 +47,10 @@ import 'package:flutter_pal_app/presentation/screens/member/monthly_report_scree
 import 'package:flutter_pal_app/presentation/screens/member/trainer_question_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_requests_screen.dart';
 import 'package:flutter_pal_app/presentation/screens/trainer/trainer_rating_detail_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/workout_log_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/add_workout_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/data_management_screen.dart';
+import 'package:flutter_pal_app/presentation/screens/member/inbody_ocr_screen.dart';
 
 // ============================================================================
 // 페이지 전환 애니메이션
@@ -67,7 +72,7 @@ CustomTransitionPage<void> buildFadeTransitionPage({
         child: child,
       );
     },
-    transitionDuration: const Duration(milliseconds: 300),
+    transitionDuration: const Duration(milliseconds: 200),
   );
 }
 
@@ -83,20 +88,17 @@ CustomTransitionPage<void> buildSlideTransitionPage({
     maintainState: false, // 이전 페이지 상태 유지 안함
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-          .chain(CurveTween(curve: Curves.easeOutCubic));
+          .chain(CurveTween(curve: Curves.easeInOut));
       // 배경색으로 이전 페이지 잔상 방지
       return ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SlideTransition(
           position: animation.drive(tween),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
+          child: child,
         ),
       );
     },
-    transitionDuration: const Duration(milliseconds: 350),
+    transitionDuration: const Duration(milliseconds: 300),
   );
 }
 
@@ -151,6 +153,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           return AppRoutes.trainerHome;
         } else if (userRole == UserRole.member) {
           return AppRoutes.memberHome;
+        } else if (userRole == UserRole.personal) {
+          return AppRoutes.personalHome;
         }
       }
 
@@ -165,6 +169,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           return AppRoutes.trainerHome;
         } else if (userRole == UserRole.member) {
           return AppRoutes.memberHome;
+        } else if (userRole == UserRole.personal) {
+          return AppRoutes.personalHome;
         }
         // userRole이 아직 로드되지 않은 경우 (null) 로그인 페이지 유지
         // authStateChanges 리스너가 _loadUserData 완료 후 다시 리다이렉트됨
@@ -184,6 +190,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           userRole == UserRole.member &&
           currentPath.startsWith('/trainer')) {
         return AppRoutes.memberHome;
+      }
+
+      // 개인모드가 트레이너 경로 접근 시도시 개인모드 홈으로
+      if (isLoggedIn &&
+          !isPendingRoleSelection &&
+          userRole == UserRole.personal &&
+          currentPath.startsWith('/trainer')) {
+        return AppRoutes.personalHome;
       }
 
       return null;
@@ -487,6 +501,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // 트레이너 평점 상세 (회원에서 보기)
+      GoRoute(
+        path: AppRoutes.memberTrainerRating,
+        name: RouteNames.memberTrainerRating,
+        pageBuilder: (context, state) {
+          final trainerId = state.pathParameters['trainerId']!;
+          return buildSlideTransitionPage(
+            key: state.pageKey,
+            child: TrainerRatingDetailScreen(externalTrainerId: trainerId),
+          );
+        },
+      ),
       // 구독 관리
       GoRoute(
         path: AppRoutes.memberSubscription,
@@ -523,6 +549,99 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const TrainerQuestionScreen(),
         ),
       ),
+      // 운동 기록 (개인 모드)
+      GoRoute(
+        path: '/member/workout-log',
+        name: 'memberWorkoutLog',
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const WorkoutLogScreen(),
+        ),
+      ),
+      // 운동 추가 (개인 모드)
+      GoRoute(
+        path: '/member/add-workout',
+        name: 'memberAddWorkout',
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const AddWorkoutScreen(),
+        ),
+      ),
+      // 인바디 OCR (사진 분석)
+      GoRoute(
+        path: AppRoutes.memberInbodyOcr,
+        name: RouteNames.memberInbodyOcr,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const InbodyOcrScreen(),
+        ),
+      ),
+      // 데이터 관리
+      GoRoute(
+        path: '/member/data-management',
+        name: 'memberDataManagement',
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const DataManagementScreen(),
+        ),
+      ),
+
+      // 개인모드 라우트 (회원 화면 재사용, 트레이너 관련 기능 숨김)
+      ShellRoute(
+        builder: (context, state, child) => MemberShell(child: child),
+        routes: [
+          GoRoute(
+            path: AppRoutes.personalHome,
+            name: RouteNames.personalHome,
+            pageBuilder: (context, state) => buildInstantTransitionPage(
+              key: state.pageKey,
+              child: const MemberHomeScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.personalRecords,
+            name: RouteNames.personalRecords,
+            pageBuilder: (context, state) => buildInstantTransitionPage(
+              key: state.pageKey,
+              child: const MemberRecordsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.personalCalendar,
+            name: RouteNames.personalCalendar,
+            pageBuilder: (context, state) => buildInstantTransitionPage(
+              key: state.pageKey,
+              child: const MemberCalendarScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.personalDiet,
+            name: RouteNames.personalDiet,
+            pageBuilder: (context, state) => buildInstantTransitionPage(
+              key: state.pageKey,
+              child: const MemberDietScreen(),
+            ),
+          ),
+        ],
+      ),
+
+      // 개인모드 - Shell 외부 라우트
+      GoRoute(
+        path: AppRoutes.personalSettings,
+        name: RouteNames.personalSettings,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const MemberSettingsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.personalMonthlyReport,
+        name: RouteNames.personalMonthlyReport,
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const MonthlyReportScreen(),
+        ),
+      ),
 
       // 공통 라우트 (회원/트레이너 모두 접근 가능)
       // 알림
@@ -537,12 +656,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // 알림 설정
+      GoRoute(
+        path: '/notification-settings',
+        name: 'notificationSettings',
+        pageBuilder: (context, state) => buildSlideTransitionPage(
+          key: state.pageKey,
+          child: const NotificationSettingsScreen(),
+        ),
+      ),
     ],
 
     // 에러 페이지
     errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text('페이지를 찾을 수 없습니다: ${state.error}'),
+        child: Text('페이지를 찾을 수 없어요: ${state.error}'),
       ),
     ),
   );

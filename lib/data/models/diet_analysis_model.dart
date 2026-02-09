@@ -31,6 +31,39 @@ enum MealType {
   snack,
 }
 
+/// AI가 개별 인식한 음식 항목
+@freezed
+sealed class AnalyzedFoodItem with _$AnalyzedFoodItem {
+  const factory AnalyzedFoodItem({
+    /// 음식 이름
+    required String foodName,
+
+    /// 추정 중량 (g)
+    @Default(0.0) double estimatedWeight,
+
+    /// 칼로리 (kcal)
+    required double calories,
+
+    /// 단백질 (g)
+    required double protein,
+
+    /// 탄수화물 (g)
+    required double carbs,
+
+    /// 지방 (g)
+    required double fat,
+
+    /// 양 추정 근거
+    @Default('') String portionNote,
+
+    /// 로컬 DB 매칭으로 보정되었는지 여부
+    @Default(false) bool dbCorrected,
+  }) = _AnalyzedFoodItem;
+
+  factory AnalyzedFoodItem.fromJson(Map<String, dynamic> json) =>
+      _$AnalyzedFoodItemFromJson(json);
+}
+
 /// 식단 분석 모델
 /// AI Vision API로 분석된 음식 정보
 @freezed
@@ -48,23 +81,26 @@ sealed class DietAnalysisModel with _$DietAnalysisModel {
     /// 이미지 URL
     required String imageUrl,
 
-    /// 음식 이름
+    /// 음식 이름 (전체 요약)
     required String foodName,
 
-    /// 칼로리 (kcal)
+    /// 총 칼로리 (kcal)
     required int calories,
 
-    /// 단백질 (g)
+    /// 총 단백질 (g)
     required double protein,
 
-    /// 탄수화물 (g)
+    /// 총 탄수화물 (g)
     required double carbs,
 
-    /// 지방 (g)
+    /// 총 지방 (g)
     required double fat,
 
     /// AI 분석 신뢰도 (0.0 ~ 1.0)
     @Default(0.5) double confidence,
+
+    /// 개별 음식 항목 (AI 분석 + DB 보정)
+    @Default([]) List<AnalyzedFoodItem> foods,
 
     /// 분석 일시
     @TimestampConverter() required DateTime analyzedAt,

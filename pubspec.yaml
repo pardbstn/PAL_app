@@ -45,7 +45,7 @@ dependencies:
   flutter_svg: ^2.0.0
   cached_network_image: ^3.3.0
   flutter_app_badger: ^1.5.0
-  rive: ^0.13.0
+
   audioplayers: ^6.1.0
 
   # 데이터 그리드 & 차트

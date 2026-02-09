@@ -17,6 +17,7 @@ import '../../../data/services/food_database_service.dart';
 import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/diet_analysis_provider.dart';
 import '../../../presentation/widgets/states/states.dart';
+import '../../widgets/diet/ai_result_adjust_dialog.dart';
 import '../../widgets/diet/food_search_bottom_sheet.dart';
 import '../../widgets/common/glass_icon.dart';
 import '../../widgets/common/mesh_gradient_background.dart';
@@ -525,13 +526,43 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${state.result?.foodName ?? "음식"} 분석 완료! (${state.result?.calories ?? 0} kcal)'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppTheme.secondary,
-        ),
+      // 배수 조정 다이얼로그 표시
+      final adjusted = await AiResultAdjustDialog.show(
+        context: context,
+        result: result!,
       );
+
+      if (adjusted != null && mounted) {
+        // Firestore 업데이트
+        final repo = ref.read(dietAnalysisRepositoryProvider);
+        await repo.updateNutrition(
+          result.id,
+          calories: adjusted.calories,
+          protein: adjusted.protein,
+          carbs: adjusted.carbs,
+          fat: adjusted.fat,
+          foods: adjusted.foods.map((f) => {
+            'foodName': f.foodName,
+            'estimatedWeight': f.estimatedWeight,
+            'calories': f.calories,
+            'protein': f.protein,
+            'carbs': f.carbs,
+            'fat': f.fat,
+            'portionNote': f.portionNote,
+            'dbCorrected': f.dbCorrected,
+          }).toList(),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${result.foodName} 저장 완료! (${ adjusted.calories} kcal)'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.secondary,
+            ),
+          );
+        }
+      }
     } else if (state.status == AnalysisStatus.failure) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

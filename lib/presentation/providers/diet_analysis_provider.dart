@@ -11,7 +11,9 @@ import 'package:flutter_pal_app/core/constants/api_constants.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/diet_analysis_model.dart';
+import '../../data/models/food_item_model.dart';
 import '../../data/repositories/diet_analysis_repository.dart';
+import '../../data/services/food_database_service.dart';
 
 // ============================================================
 // Repository-based Providers
@@ -168,18 +170,36 @@ class DietAnalysisService {
         );
       }
 
-      // 3. 결과 파싱
+      // 3. 개별 음식 파싱 + 로컬 DB 매칭 보정
+      final rawFoods = (data['foods'] as List<dynamic>?) ?? [];
+      final correctedFoods = _correctWithLocalDb(rawFoods);
+
+      // 보정된 값으로 총합 재계산
+      final totalCalories = correctedFoods.isEmpty
+          ? (data['calories'] as num).toInt()
+          : correctedFoods.fold<double>(0, (sum, f) => sum + f.calories).toInt();
+      final totalProtein = correctedFoods.isEmpty
+          ? (data['protein'] as num).toDouble()
+          : correctedFoods.fold<double>(0, (sum, f) => sum + f.protein);
+      final totalCarbs = correctedFoods.isEmpty
+          ? (data['carbs'] as num).toDouble()
+          : correctedFoods.fold<double>(0, (sum, f) => sum + f.carbs);
+      final totalFat = correctedFoods.isEmpty
+          ? (data['fat'] as num).toDouble()
+          : correctedFoods.fold<double>(0, (sum, f) => sum + f.fat);
+
       final record = DietAnalysisModel(
         id: data['id'] as String,
         memberId: memberId,
         mealType: mealType,
         imageUrl: imageUrl,
         foodName: data['foodName'] as String,
-        calories: (data['calories'] as num).toInt(),
-        protein: (data['protein'] as num).toDouble(),
-        carbs: (data['carbs'] as num).toDouble(),
-        fat: (data['fat'] as num).toDouble(),
+        calories: totalCalories,
+        protein: totalProtein,
+        carbs: totalCarbs,
+        fat: totalFat,
         confidence: (data['confidence'] as num?)?.toDouble() ?? 0.5,
+        foods: correctedFoods,
         analyzedAt: DateTime.parse(data['analyzedAt'] as String),
         createdAt: DateTime.parse(data['createdAt'] as String),
       );
@@ -242,6 +262,91 @@ class DietAnalysisService {
   /// [recordId] 삭제할 기록 ID
   Future<void> deleteDietRecord(String recordId) async {
     await _repository.deleteDietRecord(recordId);
+  }
+
+  /// AI 분석 결과를 로컬 음식 DB와 매칭하여 영양소 보정
+  ///
+  /// AI가 추정한 음식명으로 로컬 DB를 검색하고,
+  /// 매칭되면 DB의 100g당 영양소 × 추정 중량으로 재계산
+  List<AnalyzedFoodItem> _correctWithLocalDb(List<dynamic> rawFoods) {
+    final db = FoodDatabaseService.instance;
+    if (!db.isInitialized || rawFoods.isEmpty) {
+      return rawFoods
+          .map((f) => AnalyzedFoodItem(
+                foodName: f['foodName'] as String? ?? '알 수 없는 음식',
+                estimatedWeight: (f['estimatedWeight'] as num?)?.toDouble() ?? 0,
+                calories: (f['calories'] as num?)?.toDouble() ?? 0,
+                protein: (f['protein'] as num?)?.toDouble() ?? 0,
+                carbs: (f['carbs'] as num?)?.toDouble() ?? 0,
+                fat: (f['fat'] as num?)?.toDouble() ?? 0,
+                portionNote: f['portionNote'] as String? ?? '',
+              ))
+          .toList();
+    }
+
+    return rawFoods.map((f) {
+      final foodName = f['foodName'] as String? ?? '알 수 없는 음식';
+      final weight = (f['estimatedWeight'] as num?)?.toDouble() ?? 0;
+      final portionNote = f['portionNote'] as String? ?? '';
+
+      // 로컬 DB에서 매칭 시도
+      final match = _findBestMatch(db, foodName);
+
+      if (match != null && weight > 0) {
+        // DB 영양소는 100g 기준 → 추정 중량 비율로 재계산
+        final ratio = weight / match.servingSize;
+        return AnalyzedFoodItem(
+          foodName: match.name,
+          estimatedWeight: weight,
+          calories: (match.calories * ratio * 10).roundToDouble() / 10,
+          protein: (match.protein * ratio * 10).roundToDouble() / 10,
+          carbs: (match.carbs * ratio * 10).roundToDouble() / 10,
+          fat: (match.fat * ratio * 10).roundToDouble() / 10,
+          portionNote: portionNote,
+          dbCorrected: true,
+        );
+      }
+
+      // 매칭 실패 시 AI 추정값 그대로 사용
+      return AnalyzedFoodItem(
+        foodName: foodName,
+        estimatedWeight: weight,
+        calories: (f['calories'] as num?)?.toDouble() ?? 0,
+        protein: (f['protein'] as num?)?.toDouble() ?? 0,
+        carbs: (f['carbs'] as num?)?.toDouble() ?? 0,
+        fat: (f['fat'] as num?)?.toDouble() ?? 0,
+        portionNote: portionNote,
+      );
+    }).toList();
+  }
+
+  /// 로컬 DB에서 가장 유사한 음식 찾기
+  ///
+  /// 1순위: 정확한 이름 일치
+  /// 2순위: 정규화 후 일치 (공백/특수문자 제거)
+  /// 3순위: 검색 결과 중 첫 번째 (부분 일치)
+  FoodItem? _findBestMatch(FoodDatabaseService db, String foodName) {
+    final results = db.searchFood(foodName, limit: 5);
+    if (results.isEmpty) return null;
+
+    final normalized = foodName.toLowerCase().replaceAll(' ', '').replaceAll('/', '');
+
+    // 정확한 이름 일치 우선
+    for (final item in results) {
+      final itemNorm = item.name.toLowerCase().replaceAll(' ', '').replaceAll('/', '');
+      if (itemNorm == normalized) return item;
+    }
+
+    // 이름이 검색어로 시작하는 항목
+    for (final item in results) {
+      final itemNorm = item.name.toLowerCase().replaceAll(' ', '').replaceAll('/', '');
+      if (itemNorm.startsWith(normalized) || normalized.startsWith(itemNorm)) {
+        return item;
+      }
+    }
+
+    // 부분 일치도 없으면 null (AI 추정값 사용)
+    return null;
   }
 }
 

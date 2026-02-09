@@ -25,14 +25,52 @@ class FoodDatabaseService {
       final data = json.decode(jsonString) as Map<String, dynamic>;
       final foodList = data['foods'] as List<dynamic>;
 
-      _foods = foodList
+      final allFoods = foodList
           .map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
           .toList();
+
+      // 같은 이름의 음식을 평균 영양소로 병합하여 중복 제거
+      _foods = _deduplicateFoods(allFoods);
 
       _isInitialized = true;
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// 같은 이름의 음식을 평균 영양소로 병합
+  List<FoodItem> _deduplicateFoods(List<FoodItem> foods) {
+    final grouped = <String, List<FoodItem>>{};
+    for (final food in foods) {
+      grouped.putIfAbsent(food.name, () => []).add(food);
+    }
+
+    return grouped.entries.map((entry) {
+      final items = entry.value;
+      if (items.length == 1) return items.first;
+
+      final count = items.length.toDouble();
+      double avg(double Function(FoodItem) selector) =>
+          (items.map(selector).reduce((a, b) => a + b) / count * 10).roundToDouble() / 10;
+
+      double? avgNullable(double? Function(FoodItem) selector) {
+        final values = items.map(selector).whereType<double>().toList();
+        if (values.isEmpty) return null;
+        return (values.reduce((a, b) => a + b) / values.length * 10).roundToDouble() / 10;
+      }
+
+      return FoodItem(
+        id: items.first.id,
+        name: entry.key,
+        servingSize: avg((e) => e.servingSize),
+        calories: avg((e) => e.calories),
+        carbs: avg((e) => e.carbs),
+        protein: avg((e) => e.protein),
+        fat: avg((e) => e.fat),
+        sugar: avgNullable((e) => e.sugar),
+        sodium: avgNullable((e) => e.sodium),
+      );
+    }).toList();
   }
 
   /// 음식명으로 검색 (부분 일치, 최대 50개)

@@ -1200,6 +1200,9 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
+  - audioplayers_darwin (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - BoringSSL-GRPC (0.0.37):
     - BoringSSL-GRPC/Implementation (= 0.0.37)
     - BoringSSL-GRPC/Interface (= 0.0.37)
@@ -1334,6 +1337,8 @@ PODS:
     - nanopb (~> 3.30910.0)
   - FirebaseMessagingInterop (12.6.0)
   - FirebaseSharedSwift (12.6.0)
+  - flutter_app_badger (1.3.0):
+    - FlutterMacOS
   - flutter_image_compress_macos (1.0.0):
     - FlutterMacOS
   - flutter_local_notifications (0.0.1):
@@ -1511,6 +1516,8 @@ PODS:
   - package_info_plus (0.0.1):
     - FlutterMacOS
   - PromisesObjC (2.4.0)
+  - rive_common (0.0.1):
+    - FlutterMacOS
   - share_plus (0.0.1):
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
@@ -1526,6 +1533,7 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
+  - audioplayers_darwin (from `Flutter/ephemeral/.symlinks/plugins/audioplayers_darwin/darwin`)
   - cloud_firestore (from `Flutter/ephemeral/.symlinks/plugins/cloud_firestore/macos`)
   - cloud_functions (from `Flutter/ephemeral/.symlinks/plugins/cloud_functions/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
@@ -1535,11 +1543,13 @@ DEPENDENCIES:
   - firebase_auth (from `Flutter/ephemeral/.symlinks/plugins/firebase_auth/macos`)
   - firebase_core (from `Flutter/ephemeral/.symlinks/plugins/firebase_core/macos`)
   - firebase_messaging (from `Flutter/ephemeral/.symlinks/plugins/firebase_messaging/macos`)
+  - flutter_app_badger (from `Flutter/ephemeral/.symlinks/plugins/flutter_app_badger/macos`)
   - flutter_image_compress_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos`)
   - flutter_local_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - google_sign_in_ios (from `Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
+  - rive_common (from `Flutter/ephemeral/.symlinks/plugins/rive_common/macos`)
   - share_plus (from `Flutter/ephemeral/.symlinks/plugins/share_plus/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos`)
@@ -1582,6 +1592,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: Flutter/ephemeral/.symlinks/plugins/app_links/macos
+  audioplayers_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/audioplayers_darwin/darwin
   cloud_firestore:
     :path: Flutter/ephemeral/.symlinks/plugins/cloud_firestore/macos
   cloud_functions:
@@ -1600,6 +1612,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/firebase_core/macos
   firebase_messaging:
     :path: Flutter/ephemeral/.symlinks/plugins/firebase_messaging/macos
+  flutter_app_badger:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_app_badger/macos
   flutter_image_compress_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos
   flutter_local_notifications:
@@ -1610,6 +1624,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
+  rive_common:
+    :path: Flutter/ephemeral/.symlinks/plugins/rive_common/macos
   share_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/share_plus/macos
   shared_preferences_foundation:
@@ -1626,6 +1642,7 @@ SPEC CHECKSUMS:
   app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
+  audioplayers_darwin: 4f9ca89d92d3d21cec7ec580e78ca888e5fb68bd
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   cloud_firestore: 3b149b14c2e8aec6bd5896c9cb093d58870dfa92
   cloud_functions: c8df0e17718e25a87d535b9cd535cd023faf42a9
@@ -1651,6 +1668,7 @@ SPEC CHECKSUMS:
   FirebaseMessaging: a61bc42dcab3f7a346d94bbb54dab2c9435b18b2
   FirebaseMessagingInterop: b18f87820d64e2fffe8e00a9d5f5c2efd430b554
   FirebaseSharedSwift: 79f27fff0addd15c3de19b87fba426f3cc2c964f
+  flutter_app_badger: 3a1c6d6a491a7a7d987ca4f2aeab96fc5655c395
   flutter_image_compress_macos: e68daf54bb4bf2144c580fd4d151c949cbf492f0
   flutter_local_notifications: 4bf37a31afde695b56091b4ae3e4d9c7a7e6cda0
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
@@ -1667,6 +1685,7 @@ SPEC CHECKSUMS:
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  rive_common: ea79040f86acf053a2d5a75a2506175ee39796a5
   share_plus: 510bf0af1a42cd602274b4629920c9649c52f4cc
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   sign_in_with_apple: 6673c03c9e3643f6c8d33601943fbfa9ae99f94e

@@ -13,19 +13,314 @@ part of 'diet_analysis_model.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$AnalyzedFoodItem {
+
+/// 음식 이름
+ String get foodName;/// 추정 중량 (g)
+ double get estimatedWeight;/// 칼로리 (kcal)
+ double get calories;/// 단백질 (g)
+ double get protein;/// 탄수화물 (g)
+ double get carbs;/// 지방 (g)
+ double get fat;/// 양 추정 근거
+ String get portionNote;/// 로컬 DB 매칭으로 보정되었는지 여부
+ bool get dbCorrected;
+/// Create a copy of AnalyzedFoodItem
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AnalyzedFoodItemCopyWith<AnalyzedFoodItem> get copyWith => _$AnalyzedFoodItemCopyWithImpl<AnalyzedFoodItem>(this as AnalyzedFoodItem, _$identity);
+
+  /// Serializes this AnalyzedFoodItem to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AnalyzedFoodItem&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.estimatedWeight, estimatedWeight) || other.estimatedWeight == estimatedWeight)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.portionNote, portionNote) || other.portionNote == portionNote)&&(identical(other.dbCorrected, dbCorrected) || other.dbCorrected == dbCorrected));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,foodName,estimatedWeight,calories,protein,carbs,fat,portionNote,dbCorrected);
+
+@override
+String toString() {
+  return 'AnalyzedFoodItem(foodName: $foodName, estimatedWeight: $estimatedWeight, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, portionNote: $portionNote, dbCorrected: $dbCorrected)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AnalyzedFoodItemCopyWith<$Res>  {
+  factory $AnalyzedFoodItemCopyWith(AnalyzedFoodItem value, $Res Function(AnalyzedFoodItem) _then) = _$AnalyzedFoodItemCopyWithImpl;
+@useResult
+$Res call({
+ String foodName, double estimatedWeight, double calories, double protein, double carbs, double fat, String portionNote, bool dbCorrected
+});
+
+
+
+
+}
+/// @nodoc
+class _$AnalyzedFoodItemCopyWithImpl<$Res>
+    implements $AnalyzedFoodItemCopyWith<$Res> {
+  _$AnalyzedFoodItemCopyWithImpl(this._self, this._then);
+
+  final AnalyzedFoodItem _self;
+  final $Res Function(AnalyzedFoodItem) _then;
+
+/// Create a copy of AnalyzedFoodItem
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? foodName = null,Object? estimatedWeight = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? portionNote = null,Object? dbCorrected = null,}) {
+  return _then(_self.copyWith(
+foodName: null == foodName ? _self.foodName : foodName // ignore: cast_nullable_to_non_nullable
+as String,estimatedWeight: null == estimatedWeight ? _self.estimatedWeight : estimatedWeight // ignore: cast_nullable_to_non_nullable
+as double,calories: null == calories ? _self.calories : calories // ignore: cast_nullable_to_non_nullable
+as double,protein: null == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
+as double,carbs: null == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
+as double,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as double,portionNote: null == portionNote ? _self.portionNote : portionNote // ignore: cast_nullable_to_non_nullable
+as String,dbCorrected: null == dbCorrected ? _self.dbCorrected : dbCorrected // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [AnalyzedFoodItem].
+extension AnalyzedFoodItemPatterns on AnalyzedFoodItem {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AnalyzedFoodItem value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AnalyzedFoodItem value)  $default,){
+final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AnalyzedFoodItem value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String foodName,  double estimatedWeight,  double calories,  double protein,  double carbs,  double fat,  String portionNote,  bool dbCorrected)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem() when $default != null:
+return $default(_that.foodName,_that.estimatedWeight,_that.calories,_that.protein,_that.carbs,_that.fat,_that.portionNote,_that.dbCorrected);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String foodName,  double estimatedWeight,  double calories,  double protein,  double carbs,  double fat,  String portionNote,  bool dbCorrected)  $default,) {final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem():
+return $default(_that.foodName,_that.estimatedWeight,_that.calories,_that.protein,_that.carbs,_that.fat,_that.portionNote,_that.dbCorrected);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String foodName,  double estimatedWeight,  double calories,  double protein,  double carbs,  double fat,  String portionNote,  bool dbCorrected)?  $default,) {final _that = this;
+switch (_that) {
+case _AnalyzedFoodItem() when $default != null:
+return $default(_that.foodName,_that.estimatedWeight,_that.calories,_that.protein,_that.carbs,_that.fat,_that.portionNote,_that.dbCorrected);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AnalyzedFoodItem implements AnalyzedFoodItem {
+  const _AnalyzedFoodItem({required this.foodName, this.estimatedWeight = 0.0, required this.calories, required this.protein, required this.carbs, required this.fat, this.portionNote = '', this.dbCorrected = false});
+  factory _AnalyzedFoodItem.fromJson(Map<String, dynamic> json) => _$AnalyzedFoodItemFromJson(json);
+
+/// 음식 이름
+@override final  String foodName;
+/// 추정 중량 (g)
+@override@JsonKey() final  double estimatedWeight;
+/// 칼로리 (kcal)
+@override final  double calories;
+/// 단백질 (g)
+@override final  double protein;
+/// 탄수화물 (g)
+@override final  double carbs;
+/// 지방 (g)
+@override final  double fat;
+/// 양 추정 근거
+@override@JsonKey() final  String portionNote;
+/// 로컬 DB 매칭으로 보정되었는지 여부
+@override@JsonKey() final  bool dbCorrected;
+
+/// Create a copy of AnalyzedFoodItem
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AnalyzedFoodItemCopyWith<_AnalyzedFoodItem> get copyWith => __$AnalyzedFoodItemCopyWithImpl<_AnalyzedFoodItem>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AnalyzedFoodItemToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AnalyzedFoodItem&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.estimatedWeight, estimatedWeight) || other.estimatedWeight == estimatedWeight)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.portionNote, portionNote) || other.portionNote == portionNote)&&(identical(other.dbCorrected, dbCorrected) || other.dbCorrected == dbCorrected));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,foodName,estimatedWeight,calories,protein,carbs,fat,portionNote,dbCorrected);
+
+@override
+String toString() {
+  return 'AnalyzedFoodItem(foodName: $foodName, estimatedWeight: $estimatedWeight, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, portionNote: $portionNote, dbCorrected: $dbCorrected)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AnalyzedFoodItemCopyWith<$Res> implements $AnalyzedFoodItemCopyWith<$Res> {
+  factory _$AnalyzedFoodItemCopyWith(_AnalyzedFoodItem value, $Res Function(_AnalyzedFoodItem) _then) = __$AnalyzedFoodItemCopyWithImpl;
+@override @useResult
+$Res call({
+ String foodName, double estimatedWeight, double calories, double protein, double carbs, double fat, String portionNote, bool dbCorrected
+});
+
+
+
+
+}
+/// @nodoc
+class __$AnalyzedFoodItemCopyWithImpl<$Res>
+    implements _$AnalyzedFoodItemCopyWith<$Res> {
+  __$AnalyzedFoodItemCopyWithImpl(this._self, this._then);
+
+  final _AnalyzedFoodItem _self;
+  final $Res Function(_AnalyzedFoodItem) _then;
+
+/// Create a copy of AnalyzedFoodItem
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? foodName = null,Object? estimatedWeight = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? portionNote = null,Object? dbCorrected = null,}) {
+  return _then(_AnalyzedFoodItem(
+foodName: null == foodName ? _self.foodName : foodName // ignore: cast_nullable_to_non_nullable
+as String,estimatedWeight: null == estimatedWeight ? _self.estimatedWeight : estimatedWeight // ignore: cast_nullable_to_non_nullable
+as double,calories: null == calories ? _self.calories : calories // ignore: cast_nullable_to_non_nullable
+as double,protein: null == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
+as double,carbs: null == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
+as double,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as double,portionNote: null == portionNote ? _self.portionNote : portionNote // ignore: cast_nullable_to_non_nullable
+as String,dbCorrected: null == dbCorrected ? _self.dbCorrected : dbCorrected // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$DietAnalysisModel {
 
 /// 문서 ID
  String get id;/// 회원 ID
  String get memberId;/// 식사 유형
  MealType get mealType;/// 이미지 URL
- String get imageUrl;/// 음식 이름
- String get foodName;/// 칼로리 (kcal)
- int get calories;/// 단백질 (g)
- double get protein;/// 탄수화물 (g)
- double get carbs;/// 지방 (g)
+ String get imageUrl;/// 음식 이름 (전체 요약)
+ String get foodName;/// 총 칼로리 (kcal)
+ int get calories;/// 총 단백질 (g)
+ double get protein;/// 총 탄수화물 (g)
+ double get carbs;/// 총 지방 (g)
  double get fat;/// AI 분석 신뢰도 (0.0 ~ 1.0)
- double get confidence;/// 분석 일시
+ double get confidence;/// 개별 음식 항목 (AI 분석 + DB 보정)
+ List<AnalyzedFoodItem> get foods;/// 분석 일시
 @TimestampConverter() DateTime get analyzedAt;/// 생성 일시
 @TimestampConverter() DateTime? get createdAt;
 /// Create a copy of DietAnalysisModel
@@ -40,16 +335,16 @@ $DietAnalysisModelCopyWith<DietAnalysisModel> get copyWith => _$DietAnalysisMode
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DietAnalysisModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DietAnalysisModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&const DeepCollectionEquality().equals(other.foods, foods)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,mealType,imageUrl,foodName,calories,protein,carbs,fat,confidence,analyzedAt,createdAt);
+int get hashCode => Object.hash(runtimeType,id,memberId,mealType,imageUrl,foodName,calories,protein,carbs,fat,confidence,const DeepCollectionEquality().hash(foods),analyzedAt,createdAt);
 
 @override
 String toString() {
-  return 'DietAnalysisModel(id: $id, memberId: $memberId, mealType: $mealType, imageUrl: $imageUrl, foodName: $foodName, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, confidence: $confidence, analyzedAt: $analyzedAt, createdAt: $createdAt)';
+  return 'DietAnalysisModel(id: $id, memberId: $memberId, mealType: $mealType, imageUrl: $imageUrl, foodName: $foodName, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, confidence: $confidence, foods: $foods, analyzedAt: $analyzedAt, createdAt: $createdAt)';
 }
 
 
@@ -60,7 +355,7 @@ abstract mixin class $DietAnalysisModelCopyWith<$Res>  {
   factory $DietAnalysisModelCopyWith(DietAnalysisModel value, $Res Function(DietAnalysisModel) _then) = _$DietAnalysisModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String memberId, MealType mealType, String imageUrl, String foodName, int calories, double protein, double carbs, double fat, double confidence,@TimestampConverter() DateTime analyzedAt,@TimestampConverter() DateTime? createdAt
+ String id, String memberId, MealType mealType, String imageUrl, String foodName, int calories, double protein, double carbs, double fat, double confidence, List<AnalyzedFoodItem> foods,@TimestampConverter() DateTime analyzedAt,@TimestampConverter() DateTime? createdAt
 });
 
 
@@ -77,7 +372,7 @@ class _$DietAnalysisModelCopyWithImpl<$Res>
 
 /// Create a copy of DietAnalysisModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? mealType = null,Object? imageUrl = null,Object? foodName = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? confidence = null,Object? analyzedAt = null,Object? createdAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? memberId = null,Object? mealType = null,Object? imageUrl = null,Object? foodName = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? confidence = null,Object? foods = null,Object? analyzedAt = null,Object? createdAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -89,7 +384,8 @@ as int,protein: null == protein ? _self.protein : protein // ignore: cast_nullab
 as double,carbs: null == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
 as double,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
 as double,confidence: null == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
-as double,analyzedAt: null == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
+as double,foods: null == foods ? _self.foods : foods // ignore: cast_nullable_to_non_nullable
+as List<AnalyzedFoodItem>,analyzedAt: null == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -173,10 +469,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence,  List<AnalyzedFoodItem> foods, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DietAnalysisModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.analyzedAt,_that.createdAt);case _:
+return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.foods,_that.analyzedAt,_that.createdAt);case _:
   return orElse();
 
 }
@@ -194,10 +490,10 @@ return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.food
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence,  List<AnalyzedFoodItem> foods, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _DietAnalysisModel():
-return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.analyzedAt,_that.createdAt);}
+return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.foods,_that.analyzedAt,_that.createdAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -211,10 +507,10 @@ return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.food
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String memberId,  MealType mealType,  String imageUrl,  String foodName,  int calories,  double protein,  double carbs,  double fat,  double confidence,  List<AnalyzedFoodItem> foods, @TimestampConverter()  DateTime analyzedAt, @TimestampConverter()  DateTime? createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _DietAnalysisModel() when $default != null:
-return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.analyzedAt,_that.createdAt);case _:
+return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.foodName,_that.calories,_that.protein,_that.carbs,_that.fat,_that.confidence,_that.foods,_that.analyzedAt,_that.createdAt);case _:
   return null;
 
 }
@@ -226,7 +522,7 @@ return $default(_that.id,_that.memberId,_that.mealType,_that.imageUrl,_that.food
 @JsonSerializable()
 
 class _DietAnalysisModel implements DietAnalysisModel {
-  const _DietAnalysisModel({required this.id, required this.memberId, required this.mealType, required this.imageUrl, required this.foodName, required this.calories, required this.protein, required this.carbs, required this.fat, this.confidence = 0.5, @TimestampConverter() required this.analyzedAt, @TimestampConverter() this.createdAt});
+  const _DietAnalysisModel({required this.id, required this.memberId, required this.mealType, required this.imageUrl, required this.foodName, required this.calories, required this.protein, required this.carbs, required this.fat, this.confidence = 0.5, final  List<AnalyzedFoodItem> foods = const [], @TimestampConverter() required this.analyzedAt, @TimestampConverter() this.createdAt}): _foods = foods;
   factory _DietAnalysisModel.fromJson(Map<String, dynamic> json) => _$DietAnalysisModelFromJson(json);
 
 /// 문서 ID
@@ -237,18 +533,27 @@ class _DietAnalysisModel implements DietAnalysisModel {
 @override final  MealType mealType;
 /// 이미지 URL
 @override final  String imageUrl;
-/// 음식 이름
+/// 음식 이름 (전체 요약)
 @override final  String foodName;
-/// 칼로리 (kcal)
+/// 총 칼로리 (kcal)
 @override final  int calories;
-/// 단백질 (g)
+/// 총 단백질 (g)
 @override final  double protein;
-/// 탄수화물 (g)
+/// 총 탄수화물 (g)
 @override final  double carbs;
-/// 지방 (g)
+/// 총 지방 (g)
 @override final  double fat;
 /// AI 분석 신뢰도 (0.0 ~ 1.0)
 @override@JsonKey() final  double confidence;
+/// 개별 음식 항목 (AI 분석 + DB 보정)
+ final  List<AnalyzedFoodItem> _foods;
+/// 개별 음식 항목 (AI 분석 + DB 보정)
+@override@JsonKey() List<AnalyzedFoodItem> get foods {
+  if (_foods is EqualUnmodifiableListView) return _foods;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_foods);
+}
+
 /// 분석 일시
 @override@TimestampConverter() final  DateTime analyzedAt;
 /// 생성 일시
@@ -267,16 +572,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DietAnalysisModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DietAnalysisModel&&(identical(other.id, id) || other.id == id)&&(identical(other.memberId, memberId) || other.memberId == memberId)&&(identical(other.mealType, mealType) || other.mealType == mealType)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.foodName, foodName) || other.foodName == foodName)&&(identical(other.calories, calories) || other.calories == calories)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carbs, carbs) || other.carbs == carbs)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&const DeepCollectionEquality().equals(other._foods, _foods)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,memberId,mealType,imageUrl,foodName,calories,protein,carbs,fat,confidence,analyzedAt,createdAt);
+int get hashCode => Object.hash(runtimeType,id,memberId,mealType,imageUrl,foodName,calories,protein,carbs,fat,confidence,const DeepCollectionEquality().hash(_foods),analyzedAt,createdAt);
 
 @override
 String toString() {
-  return 'DietAnalysisModel(id: $id, memberId: $memberId, mealType: $mealType, imageUrl: $imageUrl, foodName: $foodName, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, confidence: $confidence, analyzedAt: $analyzedAt, createdAt: $createdAt)';
+  return 'DietAnalysisModel(id: $id, memberId: $memberId, mealType: $mealType, imageUrl: $imageUrl, foodName: $foodName, calories: $calories, protein: $protein, carbs: $carbs, fat: $fat, confidence: $confidence, foods: $foods, analyzedAt: $analyzedAt, createdAt: $createdAt)';
 }
 
 
@@ -287,7 +592,7 @@ abstract mixin class _$DietAnalysisModelCopyWith<$Res> implements $DietAnalysisM
   factory _$DietAnalysisModelCopyWith(_DietAnalysisModel value, $Res Function(_DietAnalysisModel) _then) = __$DietAnalysisModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String memberId, MealType mealType, String imageUrl, String foodName, int calories, double protein, double carbs, double fat, double confidence,@TimestampConverter() DateTime analyzedAt,@TimestampConverter() DateTime? createdAt
+ String id, String memberId, MealType mealType, String imageUrl, String foodName, int calories, double protein, double carbs, double fat, double confidence, List<AnalyzedFoodItem> foods,@TimestampConverter() DateTime analyzedAt,@TimestampConverter() DateTime? createdAt
 });
 
 
@@ -304,7 +609,7 @@ class __$DietAnalysisModelCopyWithImpl<$Res>
 
 /// Create a copy of DietAnalysisModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? mealType = null,Object? imageUrl = null,Object? foodName = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? confidence = null,Object? analyzedAt = null,Object? createdAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? memberId = null,Object? mealType = null,Object? imageUrl = null,Object? foodName = null,Object? calories = null,Object? protein = null,Object? carbs = null,Object? fat = null,Object? confidence = null,Object? foods = null,Object? analyzedAt = null,Object? createdAt = freezed,}) {
   return _then(_DietAnalysisModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,memberId: null == memberId ? _self.memberId : memberId // ignore: cast_nullable_to_non_nullable
@@ -316,7 +621,8 @@ as int,protein: null == protein ? _self.protein : protein // ignore: cast_nullab
 as double,carbs: null == carbs ? _self.carbs : carbs // ignore: cast_nullable_to_non_nullable
 as double,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
 as double,confidence: null == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
-as double,analyzedAt: null == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
+as double,foods: null == foods ? _self._foods : foods // ignore: cast_nullable_to_non_nullable
+as List<AnalyzedFoodItem>,analyzedAt: null == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

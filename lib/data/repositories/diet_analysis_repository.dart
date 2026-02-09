@@ -217,6 +217,23 @@ class DietAnalysisRepository extends BaseRepository<DietAnalysisModel> {
     });
   }
 
+  /// 식단 기록의 영양소 업데이트 (배수 조정 후)
+  Future<void> updateNutrition(String recordId, {
+    required int calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required List<Map<String, dynamic>> foods,
+  }) async {
+    await collection.doc(recordId).update({
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'foods': foods,
+    });
+  }
+
   /// 식단 기록 삭제
   ///
   /// [recordId] 삭제할 식단 기록 ID

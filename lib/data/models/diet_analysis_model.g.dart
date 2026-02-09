@@ -6,6 +6,30 @@ part of 'diet_analysis_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_AnalyzedFoodItem _$AnalyzedFoodItemFromJson(Map<String, dynamic> json) =>
+    _AnalyzedFoodItem(
+      foodName: json['foodName'] as String,
+      estimatedWeight: (json['estimatedWeight'] as num?)?.toDouble() ?? 0.0,
+      calories: (json['calories'] as num).toDouble(),
+      protein: (json['protein'] as num).toDouble(),
+      carbs: (json['carbs'] as num).toDouble(),
+      fat: (json['fat'] as num).toDouble(),
+      portionNote: json['portionNote'] as String? ?? '',
+      dbCorrected: json['dbCorrected'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$AnalyzedFoodItemToJson(_AnalyzedFoodItem instance) =>
+    <String, dynamic>{
+      'foodName': instance.foodName,
+      'estimatedWeight': instance.estimatedWeight,
+      'calories': instance.calories,
+      'protein': instance.protein,
+      'carbs': instance.carbs,
+      'fat': instance.fat,
+      'portionNote': instance.portionNote,
+      'dbCorrected': instance.dbCorrected,
+    };
+
 _DietAnalysisModel _$DietAnalysisModelFromJson(Map<String, dynamic> json) =>
     _DietAnalysisModel(
       id: json['id'] as String,
@@ -18,6 +42,11 @@ _DietAnalysisModel _$DietAnalysisModelFromJson(Map<String, dynamic> json) =>
       carbs: (json['carbs'] as num).toDouble(),
       fat: (json['fat'] as num).toDouble(),
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.5,
+      foods:
+          (json['foods'] as List<dynamic>?)
+              ?.map((e) => AnalyzedFoodItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       analyzedAt: const TimestampConverter().fromJson(json['analyzedAt']),
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
@@ -34,6 +63,7 @@ Map<String, dynamic> _$DietAnalysisModelToJson(_DietAnalysisModel instance) =>
       'carbs': instance.carbs,
       'fat': instance.fat,
       'confidence': instance.confidence,
+      'foods': instance.foods,
       'analyzedAt': const TimestampConverter().toJson(instance.analyzedAt),
       'createdAt': _$JsonConverterToJson<dynamic, DateTime>(
         instance.createdAt,

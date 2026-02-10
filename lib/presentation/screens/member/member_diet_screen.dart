@@ -1310,12 +1310,101 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                // 편집 버튼 영역
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // 양 조절 버튼
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            _showPortionAdjust(item);
+                          },
+                          icon: const Icon(Icons.tune, size: 18),
+                          label: const Text('양 조절'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 삭제 버튼
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            _deleteDietRecord(item);
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('삭제'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.error,
+                            side: BorderSide(color: AppTheme.error.withValues(alpha: 0.5)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
         );
       },
     );
+  }
+
+  /// 양 조절 다이얼로그 표시 후 Firestore 업데이트
+  Future<void> _showPortionAdjust(DietAnalysisModel item) async {
+    final adjusted = await AiResultAdjustDialog.show(
+      context: context,
+      result: item,
+    );
+    if (adjusted == null) return;
+
+    try {
+      final repo = ref.read(dietAnalysisRepositoryProvider);
+      await repo.updateNutrition(
+        item.id,
+        calories: adjusted.calories,
+        protein: adjusted.protein,
+        carbs: adjusted.carbs,
+        fat: adjusted.fat,
+        foods: adjusted.foods.map((f) => {
+          'foodName': f.foodName,
+          'estimatedWeight': f.estimatedWeight,
+          'calories': f.calories,
+          'protein': f.protein,
+          'carbs': f.carbs,
+          'fat': f.fat,
+          'portionNote': f.portionNote,
+          'dbCorrected': f.dbCorrected,
+        }).toList(),
+      );
+
+      if (!mounted) return;
+      // provider 갱신
+      final member = ref.read(currentMemberProvider);
+      if (member != null) {
+        ref.invalidate(todayDietRecordsProvider(member.id));
+        ref.invalidate(dailyNutritionSummaryProvider(member.id));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('영양 정보를 수정했어요')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('수정 실패: $e')),
+      );
+    }
   }
 
   Widget _buildNutrientRow(String label, String value, Color color, ColorScheme cs) {
@@ -1332,14 +1421,27 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
 
   /// 전체 화면 이미지 뷰어
   void _showFullImage(BuildContext ctx, String imageUrl, String title) {
-    Navigator.of(ctx).push(
+    Navigator.of(ctx, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
-            title: Text(title, style: const TextStyle(color: Colors.white)),
+            leading: Padding(
+              padding: const EdgeInsets.all(6),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                ),
+              ),
+            ),
+            title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
           body: Center(
             child: InteractiveViewer(

@@ -127,24 +127,24 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
 
       // 5. Cloud Function 호출
       final callable = _functions.httpsCallable(CloudFunctions.analyzeInbody);
-      final response = await callable.call<Map<String, dynamic>>({
+      final response = await callable.call({
         'imageUrl': imageUrl,
         'memberId': memberId,
       });
 
-      final data = response.data;
+      final data = _toStringDynamicMap(response.data);
 
       // 6. 응답 검증
       if (data['success'] != true) {
         state = state.copyWith(
           status: InbodyOcrStatus.error,
-          errorMessage: data['error'] ?? '분석에 실패했어요',
+          errorMessage: data['error']?.toString() ?? '분석에 실패했어요',
         );
         return;
       }
 
       // 7. 결과 파싱 (analysis 필드에서 추출)
-      final analysisData = data['analysis'] as Map<String, dynamic>;
+      final analysisData = _toStringDynamicMap(data['analysis']);
       final result = InbodyOcrResult.fromJson(analysisData);
 
       // 8. 성공 상태 업데이트
@@ -195,6 +195,17 @@ class InbodyOcrNotifier extends Notifier<InbodyOcrState> {
     } catch (e) {
       // 자동저장 실패해도 분석 결과는 유지 (inbody_records에는 이미 저장됨)
     }
+  }
+
+  /// Platform channel 응답 Map을 안전하게 변환
+  static Map<String, dynamic> _toStringDynamicMap(dynamic data) {
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(
+        key.toString(),
+        value is Map ? _toStringDynamicMap(value) : value,
+      ));
+    }
+    return {};
   }
 
   /// OCR 결과 수동 수정

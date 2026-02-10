@@ -3,7 +3,7 @@ import '../../../data/models/diet_analysis_model.dart';
 
 /// AI 분석 결과 확인 및 배수 조정 다이얼로그
 ///
-/// 개별 음식 항목별로 배수를 조정하고 영양소를 재계산
+/// 개별 음식 항목별로 배수를 +/- 0.5 단위로 조정하고 영양소를 재계산
 class AiResultAdjustDialog extends StatefulWidget {
   final DietAnalysisModel result;
 
@@ -28,7 +28,9 @@ class AiResultAdjustDialog extends StatefulWidget {
 
 class _AiResultAdjustDialogState extends State<AiResultAdjustDialog> {
   late List<double> _multipliers;
-  static const _presets = [0.5, 0.75, 1.0, 1.5, 2.0];
+  static const _step = 0.5;
+  static const _min = 0.5;
+  static const _max = 6.0;
 
   @override
   void initState() {
@@ -99,6 +101,49 @@ class _AiResultAdjustDialogState extends State<AiResultAdjustDialog> {
         dbCorrected: food.dbCorrected,
       );
     });
+  }
+
+  /// +/- 배수 조절 위젯
+  Widget _buildMultiplierStepper(int index, ColorScheme cs, TextTheme tt) {
+    final m = _multipliers[index];
+    final canDecrease = m > _min;
+    final canIncrease = m < _max;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // - 버튼
+        _StepperButton(
+          icon: Icons.remove,
+          enabled: canDecrease,
+          cs: cs,
+          onTap: () => setState(() {
+            _multipliers[index] = ((m - _step) * 10).round() / 10;
+          }),
+        ),
+        // 배수 표시
+        Container(
+          width: 52,
+          alignment: Alignment.center,
+          child: Text(
+            '${m % 1 == 0 ? m.toInt() : m}x',
+            style: tt.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: m == 1.0 ? cs.onSurface : cs.primary,
+            ),
+          ),
+        ),
+        // + 버튼
+        _StepperButton(
+          icon: Icons.add,
+          enabled: canIncrease,
+          cs: cs,
+          onTap: () => setState(() {
+            _multipliers[index] = ((m + _step) * 10).round() / 10;
+          }),
+        ),
+      ],
+    );
   }
 
   @override
@@ -247,7 +292,7 @@ class _AiResultAdjustDialogState extends State<AiResultAdjustDialog> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${food.estimatedWeight.toInt()}g | $adjustedCal kcal',
+                      '${(food.estimatedWeight * m).toInt()}g | $adjustedCal kcal',
                       style: tt.bodySmall?.copyWith(
                         color: cs.onSurface.withValues(alpha: 0.6),
                       ),
@@ -255,51 +300,9 @@ class _AiResultAdjustDialogState extends State<AiResultAdjustDialog> {
                   ],
                 ),
               ),
-              // 배수 표시
-              Text(
-                '${m}x',
-                style: tt.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: m == 1.0 ? cs.onSurface : cs.primary,
-                ),
-              ),
+              // +/- 배수 조절
+              _buildMultiplierStepper(index, cs, tt),
             ],
-          ),
-          const SizedBox(height: 8),
-
-          // 배수 선택 칩
-          SizedBox(
-            height: 32,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _presets.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, pi) {
-                final preset = _presets[pi];
-                final isSelected = _multipliers[index] == preset;
-                return GestureDetector(
-                  onTap: () => setState(() => _multipliers[index] = preset),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? cs.primary : cs.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected ? cs.primary : cs.outline.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${preset}x',
-                      style: tt.labelSmall?.copyWith(
-                        color: isSelected ? cs.onPrimary : cs.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -317,51 +320,59 @@ class _AiResultAdjustDialogState extends State<AiResultAdjustDialog> {
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            widget.result.foodName,
-            style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text('$adjustedCal kcal',
-            style: tt.bodyMedium?.copyWith(color: cs.primary, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 32,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _presets.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, pi) {
-                final preset = _presets[pi];
-                final isSelected = _multipliers[0] == preset;
-                return GestureDetector(
-                  onTap: () => setState(() => _multipliers[0] = preset),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? cs.primary : cs.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected ? cs.primary : cs.outline.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${preset}x',
-                      style: tt.labelSmall?.copyWith(
-                        color: isSelected ? cs.onPrimary : cs.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.result.foodName,
+                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text('$adjustedCal kcal',
+                  style: tt.bodyMedium?.copyWith(color: cs.primary, fontWeight: FontWeight.w600)),
+              ],
             ),
           ),
+          _buildMultiplierStepper(0, cs, tt),
         ],
+      ),
+    );
+  }
+}
+
+/// +/- 원형 버튼
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final ColorScheme cs;
+  final VoidCallback onTap;
+
+  const _StepperButton({
+    required this.icon,
+    required this.enabled,
+    required this.cs,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? cs.primary : cs.outline.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? cs.onPrimary : cs.outline,
+        ),
       ),
     );
   }

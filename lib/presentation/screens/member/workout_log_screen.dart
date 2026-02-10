@@ -910,6 +910,46 @@ class _WorkoutLogCard extends StatelessWidget {
                 ),
               ),
             ),
+          // 오운완 사진
+          if (workout.imageUrl != null && workout.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => _showFullImage(context, workout.imageUrl!),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      workout.imageUrl!,
+                      width: double.infinity,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.fullscreen, size: 16, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text('원본 보기', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (workout.memo.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -977,6 +1017,55 @@ class _SummaryItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// 전체 화면 이미지 뷰어
+  void _showFullImage(BuildContext ctx, String imageUrl) {
+    Navigator.of(ctx, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            leading: Padding(
+              padding: const EdgeInsets.all(6),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                ),
+              ),
+            ),
+            title: const Text('오운완 사진', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              maxScale: 5.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.white,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

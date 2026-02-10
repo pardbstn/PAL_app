@@ -231,7 +231,7 @@ class _CurriculumResultScreenState
       );
       // 회원 상세 화면의 커리큘럼 탭으로 이동 (memberId가 있으면 해당 회원으로, 없으면 홈으로)
       if (memberId.isNotEmpty) {
-        context.go('/trainer/members/$memberId?tab=3'); // 커리큘럼 탭 (index 3)
+        context.go('/trainer/members/$memberId?tab=2'); // 커리큘럼 탭 (index 2)
       } else {
         context.go('/trainer');
       }

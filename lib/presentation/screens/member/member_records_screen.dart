@@ -1864,11 +1864,6 @@ class _BodyRecordCard extends ConsumerWidget {
                       constraints: const BoxConstraints(),
                       onPressed: () => _showDeleteDialog(context, ref),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
                   ],
                 ),
               ],
@@ -2462,6 +2457,23 @@ class _PersonalWorkoutCard extends ConsumerWidget {
                 ],
               ),
             ],
+            // 오운완 사진 미리보기
+            if (workout.imageUrl != null && workout.imageUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => _showFullImage(context, workout.imageUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    workout.imageUrl!,
+                    width: double.infinity,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -2555,10 +2567,52 @@ class _PersonalWorkoutCard extends ConsumerWidget {
               Expanded(
                 child: ListView.separated(
                   controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  itemCount: workout.exercises.length + (workout.memo.isNotEmpty ? 1 : 0),
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+                  itemCount: workout.exercises.length
+                      + ((workout.imageUrl != null && workout.imageUrl!.isNotEmpty) ? 1 : 0)
+                      + (workout.memo.isNotEmpty ? 1 : 0),
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
+                    final hasImage = workout.imageUrl != null && workout.imageUrl!.isNotEmpty;
+                    // 오운완 사진
+                    if (hasImage && index == workout.exercises.length) {
+                      return GestureDetector(
+                        onTap: () => _showFullImage(context, workout.imageUrl!),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                workout.imageUrl!,
+                                width: double.infinity,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              ),
+                            ),
+                            Positioned(
+                              right: 8,
+                              bottom: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.fullscreen, size: 16, color: Colors.white),
+                                    SizedBox(width: 4),
+                                    Text('원본 보기', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                     if (index < workout.exercises.length) {
                       final exercise = workout.exercises[index];
                       return Container(
@@ -2703,6 +2757,55 @@ class _PersonalWorkoutCard extends ConsumerWidget {
     const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     return '${date.year}년 ${date.month}월 ${date.day}일 (${weekdays[date.weekday - 1]})';
   }
+
+  /// 전체 화면 이미지 뷰어
+  void _showFullImage(BuildContext ctx, String imageUrl) {
+    Navigator.of(ctx, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            leading: Padding(
+              padding: const EdgeInsets.all(6),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                ),
+              ),
+            ),
+            title: const Text('오운완 사진', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              maxScale: 5.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.white,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// 운동 타임라인 카드
@@ -2823,35 +2926,37 @@ class _ExerciseTimelineCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.check_circle_rounded,
-                                size: 14,
-                                color: AppColors.secondary,
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              Text(
-                                '완료',
-                                style: theme.textTheme.labelSmall?.copyWith(
+                        if (isCompleted) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 14,
                                   color: AppColors.secondary,
-                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  '완료',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -2859,7 +2964,11 @@ class _ExerciseTimelineCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
+                            isCompleted
+                                ? DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate)
+                                : curriculum.scheduledDate != null
+                                    ? '예정: ${DateFormat('yyyy년 M월 d일 (E)', 'ko').format(curriculum.scheduledDate!)}'
+                                    : '미완료',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -3001,35 +3110,37 @@ class _ExerciseDetailSheet extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle_rounded,
-                                      size: 14,
-                                      color: AppColors.secondary,
-                                    ),
-                                    const SizedBox(width: AppSpacing.xs),
-                                    Text(
-                                      '완료',
-                                      style: theme.textTheme.labelSmall?.copyWith(
+                              if (curriculum.isCompleted) ...[
+                                const SizedBox(width: AppSpacing.sm),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 14,
                                         color: AppColors.secondary,
-                                        fontWeight: FontWeight.w600,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: AppSpacing.xs),
+                                      Text(
+                                        '완료',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: AppColors.secondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: AppSpacing.md / 1.333),
@@ -3041,7 +3152,11 @@ class _ExerciseDetailSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate),
+                            curriculum.isCompleted
+                                ? DateFormat('yyyy년 M월 d일 (E)', 'ko').format(completedDate)
+                                : curriculum.scheduledDate != null
+                                    ? '예정: ${DateFormat('yyyy년 M월 d일 (E)', 'ko').format(curriculum.scheduledDate!)}'
+                                    : '미완료',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),

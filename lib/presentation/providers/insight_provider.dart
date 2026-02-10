@@ -387,19 +387,7 @@ class InsightsGenerationNotifier extends Notifier<InsightsGenerationState> {
 
   /// 에러 메시지를 사용자 친화적 메시지로 변환
   String _formatErrorMessage(String rawError) {
-    // "Exception: " 접두사 제거
-    String message = rawError;
-    if (message.startsWith('Exception: ')) {
-      message = message.substring('Exception: '.length);
-    }
-
-    // 서버 내부 에러 (INTERNAL)
-    if (message == 'INTERNAL' || message.contains('INTERNAL')) {
-      return '서버 연결에 실패했어요. 잠시 후 다시 시도해주세요';
-    }
-
-    // 기타 에러는 정제된 메시지 반환
-    return message.isNotEmpty ? message : '인사이트 생성 중 문제가 생겼어요';
+    return _formatInsightError(rawError);
   }
 
   /// 상태 초기화
@@ -709,7 +697,7 @@ class MemberInsightsGenerationNotifier
     } catch (e) {
       state = state.copyWith(
         isGenerating: false,
-        errorMessage: e.toString(),
+        errorMessage: _formatInsightError(e.toString()),
       );
     }
   }
@@ -724,3 +712,52 @@ final memberInsightsGenerationProvider = NotifierProvider<
     MemberInsightsGenerationNotifier, MemberInsightsGenerationState>(
   MemberInsightsGenerationNotifier.new,
 );
+
+// ============================================================================
+// 공통 에러 메시지 포매팅
+// ============================================================================
+
+/// 인사이트 에러 메시지를 사용자 친화적으로 변환
+String _formatInsightError(String rawError) {
+  String message = rawError;
+  if (message.startsWith('Exception: ')) {
+    message = message.substring('Exception: '.length);
+  }
+
+  // Firestore 인덱스 누락
+  if (message.contains('FAILED_PRECONDITION') || message.contains('requires an index')) {
+    return '서버 설정이 필요해요. 관리자에게 문의해주세요';
+  }
+
+  // 서버 내부 에러
+  if (message.contains('INTERNAL')) {
+    return '서버 연결에 실패했어요. 잠시 후 다시 시도해주세요';
+  }
+
+  // 권한 에러
+  if (message.contains('PERMISSION_DENIED') || message.contains('UNAUTHENTICATED')) {
+    return '권한이 없어요. 다시 로그인해주세요';
+  }
+
+  // 타임아웃
+  if (message.contains('DEADLINE_EXCEEDED') || message.contains('timeout')) {
+    return '요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요';
+  }
+
+  // 네트워크 에러
+  if (message.contains('UNAVAILABLE') || message.contains('network')) {
+    return '네트워크 연결을 확인해주세요';
+  }
+
+  // 데이터 부족
+  if (message.contains('NOT_FOUND') || message.contains('데이터')) {
+    return '분석할 기록이 부족해요. 기록을 더 쌓아보세요';
+  }
+
+  // 기타: 기술적 내용이 포함된 긴 메시지는 기본 메시지로 대체
+  if (message.length > 50 || message.contains('http') || message.contains('firebase')) {
+    return '인사이트 생성 중 문제가 생겼어요. 잠시 후 다시 시도해주세요';
+  }
+
+  return message.isNotEmpty ? message : '인사이트 생성 중 문제가 생겼어요';
+}

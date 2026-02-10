@@ -156,22 +156,24 @@ class DietAnalysisService {
 
       // 2. Cloud Function 호출
       final callable = _functions.httpsCallable(CloudFunctions.analyzeDiet);
-      final response = await callable.call<Map<String, dynamic>>({
+      final response = await callable.call({
         'memberId': memberId,
         'imageUrl': imageUrl,
         'mealType': mealType.name,
       });
 
-      final data = response.data;
+      final data = Map<String, dynamic>.from(response.data as Map);
 
       if (data['success'] != true) {
         return DietAnalysisResult.failure(
-          data['error'] ?? '분석에 실패했어요',
+          data['error']?.toString() ?? '분석에 실패했어요',
         );
       }
 
       // 3. 개별 음식 파싱 + 로컬 DB 매칭 보정
-      final rawFoods = (data['foods'] as List<dynamic>?) ?? [];
+      final rawFoods = ((data['foods'] as List<dynamic>?) ?? [])
+          .map((f) => Map<String, dynamic>.from(f as Map))
+          .toList();
       final correctedFoods = _correctWithLocalDb(rawFoods);
 
       // 보정된 값으로 총합 재계산
@@ -205,7 +207,8 @@ class DietAnalysisService {
       );
 
       // usage 데이터가 없을 수 있으므로 null 안전 처리
-      final usageData = data['usage'] as Map<String, dynamic>?;
+      final usageRaw = data['usage'];
+      final usageData = usageRaw != null ? Map<String, dynamic>.from(usageRaw as Map) : null;
       final usage = usageData != null
           ? DietAnalysisUsage(
               current: (usageData['current'] as num?)?.toInt() ?? 0,

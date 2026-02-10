@@ -167,6 +167,9 @@ class _SessionCompleteDialogState extends ConsumerState<SessionCompleteDialog> {
         TextField(
           controller: _memoController,
           maxLines: 2,
+          minLines: 1,
+          textInputAction: TextInputAction.done,
+          onEditingComplete: () => FocusScope.of(context).unfocus(),
           decoration: InputDecoration(
             hintText: '오늘 수업에 대한 메모를 입력해주세요...',
             border: OutlineInputBorder(

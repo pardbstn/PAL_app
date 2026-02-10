@@ -1833,11 +1833,20 @@ export const generateMemberInsights = functions
         throw error;
       }
 
-      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
-      throw new functions.https.HttpsError(
-        "internal",
-        `인사이트 생성 중 오류가 발생했습니다: ${errorMessage}`
-      );
+      const rawMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+      functions.logger.error("[generateMemberInsights] raw error:", rawMessage);
+
+      // 사용자 친화적 에러 메시지 반환 (기술적 세부사항 숨김)
+      let userMessage = "인사이트 생성 중 문제가 생겼어요. 잠시 후 다시 시도해주세요";
+      if (rawMessage.includes("FAILED_PRECONDITION") || rawMessage.includes("requires an index")) {
+        userMessage = "서버 설정이 필요해요. 관리자에게 문의해주세요";
+      } else if (rawMessage.includes("DEADLINE_EXCEEDED") || rawMessage.includes("timeout")) {
+        userMessage = "요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요";
+      } else if (rawMessage.includes("UNAVAILABLE")) {
+        userMessage = "서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요";
+      }
+
+      throw new functions.https.HttpsError("internal", userMessage);
     }
   });
 

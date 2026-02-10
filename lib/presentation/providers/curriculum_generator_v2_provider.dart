@@ -214,6 +214,51 @@ class CurriculumGeneratorV2Notifier
     }
   }
 
+  /// 부상으로 제외해야 할 근육 목록 반환
+  Set<String> _getExcludedMuscles(List<String> excludedParts) {
+    final excluded = <String>{};
+    if (excludedParts.isEmpty) return excluded;
+    final injuryMap = _getInjuryMuscleMap();
+    for (final part in excludedParts) {
+      excluded.addAll(injuryMap[part] ?? []);
+    }
+    return excluded;
+  }
+
+  /// 부상 부위를 안전한 대체 부위로 교체
+  List<String> _replaceFocusPartsForInjury(
+    List<String> focusParts,
+    Set<String> excludedMuscles,
+  ) {
+    const allParts = ['가슴', '등', '하체', '어깨', '팔', '복근'];
+    final safeParts = allParts.where((p) => !excludedMuscles.contains(p)).toList();
+    if (safeParts.isEmpty) return focusParts; // 안전한 부위가 없으면 원본 유지
+
+    final result = <String>[];
+    int safeIdx = 0;
+    for (final part in focusParts) {
+      if (excludedMuscles.contains(part)) {
+        // 부상 부위 → 안전한 대체 부위로 교체
+        final replacement = safeParts[safeIdx % safeParts.length];
+        if (!result.contains(replacement)) {
+          result.add(replacement);
+        }
+        safeIdx++;
+      } else {
+        if (!result.contains(part)) {
+          result.add(part);
+        }
+      }
+    }
+
+    // 결과가 비어있으면 안전한 부위로 채움
+    if (result.isEmpty) {
+      result.addAll(safeParts.take(2));
+    }
+
+    return result;
+  }
+
   /// 회차별 운동 생성
   List<Exercise> _generateSessionExercises({
     required CurriculumSettings settings,
@@ -225,13 +270,22 @@ class CurriculumGeneratorV2Notifier
     final exerciseCount = settings.exerciseCount;
     final setCount = settings.setCount;
     final excludedParts = settings.excludedParts;
+    final excludedMuscles = _getExcludedMuscles(excludedParts);
 
     // 이 회차에서 집중할 부위 결정
-    final sessionFocusParts = _getSessionFocusParts(
+    var sessionFocusParts = _getSessionFocusParts(
       settings.focusParts,
       sessionIndex,
       totalSessions,
     );
+
+    // 부상 부위가 포함된 경우 안전한 대체 부위로 교체
+    if (excludedMuscles.isNotEmpty) {
+      sessionFocusParts = _replaceFocusPartsForInjury(
+        sessionFocusParts,
+        excludedMuscles,
+      );
+    }
 
     // 전체 운동 중 제외 운동/부위 필터링
     var candidates = ExerciseConstants.exercises.where((ex) {
@@ -239,14 +293,7 @@ class CurriculumGeneratorV2Notifier
       final muscle = ex['primaryMuscle']?.toString() ?? '';
 
       if (excludedExerciseIds.contains(id)) return false;
-
-      if (excludedParts.isNotEmpty) {
-        final injuryMap = _getInjuryMuscleMap();
-        for (final part in excludedParts) {
-          final affected = injuryMap[part] ?? [];
-          if (affected.contains(muscle)) return false;
-        }
-      }
+      if (excludedMuscles.contains(muscle)) return false;
 
       return true;
     }).toList();
@@ -261,6 +308,16 @@ class CurriculumGeneratorV2Notifier
             .toList();
         partExercises.shuffle(random);
         selected.addAll(partExercises.take(perPart));
+      }
+
+      // 부상으로 운동 수가 부족하면 다른 안전한 부위에서 보충
+      if (selected.length < exerciseCount) {
+        final selectedIds = selected.map((e) => e['id']?.toString()).toSet();
+        final remaining = candidates
+            .where((ex) => !selectedIds.contains(ex['id']?.toString()))
+            .toList();
+        remaining.shuffle(random);
+        selected.addAll(remaining.take(exerciseCount - selected.length));
       }
     } else {
       candidates.shuffle(random);

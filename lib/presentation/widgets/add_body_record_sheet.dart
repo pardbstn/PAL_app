@@ -40,7 +40,6 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
 
   // 상태
   DateTime _selectedDate = DateTime.now();
-  RecordSource _recordSource = RecordSource.manual;
   bool _isLoading = false;
   String? _dateWarning; // 같은 날짜 경고 메시지
 
@@ -102,9 +101,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
                   _buildMuscleMassField(colorScheme),
                   const SizedBox(height: 20),
 
-                  // 데이터 소스
-                  _buildDataSourceSelector(colorScheme),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
 
                   // 저장 버튼
                   _buildSaveButton(),
@@ -367,86 +364,6 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
     );
   }
 
-  Widget _buildDataSourceSelector(ColorScheme colorScheme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '데이터 소스',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildDataSourceChip(
-                label: '직접 입력',
-                icon: Icons.edit_outlined,
-                source: RecordSource.manual,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildDataSourceChip(
-                label: 'AI 인바디 분석',
-                icon: Icons.camera_alt_outlined,
-                source: RecordSource.inbodyApi,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDataSourceChip({
-    required String label,
-    required IconData icon,
-    required RecordSource source,
-  }) {
-    final isSelected = _recordSource == source;
-    return InkWell(
-      onTap: () => setState(() => _recordSource = source),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primary.withValues(alpha: 0.1)
-              : Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppTheme.primary : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected ? AppTheme.primary : Colors.grey[600],
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? AppTheme.primary : Colors.grey[700],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
@@ -521,7 +438,7 @@ class _AddBodyRecordSheetState extends ConsumerState<AddBodyRecordSheet> {
         weight: weight,
         bodyFatPercent: bodyFatPercent,
         muscleMass: muscleMass,
-        source: _recordSource,
+        source: RecordSource.manual,
         createdAt: DateTime.now(),
       );
 

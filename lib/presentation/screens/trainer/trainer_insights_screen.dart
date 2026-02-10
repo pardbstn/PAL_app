@@ -640,7 +640,7 @@ class _TrainerInsightsScreenState extends ConsumerState<TrainerInsightsScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('인사이트 생성에 실패했어요: $e'),
+          content: const Text('인사이트 생성에 실패했어요. 잠시 후 다시 시도해주세요'),
           backgroundColor: AppTheme.error,
         ),
       );

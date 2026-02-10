@@ -584,9 +584,17 @@ function generateNutritionBalance(
     const totalProtein = recentDiets.reduce((sum, d) => sum + (d.protein || 0), 0);
     const totalCarbs = recentDiets.reduce((sum, d) => sum + (d.carbs || 0), 0);
     const totalFat = recentDiets.reduce((sum, d) => sum + (d.fat || 0), 0);
-    const avgProtein = totalProtein / recentDiets.length;
-    const avgCarbs = totalCarbs / recentDiets.length;
-    const avgFat = totalFat / recentDiets.length;
+    // 일수 기반 평균 (끼니 수가 아닌 실제 기록 날수로 나눔)
+    const fallbackDays = new Set(
+      recentDiets.map((d) => {
+        const date = safeToDate(d.analyzedAt);
+        return date ? date.toISOString().split("T")[0] : "";
+      }).filter((d) => d !== "")
+    );
+    const fallbackDayCount = Math.max(1, fallbackDays.size);
+    const avgProtein = totalProtein / fallbackDayCount;
+    const avgCarbs = totalCarbs / fallbackDayCount;
+    const avgFat = totalFat / fallbackDayCount;
 
     // 간단한 그래프 데이터
     const graphData = [
@@ -716,6 +724,17 @@ function generateNutritionBalance(
 }
 
 /**
+ * 인바디 기록에서 체지방량 계산 (bodyFatMass가 없으면 bodyFatPercent * weight / 100)
+ */
+function getBodyFatMass(record: InbodyRecord): number {
+  if (record.bodyFatMass) return record.bodyFatMass;
+  if (record.bodyFatPercent && record.weight) {
+    return (record.bodyFatPercent * record.weight) / 100;
+  }
+  return 0;
+}
+
+/**
  * 5. 체성분 변화 리포트 (body_change_report)
  * 3개월간 체지방/골격근 변화
  */
@@ -729,12 +748,12 @@ function generateBodyChangeReport(
   // 데이터가 1개인 경우 fallback 인사이트 반환
   if (inbodyRecords.length === 1) {
     const record = inbodyRecords[0];
-    const currentFat = record.bodyFatMass || 0;
+    const currentFat = getBodyFatMass(record);
     const currentMuscle = record.skeletalMuscleMass || 0;
     const currentFatPercent = record.bodyFatPercent || 0;
 
     // 유효한 데이터가 있는 경우에만 반환
-    if (currentFat === 0 && currentMuscle === 0) {
+    if (currentFat === 0 && currentMuscle === 0 && currentFatPercent === 0) {
       return null;
     }
 
@@ -789,8 +808,8 @@ function generateBodyChangeReport(
   if (!latestRecord || !oldestRecord) return null;
 
   // 체지방량, 골격근량 변화
-  const beforeFat = oldestRecord.bodyFatMass || 0;
-  const afterFat = latestRecord.bodyFatMass || 0;
+  const beforeFat = getBodyFatMass(oldestRecord);
+  const afterFat = getBodyFatMass(latestRecord);
   const fatChange = afterFat - beforeFat;
 
   const beforeMuscle = oldestRecord.skeletalMuscleMass || 0;

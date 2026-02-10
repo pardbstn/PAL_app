@@ -75,7 +75,7 @@ interface SessionData {
   memberId: string;
   trainerId: string;
   scheduledAt: admin.firestore.Timestamp;
-  status: "scheduled" | "completed" | "cancelled" | "noshow";
+  status: "scheduled" | "completed" | "cancelled" | "noShow";
   workoutType?: string;
   workoutSets?: WorkoutSetData[];
 }
@@ -1420,9 +1420,9 @@ function analyzeNoshowPattern(
   sessions: SessionData[],
   trainerId: string
 ): InsightData | null {
-  const noshowSessions = sessions.filter((s) => s.status === "noshow");
+  const noshowSessions = sessions.filter((s) => s.status === "noShow");
   const totalSessions = sessions.filter(
-    (s) => s.status === "completed" || s.status === "noshow"
+    (s) => s.status === "completed" || s.status === "noShow"
   );
 
   if (totalSessions.length < 3) return null;
@@ -1471,7 +1471,7 @@ function analyzeNoshowPattern(
     if (!date) return;
     const day = date.getDay();
     dayStats[day].total++;
-    if (session.status === "noshow") {
+    if (session.status === "noShow") {
       dayStats[day].noshow++;
     }
   });
@@ -1493,7 +1493,7 @@ function analyzeNoshowPattern(
     else timeSlot = "evening";
 
     timeStats[timeSlot].total++;
-    if (session.status === "noshow") {
+    if (session.status === "noShow") {
       timeStats[timeSlot].noshow++;
     }
   });
@@ -2304,12 +2304,18 @@ export const generateInsights = functions
         throw error;
       }
 
-      const errorMessage =
-        error instanceof Error ? error.message : "알 수 없는 오류";
-      throw new functions.https.HttpsError(
-        "internal",
-        `인사이트 생성 중 오류가 발생했습니다. (${errorMessage})`
-      );
+      const rawMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+      functions.logger.error("[generateInsights] raw error:", rawMessage);
+
+      let userMessage = "인사이트 생성 중 문제가 생겼어요. 잠시 후 다시 시도해주세요";
+      if (rawMessage.includes("FAILED_PRECONDITION") || rawMessage.includes("requires an index")) {
+        userMessage = "서버 설정이 필요해요. 관리자에게 문의해주세요";
+      } else if (rawMessage.includes("DEADLINE_EXCEEDED") || rawMessage.includes("timeout")) {
+        userMessage = "요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요";
+      } else if (rawMessage.includes("UNAVAILABLE")) {
+        userMessage = "서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요";
+      }
+      throw new functions.https.HttpsError("internal", userMessage);
     }
   });
 

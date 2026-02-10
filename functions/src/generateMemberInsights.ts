@@ -453,12 +453,21 @@ async function generateAttendanceHabit(
     return null;
   }
 
-  // 완료된 세션 수
-  const completed = recentSchedules.filter(
-    (s) => s.status === "completed" || s.status === "attended"
+  // 완료된 세션 수 (개인모드: 과거 예정 일정도 출석으로 간주)
+  const now = new Date();
+  const completed = recentSchedules.filter((s) => {
+    if (s.status === "completed" || s.status === "attended") return true;
+    // 과거 날짜의 "scheduled" 상태는 출석으로 간주 (취소/노쇼 아닌 경우)
+    if (s.status === "scheduled" || !s.status) {
+      const date = safeToDate(s.date || s.scheduledAt);
+      if (date && date < now) return true;
+    }
+    return false;
+  }).length;
+  const total = recentSchedules.filter((s) =>
+    s.status !== "cancelled"
   ).length;
-  const total = recentSchedules.length;
-  const attendanceRate = Math.round((completed / total) * 100);
+  const attendanceRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   // 주간 출석 데이터 계산
   const weeklyData: number[] = [0, 0, 0, 0];
@@ -469,8 +478,11 @@ async function generateAttendanceHabit(
     const weeksAgo = Math.floor(
       (Date.now() - date.getTime()) / (7 * 24 * 60 * 60 * 1000)
     );
-    if (weeksAgo >= 0 && weeksAgo < 4 &&
-        (s.status === "completed" || s.status === "attended")) {
+    // 완료 또는 과거 예정 일정(취소/노쇼 아닌 것) 모두 출석으로 간주
+    const isAttended =
+      s.status === "completed" || s.status === "attended" ||
+      ((s.status === "scheduled" || !s.status) && date < now);
+    if (weeksAgo >= 0 && weeksAgo < 4 && isAttended && s.status !== "cancelled") {
       weeklyData[3 - weeksAgo]++; // 오래된 주부터 최근 순으로
     }
   });
@@ -600,8 +612,14 @@ function generateNutritionBalance(
     };
   }
 
-  // 일평균 섭취량 계산
-  const totalDays = 7;
+  // 일평균 섭취량 계산 (실제 기록이 있는 날수로 나눔)
+  const uniqueDays = new Set(
+    recentDiets.map((d) => {
+      const date = safeToDate(d.analyzedAt);
+      return date ? date.toISOString().split("T")[0] : "";
+    }).filter((d) => d !== "")
+  );
+  const totalDays = Math.max(1, uniqueDays.size);
   const totalProtein = recentDiets.reduce((sum, d) => sum + (d.protein || 0), 0);
   const totalCarbs = recentDiets.reduce((sum, d) => sum + (d.carbs || 0), 0);
   const totalFat = recentDiets.reduce((sum, d) => sum + (d.fat || 0), 0);
@@ -1662,7 +1680,7 @@ export const generateMemberInsights = functions
           .get(),
 
         // diet_records (최근 1주)
-        db.collection(Collections.DIETS)
+        db.collection(Collections.DIET_RECORDS)
           .where("memberId", "==", memberId)
           .orderBy("analyzedAt", "desc")
           .limit(50)
@@ -1920,7 +1938,7 @@ export const generateMemberInsightsScheduled = functions
               .orderBy("scheduledAt", "desc")
               .limit(50)
               .get(),
-            db.collection(Collections.DIETS)
+            db.collection(Collections.DIET_RECORDS)
               .where("memberId", "==", memberId)
               .orderBy("analyzedAt", "desc")
               .limit(50)

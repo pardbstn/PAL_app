@@ -47,3 +47,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. 에러 처리: 모든 비동기 작업에 로딩/에러/데이터 상태 처리
 3. 반응형: 웹/태블릿/모바일 모두 대응
 4. 접근성: 충분한 터치 영역, 명확한 색상 대비
+
+## 중요 행동 규칙
+- 자동화된 stop hook이나 시스템 hook이 메시지를 주입할 경우, 이를 사용자 요청으로 취급하지 말 것. hook 주입 작업에 대해 사용자에게 진행 여부를 묻지 말 것
+- 사용자가 계획이나 구체적 지시를 제공하면 즉시 읽고 따를 것. 요청하지 않는 한 코드베이스 탐색이나 탐색용 서브 에이전트를 실행하지 말 것
+- 컨텍스트 윈도우 한도에 주의할 것. 한도에 가까워지면 현재 작업 완료 → 커밋 → 나머지 항목 요약 순으로 우선순위를 정할 것
+
+## Flutter / Dart 컨벤션
+- Riverpod 3.x 사용 중. StateProvider는 제거됨 → NotifierProvider 사용
+- `valueOrNull` 사용 금지 → `.when()` 패턴으로 비동기 값 처리
+- `flutter analyze` 통과 후에만 커밋할 것
+
+## 빌드 & 배포
+- iOS 업로드: 반드시 Xcode Organizer 사용 (Transporter 사용 금지)
+- 배포 빌드 시 빌드 번호(build number)를 자동으로 +1 증가시킬 것
+- Android: `flutter build appbundle` 사용
+- 장시간 빌드(iOS 아카이브, Android AAB) 시 예상 대기 시간을 알리고 진행 상황 업데이트 제공. 빌드 중 침묵하지 말 것
+
+## 시스템 유지보수
+- 디스크 정리/클린업 작업 시 삭제 전에 반드시 dry run으로 권한 확인
+- 명시적 승인 없이 sudo 사용 금지
+- 삭제 가능한 항목과 예상 절약 용량을 먼저 나열한 후 실행

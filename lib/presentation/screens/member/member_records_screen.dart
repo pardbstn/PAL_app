@@ -30,6 +30,19 @@ final memberSignaturesProvider = StreamProvider.family<List<SessionSignatureMode
   return repository.watchByMemberId(memberId);
 });
 
+/// 개인모드 내기록 탭 인덱스 Notifier (체성분: 0, 운동: 1)
+/// MemberShell에서 스와이프 시 내부 탭 전환에 사용
+class PersonalRecordsTabNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  void set(int index) => state = index;
+}
+
+final personalRecordsTabIndexProvider =
+    NotifierProvider<PersonalRecordsTabNotifier, int>(
+  PersonalRecordsTabNotifier.new,
+);
+
 /// 회원 내 기록 화면 - 프리미엄 UI
 /// [체성분] [운동] [서명기록] 3탭 구조
 class MemberRecordsScreen extends ConsumerStatefulWidget {
@@ -50,6 +63,17 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
     // Personal mode has 2 tabs (체성분, 운동기록), others have 3 tabs (체성분, 운동기록, 서명기록)
     final isPersonal = ref.read(userRoleProvider) == UserRole.personal;
     _tabController = TabController(length: isPersonal ? 2 : 3, vsync: this);
+    // 개인모드: 탭 변경 시 provider 동기화 (셸 스와이프 연동)
+    if (isPersonal) {
+      _tabController.addListener(() {
+        if (!_tabController.indexIsChanging) {
+          final current = ref.read(personalRecordsTabIndexProvider);
+          if (current != _tabController.index) {
+            ref.read(personalRecordsTabIndexProvider.notifier).set(_tabController.index);
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -61,6 +85,15 @@ class _MemberRecordsScreenState extends ConsumerState<MemberRecordsScreen>
   @override
   Widget build(BuildContext context) {
     final isPersonal = ref.watch(userRoleProvider) == UserRole.personal;
+
+    // 개인모드: 셸에서 provider 변경 시 탭 애니메이션
+    if (isPersonal) {
+      ref.listen<int>(personalRecordsTabIndexProvider, (prev, next) {
+        if (_tabController.index != next) {
+          _tabController.animateTo(next);
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -2276,7 +2309,7 @@ class _PersonalWorkoutSubTab extends ConsumerWidget {
     return Stack(
       children: [
         EmptyState(
-          type: EmptyStateType.curriculums,
+          type: EmptyStateType.bodyRecords,
           customTitle: '개인운동을 기록해보세요',
           customMessage: '직접 운동을 기록하고\n진행 상황을 확인해보세요',
           actionLabel: '운동 기록하기',

@@ -777,7 +777,20 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
     final dateFormat = DateFormat('M월 d일 (E)', 'ko_KR');
     final isToday = _isToday(_selectedDate);
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
+        // 왼쪽 스와이프 → 다음 날
+        if (details.primaryVelocity! < -300) {
+          _changeDate(1);
+        }
+        // 오른쪽 스와이프 → 이전 날
+        else if (details.primaryVelocity! > 300) {
+          _changeDate(-1);
+        }
+      },
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -835,6 +848,7 @@ class _MemberDietScreenState extends ConsumerState<MemberDietScreen> {
           ),
         ],
       ),
+    ),
     ).animate().fadeIn(duration: 200.ms);
   }
 

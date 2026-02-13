@@ -98,11 +98,13 @@ class AppTextField extends StatelessWidget {
           enabled: enabled,
           onChanged: onChanged,
           validator: validator,
-          style: theme.textTheme.bodyLarge,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: isDark ? Colors.white : null,
+          ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
-              color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFFB0B0B0),
+              color: isDark ? const Color(0xFF8E8E93) : const Color(0xFFB0B0B0),
             ),
             filled: !enabled,
             fillColor: !enabled ? disabledFillColor : null,

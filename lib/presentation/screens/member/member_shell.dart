@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_pal_app/core/constants/routes.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/presentation/providers/chat_provider.dart';
+import 'package:flutter_pal_app/presentation/screens/member/member_records_screen.dart';
 import 'package:flutter_pal_app/presentation/widgets/common/liquid_glass_nav_bar.dart';
 
 /// 회원 앱 셸 (Bottom Navigation - 5개 탭)
@@ -66,6 +67,11 @@ class _MemberShellState extends ConsumerState<MemberShell> {
     final currentIndex = _calculateSelectedIndex(context);
     if (currentIndex == index || index < 0 || index >= routes.length) return;
     _slideForward = index > currentIndex;
+    // 개인모드: 내기록으로 이동 시 방향에 따라 탭 설정
+    if (_isPersonalMode(location) && index == 1) {
+      ref.read(personalRecordsTabIndexProvider.notifier).set(
+          currentIndex > 1 ? 1 : 0); // 오른쪽에서 오면 운동탭, 왼쪽에서 오면 체성분탭
+    }
     context.go(routes[index]);
   }
 
@@ -87,6 +93,23 @@ class _MemberShellState extends ConsumerState<MemberShell> {
         behavior: HitTestBehavior.translucent,
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity == null) return;
+          // 개인 모드: 내기록 화면에서 체성분↔운동 탭 전환
+          if (isPersonal && currentIndex == 1) {
+            final recordsTab = ref.read(personalRecordsTabIndexProvider);
+            if (details.primaryVelocity! < -400) {
+              if (recordsTab == 0) {
+                // 체성분 → 운동 탭 전환
+                ref.read(personalRecordsTabIndexProvider.notifier).set(1);
+                return;
+              }
+            } else if (details.primaryVelocity! > 400) {
+              if (recordsTab == 1) {
+                // 운동 → 체성분 탭 전환
+                ref.read(personalRecordsTabIndexProvider.notifier).set(0);
+                return;
+              }
+            }
+          }
           // 왼쪽 스와이프 → 다음 탭
           if (details.primaryVelocity! < -400) {
             _navigateToIndex(currentIndex + 1, context);

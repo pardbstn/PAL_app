@@ -69,7 +69,8 @@ class AppTheme {
       );
 
   // 다크 테마
-  static ThemeData get dark => FlexThemeData.dark(
+  static ThemeData get dark {
+    final base = FlexThemeData.dark(
         colors: const FlexSchemeColor(
           primary: Color(0xFF4D9AFF), // 다크모드용 밝은 파란색
           primaryContainer: Color(0xFF1A3A6B),
@@ -115,4 +116,12 @@ class AppTheme {
         useMaterial3: true,
         fontFamily: fontFamily,
       );
+    // 다크모드 입력 필드 텍스트 가시성 개선
+    return base.copyWith(
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
+        labelStyle: const TextStyle(color: Color(0xFFBDBDBD)),
+      ),
+    );
+  }
 }

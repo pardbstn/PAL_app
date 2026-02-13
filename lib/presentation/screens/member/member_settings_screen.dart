@@ -56,7 +56,13 @@ class MemberSettingsScreen extends ConsumerWidget {
         title: const Text('설정'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.go('/member/home'),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/member/home');
+            }
+          },
         ),
       ),
       body: ListView(

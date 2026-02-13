@@ -66,6 +66,14 @@
           }
         },
         {
+          "client_id": "944944117072-ui20mrd3doojfs100ii1mpkqevn8eqtr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.palapp.health123",
+            "certificate_hash": "5f48eb6b60e44bb894202261150dacfd1b2cdef1"
+          }
+        },
+        {
           "client_id": "944944117072-4pncq50deqbbod70tld6qen85kvgo4t7.apps.googleusercontent.com",
           "client_type": 3
         }

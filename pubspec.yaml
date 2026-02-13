@@ -1,7 +1,7 @@
 name: flutter_pal_app
 description: "PAL - AI 기반 PT 관리 플랫폼"
 publish_to: 'none'
-version: 1.1.0+8
+version: 1.1.0+9
 
 environment:
   sdk: ^3.10.4

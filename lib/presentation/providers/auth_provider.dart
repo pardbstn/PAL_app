@@ -214,15 +214,26 @@ class AuthNotifier extends Notifier<AuthState> {
           }
         } else {
           memberModel = await _memberRepository.getByUserId(uid);
-          // 회원 프로필이 없으면 실시간 감시 시작 (나중에 트레이너가 등록할 수 있음)
+          // 회원 프로필이 없으면 자동 생성
           if (memberModel == null) {
-            _memberRepository.watchByUserId(uid).listen((member) {
-              if (member != null) {
-                // memberModel이 바뀌면 항상 업데이트 (trainerId 등이 나중에 추가될 수 있음)
-                state = state.copyWith(memberModel: member);
-              }
-            });
-          } else {
+            final now = DateTime.now();
+            final newMember = MemberModel(
+              id: '',
+              userId: uid,
+              trainerId: '', // 트레이너 배정 전
+              goal: FitnessGoal.fitness,
+              experience: ExperienceLevel.beginner,
+              ptInfo: PtInfo(
+                totalSessions: 0,
+                completedSessions: 0,
+                startDate: now,
+              ),
+            );
+            final memberId = await _memberRepository.create(newMember);
+            memberModel = await _memberRepository.get(memberId);
+          }
+          // 회원 프로필 실시간 감시 (trainerId 변경 등)
+          if (memberModel != null) {
             // 회원 프로필이 있으면 실시간 감시로 업데이트 추적 (trainerId 변경 등)
             _memberRepository.watchByUserId(uid).listen((member) {
               if (member != null && member.id == memberModel?.id) {
@@ -451,9 +462,10 @@ class AuthNotifier extends Notifier<AuthState> {
           await _auth.signOut();
           state = state.copyWith(
             isLoading: false,
+            isAuthenticated: false,
             errorMessage: '가입되지 않은 계정이에요. 회원가입을 먼저 해주세요',
           );
-          throw Exception('가입되지 않은 계정이에요. 회원가입을 먼저 해주세요');
+          return;
         }
 
         // 4. 기존 사용자는 저장된 역할 사용 (선택된 역할 무시)
@@ -485,7 +497,6 @@ class AuthNotifier extends Notifier<AuthState> {
         isLoading: false,
         errorMessage: _getErrorMessage(e.code),
       );
-      rethrow;
     } catch (e) {
       // 이미 상태가 설정된 경우 (사용자 검증 실패) 그대로 유지
       if (state.errorMessage == null) {
@@ -494,7 +505,6 @@ class AuthNotifier extends Notifier<AuthState> {
           errorMessage: '로그인 중 문제가 생겼어요',
         );
       }
-      rethrow;
     }
   }
 
@@ -1146,6 +1156,58 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// 회원 탈퇴 (계정 삭제)
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      final uid = user.uid;
+
+      // 1. 역할별 프로필 데이터 삭제
+      if (state.userRole == UserRole.trainer) {
+        final trainer = await _trainerRepository.getByUserId(uid);
+        if (trainer != null) {
+          await _trainerRepository.delete(trainer.id);
+        }
+      } else {
+        final member = await _memberRepository.getByUserId(uid);
+        if (member != null) {
+          await _memberRepository.delete(member.id);
+        }
+      }
+
+      // 2. 사용자 문서 삭제
+      await _userRepository.delete(uid);
+
+      // 3. Firebase Auth 계정 삭제
+      await user.delete();
+
+      // 4. 상태 초기화
+      state = const AuthState();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '보안을 위해 다시 로그인 후 탈퇴해주세요.',
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '계정 삭제 중 문제가 생겼어요.',
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] 회원 탈퇴 오류: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '계정 삭제 중 문제가 생겼어요.',
+      );
+    }
+  }
+
   /// 비밀번호 재설정 이메일 전송
   Future<void> sendPasswordResetEmail(String email) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -1159,6 +1221,25 @@ class AuthNotifier extends Notifier<AuthState> {
         errorMessage: _getErrorMessage(e.code),
       );
       rethrow;
+    }
+  }
+
+  /// 비밀번호 직접 재설정 (Cloud Function 호출)
+  Future<void> resetPasswordDirect(String email, String newPassword) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-northeast3').httpsCallable('resetUserPassword');
+      final result = await callable.call({
+        'email': email.trim(),
+        'newPassword': newPassword,
+      });
+      debugPrint('[Auth] 비밀번호 재설정 성공: ${result.data}');
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      debugPrint('[Auth] 비밀번호 재설정 오류: $e');
+      state = state.copyWith(isLoading: false, errorMessage: null);
+      rethrow; // 다이얼로그의 catch에서 처리
     }
   }
 

@@ -320,9 +320,12 @@ class TrainerSettingsScreen extends ConsumerWidget {
             child: const Text('취소'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: 회원 탈퇴 로직
+            onPressed: () async {
               Navigator.pop(context);
+              await ref.read(authProvider.notifier).deleteAccount();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

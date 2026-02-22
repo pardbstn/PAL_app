@@ -40,11 +40,19 @@ class InsightMiniChart extends StatelessWidget {
     return SizedBox(
       height: height,
       width: width,
-      child: _buildChart(context, color),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // LayoutBuilder로 실제 렌더링 너비를 구해서 차트에 전달
+          // width: double.infinity가 전달될 경우 바 차트 등에서
+          // infinity 값으로 산술 계산되는 문제 방지
+          final actualWidth = constraints.maxWidth;
+          return _buildChart(context, color, actualWidth);
+        },
+      ),
     );
   }
 
-  Widget _buildChart(BuildContext context, Color color) {
+  Widget _buildChart(BuildContext context, Color color, double actualWidth) {
     // 빈 데이터 처리
     if (data.isEmpty) {
       return const SizedBox.shrink();
@@ -54,11 +62,11 @@ class InsightMiniChart extends StatelessWidget {
       case 'line':
         return _buildLineChart(color);
       case 'bar':
-        return _buildBarChart(color);
+        return _buildBarChart(color, actualWidth);
       case 'donut':
         return _buildDonutChart(context);
       case 'progress':
-        return _buildProgressBar(context, color);
+        return _buildProgressBar(context, color, actualWidth);
       default:
         return const SizedBox.shrink();
     }
@@ -161,12 +169,17 @@ class InsightMiniChart extends StatelessWidget {
 
   /// 바 차트 (요일별, 주간 등 표시용)
   /// data format: [{label: '월', value: 3}, {label: '화', value: 2}, ...]
-  Widget _buildBarChart(Color color) {
+  Widget _buildBarChart(Color color, double actualWidth) {
     if (data.isEmpty) return const SizedBox.shrink();
 
     final maxValue = data
         .map((d) => (d['value'] as num?)?.toDouble() ?? 0.0)
         .reduce((a, b) => a > b ? a : b);
+
+    // 실제 렌더링 너비로 막대 너비 계산 (infinity 방지)
+    final barWidth = actualWidth > 0 && actualWidth.isFinite
+        ? actualWidth / (data.length * 2)
+        : 12.0;
 
     return BarChart(
       BarChartData(
@@ -186,7 +199,7 @@ class InsightMiniChart extends StatelessWidget {
               BarChartRodData(
                 toY: value,
                 color: color,
-                width: width / (data.length * 2), // 막대 너비 자동 조절
+                width: barWidth,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(4),
@@ -246,7 +259,7 @@ class InsightMiniChart extends StatelessWidget {
 
   /// 프로그레스 바 (달성률 표시용)
   /// data format: [{value: 92, max: 100}]
-  Widget _buildProgressBar(BuildContext context, Color color) {
+  Widget _buildProgressBar(BuildContext context, Color color, double actualWidth) {
     if (data.isEmpty) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -255,6 +268,11 @@ class InsightMiniChart extends StatelessWidget {
     final maxValue = (item['max'] as num?)?.toDouble() ?? 100.0;
     final percentage = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
     final percentageText = '${(percentage * 100).toInt()}%';
+
+    // 실제 렌더링 너비 사용 (infinity 방지)
+    final barWidth = actualWidth > 0 && actualWidth.isFinite
+        ? actualWidth
+        : 120.0;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -273,7 +291,7 @@ class InsightMiniChart extends StatelessWidget {
         // 프로그레스 바
         Container(
           height: 8,
-          width: width,
+          width: barWidth,
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(4),

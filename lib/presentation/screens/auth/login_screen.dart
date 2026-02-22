@@ -661,26 +661,131 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
-  /// 비밀번호 찾기 처리
-  Future<void> _handleForgotPassword() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이메일을 먼저 입력해주세요')),
-      );
-      return;
+  /// Cloud Function 에러 메시지 파싱
+  String _parseErrorMessage(dynamic error) {
+    final msg = error.toString();
+    if (msg.contains('not-found') || msg.contains('user-not-found')) {
+      return '등록되지 않은 이메일이에요.';
     }
-
-    try {
-      await ref.read(authProvider.notifier).sendPasswordResetEmail(email);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('비밀번호 재설정 이메일을 전송했어요')),
-        );
-      }
-    } catch (e) {
-      // 에러는 authState.errorMessage로 표시됨
+    if (msg.contains('invalid-argument')) {
+      return '입력값을 확인해주세요.';
     }
+    return '이메일을 확인해주세요.';
+  }
+
+  /// 비밀번호 재설정 다이얼로그
+  void _handleForgotPassword() {
+    final resetEmailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('비밀번호 재설정'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: resetEmailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: '이메일',
+                      hintText: 'example@email.com',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '새 비밀번호',
+                      hintText: '6자 이상',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '비밀번호 확인',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final email = resetEmailController.text.trim();
+                  final newPassword = newPasswordController.text;
+                  final confirmPassword = confirmPasswordController.text;
+
+                  if (email.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('이메일을 입력해주세요')),
+                    );
+                    return;
+                  }
+                  if (newPassword.length < 6) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('비밀번호는 6자 이상이어야 해요')),
+                    );
+                    return;
+                  }
+                  if (newPassword != confirmPassword) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('비밀번호가 일치하지 않아요')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await ref
+                        .read(authProvider.notifier)
+                        .resetPasswordDirect(email, newPassword);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('비밀번호가 변경되었어요. 새 비밀번호로 로그인해주세요.'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    // 다이얼로그는 열린 상태로 유지 (사용자가 재시도 가능)
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('비밀번호 변경에 실패했어요: ${_parseErrorMessage(e)}'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('변경'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

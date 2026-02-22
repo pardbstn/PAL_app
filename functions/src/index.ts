@@ -493,6 +493,13 @@ export {fetchInbodyByPhone} from "./fetchInbodyByPhone";
 export {analyzeInbody} from "./analyzeInbody";
 
 // ============================================
+// 비밀번호 재설정 Functions
+// ============================================
+
+// 비밀번호 직접 재설정 (Admin SDK)
+export {resetUserPassword} from "./resetUserPassword";
+
+// ============================================
 // 스케줄러 Functions (별도 폴더)
 // ============================================
 

@@ -1,6 +1,37 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_pal_app/core/constants/exercise_constants.dart';
 import 'package:flutter_pal_app/data/models/exercise_db_model.dart';
+
+/// 전체 운동 목록 캐시 (로컬 JSON 800개 → fallback: ExerciseConstants 80개)
+final allExercisesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final jsonStr =
+        await rootBundle.loadString('assets/data/exercises_db.json');
+    final data = json.decode(jsonStr) as Map<String, dynamic>;
+    final list = data['exercises'] as List<dynamic>;
+    return list.map((e) {
+      final map = e as Map<String, dynamic>;
+      final equipmentList = map['equipment'] as List<dynamic>? ?? [];
+      final equipmentName = equipmentList.isNotEmpty
+          ? (equipmentList[0] as Map<String, dynamic>)['nameKr'] as String? ??
+              '맨몸'
+          : '맨몸';
+      return <String, dynamic>{
+        'id': 'db_${map['id']}',
+        'nameKo': map['nameKr'] as String? ?? map['name'] as String? ?? '',
+        'equipment': equipmentName,
+        'primaryMuscle': map['categoryKr'] as String? ?? '',
+        'level': '초급',
+      };
+    }).toList();
+  } catch (_) {
+    return ExerciseConstants.exercises;
+  }
+});
 
 /// 대체 운동 결과
 class AlternativeExercise {

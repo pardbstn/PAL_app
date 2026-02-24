@@ -2677,39 +2677,25 @@ class _PersonalWorkoutCard extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                exercise.name,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${exercise.sets}세트 × ${exercise.reps}회',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            if (exercise.weight > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${exercise.weight}kg',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    exercise.name,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    exercise.setSummaryText,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       );

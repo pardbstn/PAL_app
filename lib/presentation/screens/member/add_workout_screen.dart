@@ -7,11 +7,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_pal_app/core/constants/exercise_constants.dart';
-import 'package:flutter_pal_app/core/theme/app_theme.dart';
 import 'package:flutter_pal_app/core/theme/app_tokens.dart';
 import 'package:flutter_pal_app/core/utils/haptic_utils.dart';
 import 'package:flutter_pal_app/presentation/providers/auth_provider.dart';
 import 'package:flutter_pal_app/presentation/providers/workout_log_provider.dart';
+import 'package:flutter_pal_app/presentation/providers/exercise_search_provider.dart';
 import 'package:flutter_pal_app/data/models/workout_log_model.dart';
 
 // ---------------------------------------------------------------------------
@@ -103,38 +103,68 @@ Color _categoryColor(WorkoutCategory category) {
 // 선택된 운동 모델 (Step 2에서 세트/반복/무게 설정용)
 // ---------------------------------------------------------------------------
 
+/// 세트별 상태 (UI 편집용)
+class _SetDetailState {
+  int reps;
+  double weight;
+  _SetDetailState({this.reps = 10, this.weight = 0.0});
+}
+
 /// 선택된 운동 정보 (내부 편집용, 최종 저장 시 WorkoutExercise로 변환)
 class _SelectedExercise {
   final String id;
   final String nameKo;
   final String equipment;
   final String primaryMuscle;
-  int sets;
-  int reps;
-  double weight;
+  List<_SetDetailState> setDetailList;
 
   _SelectedExercise({
     required this.id,
     required this.nameKo,
     required this.equipment,
     required this.primaryMuscle,
-    // ignore: unused_element_parameter
-    this.sets = 3,
-    // ignore: unused_element_parameter
-    this.reps = 10,
-    // ignore: unused_element_parameter
-    this.weight = 0.0,
-  });
+    int sets = 3,
+    int reps = 10,
+    double weight = 0.0,
+  }) : setDetailList = List.generate(
+          sets,
+          (_) => _SetDetailState(reps: reps, weight: weight),
+        );
+
+  int get sets => setDetailList.length;
+
+  /// 세트 추가 (마지막 세트 값 복사)
+  void addSet() {
+    if (setDetailList.length >= 20) return;
+    final last = setDetailList.isNotEmpty
+        ? setDetailList.last
+        : _SetDetailState();
+    setDetailList.add(_SetDetailState(reps: last.reps, weight: last.weight));
+  }
+
+  /// 마지막 세트 제거
+  void removeLastSet() {
+    if (setDetailList.length > 1) {
+      setDetailList.removeLast();
+    }
+  }
 
   /// WorkoutExercise로 변환
   WorkoutExercise toWorkoutExercise() {
+    final details = setDetailList
+        .map((s) => SetDetail(reps: s.reps, weight: s.weight))
+        .toList();
+    final maxWeight = setDetailList
+        .map((s) => s.weight)
+        .reduce((a, b) => a > b ? a : b);
     return WorkoutExercise(
       name: nameKo,
       category: _muscleToCategory(primaryMuscle),
-      sets: sets,
-      reps: reps,
-      weight: weight,
+      sets: setDetailList.length,
+      reps: setDetailList.first.reps,
+      weight: maxWeight,
       restSeconds: 60,
+      setDetails: details,
     );
   }
 }
@@ -178,16 +208,6 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
   bool get _isEditMode => widget.existingWorkout != null;
 
   // 근육 그룹 필터 목록
-  static const List<_MuscleGroup> _muscleGroups = [
-    _MuscleGroup(label: '가슴', filterKey: '가슴', icon: Icons.fitness_center),
-    _MuscleGroup(label: '등', filterKey: '등', icon: Icons.accessibility_new),
-    _MuscleGroup(label: '하체', filterKey: '하체', icon: Icons.directions_run),
-    _MuscleGroup(label: '어깨', filterKey: '어깨', icon: Icons.sports_martial_arts),
-    _MuscleGroup(label: '팔', filterKey: '팔', icon: Icons.front_hand),
-    _MuscleGroup(label: '복근', filterKey: '복근', icon: Icons.star_outline),
-    _MuscleGroup(label: '전신', filterKey: '전신', icon: Icons.self_improvement),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -203,7 +223,7 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
       // 기존 운동 목록 복원
       for (final exercise in workout.exercises) {
         final categoryLabel = _categoryLabel(exercise.category);
-        _selectedExercises.add(_SelectedExercise(
+        final selected = _SelectedExercise(
           id: '${exercise.name}_${exercise.category.name}',
           nameKo: exercise.name,
           equipment: '',
@@ -211,7 +231,16 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
           sets: exercise.sets,
           reps: exercise.reps,
           weight: exercise.weight,
-        ));
+        );
+        // 세트별 상세가 있으면 로드
+        if (exercise.setDetails != null &&
+            exercise.setDetails!.isNotEmpty) {
+          selected.setDetailList = exercise.setDetails!
+              .map((d) =>
+                  _SetDetailState(reps: d.reps, weight: d.weight))
+              .toList();
+        }
+        _selectedExercises.add(selected);
       }
 
     }
@@ -224,233 +253,61 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
     super.dispose();
   }
 
-  /// 운동이 이미 선택되었는지 확인
-  bool _isExerciseSelected(String id) {
-    return _selectedExercises.any((e) => e.id == id);
-  }
-
-  /// 운동 선택/해제 토글
-  void _toggleExercise(Map<String, dynamic> exercise) {
-    HapticUtils.light();
-    final id = exercise['id'] as String;
-    setState(() {
-      if (_isExerciseSelected(id)) {
-        _selectedExercises.removeWhere((e) => e.id == id);
-      } else {
-        _selectedExercises.add(_SelectedExercise(
-          id: id,
-          nameKo: exercise['nameKo'] as String,
-          equipment: exercise['equipment'] as String,
-          primaryMuscle: exercise['primaryMuscle'] as String,
-        ));
-      }
-    });
-  }
-
   /// 운동 추가 바텀시트 표시
-  void _showExercisePickerSheet() {
-    final sheetSearchController = TextEditingController();
+  void _showExercisePickerSheet() async {
+    // 로컬 JSON 800개 운동 로드 (캐시됨, 실패 시 ExerciseConstants fallback)
+    List<Map<String, dynamic>> loadedExercises;
+    try {
+      loadedExercises = await ref.read(allExercisesProvider.future);
+    } catch (_) {
+      loadedExercises = ExerciseConstants.exercises;
+    }
+    if (!mounted) return;
 
-    showModalBottomSheet(
+    // 현재 선택 상태 스냅샷
+    final initialSelectedIds = <String>{
+      ..._selectedExercises.map((e) => e.id),
+    };
+    final initialSelectedData = <String, Map<String, dynamic>>{
+      for (final e in _selectedExercises)
+        e.id: {
+          'id': e.id,
+          'nameKo': e.nameKo,
+          'equipment': e.equipment,
+          'primaryMuscle': e.primaryMuscle,
+        },
+    };
+
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        String sheetSearchQuery = '';
-        String? sheetSelectedMuscle;
-
-        return StatefulBuilder(
-          builder: (sheetCtx, setSheetState) {
-            // 필터링
-            var list = ExerciseConstants.exercises;
-            if (sheetSelectedMuscle != null) {
-              list = list
-                  .where((e) => e['primaryMuscle'] == sheetSelectedMuscle)
-                  .toList();
+      builder: (_) => _ExercisePickerSheetWidget(
+        exercises: List<Map<String, dynamic>>.from(loadedExercises),
+        initialSelectedIds: initialSelectedIds,
+        initialSelectedData: initialSelectedData,
+        onConfirm: (selectedIds, selectedData) {
+          if (!mounted) return;
+          setState(() {
+            _selectedExercises
+                .removeWhere((e) => !selectedIds.contains(e.id));
+            for (final id in selectedIds) {
+              if (!_selectedExercises.any((e) => e.id == id)) {
+                final exercise = selectedData[id]!;
+                _selectedExercises.add(_SelectedExercise(
+                  id: id,
+                  nameKo: exercise['nameKo'] as String,
+                  equipment: exercise['equipment'] as String,
+                  primaryMuscle: exercise['primaryMuscle'] as String,
+                ));
+              }
             }
-            if (sheetSearchQuery.isNotEmpty) {
-              final query = sheetSearchQuery.toLowerCase();
-              list = list
-                  .where((e) =>
-                      (e['nameKo'] as String).toLowerCase().contains(query))
-                  .toList();
-            }
-
-            return Container(
-              height: MediaQuery.of(ctx).size.height * 0.85,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.appBackgroundDark
-                    : AppColors.appBackground,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  // 핸들바
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.gray500 : AppColors.gray300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // 타이틀
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenPadding,
-                      vertical: AppSpacing.sm,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          '운동 추가',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(ctx),
-                          child: const Text(
-                            '완료',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 검색바
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenPadding,
-                      vertical: AppSpacing.sm,
-                    ),
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkSurface
-                            : AppColors.gray100,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: TextField(
-                        controller: sheetSearchController,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                        ),
-                        onChanged: (value) {
-                          setSheetState(() {
-                            sheetSearchQuery = value.trim();
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: '운동을 검색해보세요',
-                          hintStyle: TextStyle(
-                            fontSize: 15,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            size: 20,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 근육 그룹 필터 칩
-                  SizedBox(
-                    height: 44,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screenPadding,
-                      ),
-                      itemCount: _muscleGroups.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: AppSpacing.sm),
-                      itemBuilder: (_, index) {
-                        final group = _muscleGroups[index];
-                        final isActive =
-                            sheetSelectedMuscle == group.filterKey;
-                        return _FilterChip(
-                          label: group.label,
-                          icon: group.icon,
-                          isActive: isActive,
-                          isDark: isDark,
-                          onTap: () {
-                            HapticUtils.selection();
-                            setSheetState(() {
-                              sheetSelectedMuscle =
-                                  sheetSelectedMuscle == group.filterKey
-                                      ? null
-                                      : group.filterKey;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  // 운동 목록
-                  Expanded(
-                    child: list.isEmpty
-                        ? _EmptySearchResult(isDark: isDark)
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.screenPadding,
-                            ),
-                            itemCount: list.length,
-                            itemBuilder: (_, index) {
-                              final exercise = list[index];
-                              final id = exercise['id'] as String;
-                              final isSelected = _isExerciseSelected(id);
-                              return _ExercisePickerTile(
-                                exercise: exercise,
-                                isSelected: isSelected,
-                                isDark: isDark,
-                                onTap: () {
-                                  _toggleExercise(exercise);
-                                  setSheetState(() {});
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    ).then((_) {
-      sheetSearchController.dispose();
-    });
+          });
+        },
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -876,199 +733,6 @@ class _StepSetDetails extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// 공용 서브 위젯
-// =============================================================================
-
-/// 근육 그룹 필터 칩 (커스텀 스타일)
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isActive;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.icon,
-    required this.isActive,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final activeColor = AppColors.primary;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.compact,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: isActive
-              ? activeColor
-              : isDark
-                  ? AppColors.darkSurface
-                  : Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(
-            color: isActive
-                ? activeColor
-                : isDark
-                    ? AppColors.borderDark
-                    : AppColors.border,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: isActive
-                  ? Colors.white
-                  : isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isActive
-                    ? Colors.white
-                    : isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 운동 선택 타일 (Step 1)
-class _ExercisePickerTile extends StatelessWidget {
-  final Map<String, dynamic> exercise;
-  final bool isSelected;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _ExercisePickerTile({
-    required this.exercise,
-    required this.isSelected,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final nameKo = exercise['nameKo'] as String;
-    final equipment = exercise['equipment'] as String;
-    final primaryMuscle = exercise['primaryMuscle'] as String;
-    final category = _muscleToCategory(primaryMuscle);
-    final color = _categoryColor(category);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 2),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.compact,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : AppColors.primary50)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Row(
-          children: [
-            // 운동 정보
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nameKo,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      // 장비 뱃지
-                      _SmallBadge(
-                        label: equipment,
-                        color: isDark ? AppColors.gray600 : AppColors.gray200,
-                        textColor: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      // 근육 그룹 뱃지
-                      _SmallBadge(
-                        label: primaryMuscle,
-                        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                        textColor: color,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // 선택 표시
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : isDark
-                        ? AppColors.darkSurface
-                        : AppColors.gray100,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : isDark
-                          ? AppColors.borderDark
-                          : AppColors.gray300,
-                  width: 1.5,
-                ),
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// 작은 뱃지 (장비, 근육 그룹 표시용)
 class _SmallBadge extends StatelessWidget {
   final String label;
@@ -1101,42 +765,11 @@ class _SmallBadge extends StatelessWidget {
   }
 }
 
-/// 검색 결과 없음
-class _EmptySearchResult extends StatelessWidget {
-  final bool isDark;
-
-  const _EmptySearchResult({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 48,
-            color: isDark ? AppColors.gray600 : AppColors.gray300,
-          ),
-          const SizedBox(height: AppSpacing.compact),
-          Text(
-            '검색 결과가 없어요',
-            style: TextStyle(
-              fontSize: 15,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // =============================================================================
 // Step 2 서브 위젯
 // =============================================================================
 
-/// 운동 세부 설정 카드
+/// 운동 세부 설정 카드 (세트별 무게/횟수 입력)
 class _ExerciseDetailCard extends StatelessWidget {
   final _SelectedExercise exercise;
   final bool isDark;
@@ -1210,131 +843,289 @@ class _ExerciseDetailCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.compact),
 
-          // 세트 / 반복 / 무게 컨트롤
+          // 세트 수 컨트롤
           Row(
             children: [
-              // 세트
-              Expanded(
-                child: _StepperControl(
-                  label: '세트',
-                  value: exercise.sets,
-                  unit: '세트',
-                  isDark: isDark,
-                  onDecrement: () {
-                    if (exercise.sets > 1) {
-                      exercise.sets--;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onIncrement: () {
-                    if (exercise.sets < 20) {
-                      exercise.sets++;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onValueTap: () async {
-                    final result = await _showNumberEditDialog(
-                      context: context,
-                      title: '세트 수 입력',
-                      unit: '세트',
-                      currentValue: exercise.sets.toDouble(),
-                      min: 1,
-                      max: 20,
-                      isDark: isDark,
-                    );
-                    if (result != null) {
-                      exercise.sets = result.toInt();
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
+              Text(
+                '세트 수',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              // 반복
-              Expanded(
-                child: _StepperControl(
-                  label: '반복',
-                  value: exercise.reps,
-                  unit: '회',
-                  isDark: isDark,
-                  onDecrement: () {
-                    if (exercise.reps > 1) {
-                      exercise.reps--;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onIncrement: () {
-                    if (exercise.reps < 100) {
-                      exercise.reps++;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onValueTap: () async {
-                    final result = await _showNumberEditDialog(
-                      context: context,
-                      title: '반복 횟수 입력',
-                      unit: '회',
-                      currentValue: exercise.reps.toDouble(),
-                      min: 1,
-                      max: 100,
-                      isDark: isDark,
-                    );
-                    if (result != null) {
-                      exercise.reps = result.toInt();
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
+              const Spacer(),
+              Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBackground : AppColors.gray50,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // 무게
-              Expanded(
-                child: _WeightControl(
-                  weight: exercise.weight,
-                  isDark: isDark,
-                  onDecrement: () {
-                    if (exercise.weight >= 2.5) {
-                      exercise.weight -= 2.5;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onIncrement: () {
-                    if (exercise.weight < 500) {
-                      exercise.weight += 2.5;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
-                  onValueTap: () async {
-                    final result = await _showNumberEditDialog(
-                      context: context,
-                      title: '무게 입력',
-                      unit: 'kg',
-                      currentValue: exercise.weight,
-                      min: 0,
-                      max: 500,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StepperButton(
+                      icon: Icons.remove,
                       isDark: isDark,
-                      isInteger: false,
-                    );
-                    if (result != null) {
-                      exercise.weight = result;
-                      HapticUtils.light();
-                      onChanged();
-                    }
-                  },
+                      onTap: () {
+                        exercise.removeLastSet();
+                        HapticUtils.light();
+                        onChanged();
+                      },
+                    ),
+                    SizedBox(
+                      width: 36,
+                      child: Center(
+                        child: Text(
+                          '${exercise.sets}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _StepperButton(
+                      icon: Icons.add,
+                      isDark: isDark,
+                      onTap: () {
+                        exercise.addSet();
+                        HapticUtils.light();
+                        onChanged();
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.sm),
+
+          // 세트별 헤더
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    '',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      '횟수',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      '무게(kg)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 세트별 행
+          ...exercise.setDetailList.asMap().entries.map((entry) {
+            final setIndex = entry.key;
+            final setDetail = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  // 세트 번호
+                  SizedBox(
+                    width: 48,
+                    child: Text(
+                      '${setIndex + 1}세트',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  // 횟수 스텝퍼
+                  Expanded(
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkBackground
+                            : AppColors.gray50,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Row(
+                        children: [
+                          _StepperButton(
+                            icon: Icons.remove,
+                            isDark: isDark,
+                            onTap: () {
+                              if (setDetail.reps > 1) {
+                                setDetail.reps--;
+                                HapticUtils.light();
+                                onChanged();
+                              }
+                            },
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                final result = await _showNumberEditDialog(
+                                  context: context,
+                                  title: '${setIndex + 1}세트 횟수',
+                                  unit: '회',
+                                  currentValue: setDetail.reps.toDouble(),
+                                  min: 1,
+                                  max: 100,
+                                  isDark: isDark,
+                                );
+                                if (result != null) {
+                                  setDetail.reps = result.toInt();
+                                  HapticUtils.light();
+                                  onChanged();
+                                }
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Center(
+                                child: Text(
+                                  '${setDetail.reps}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          _StepperButton(
+                            icon: Icons.add,
+                            isDark: isDark,
+                            onTap: () {
+                              if (setDetail.reps < 100) {
+                                setDetail.reps++;
+                                HapticUtils.light();
+                                onChanged();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 무게 스텝퍼
+                  Expanded(
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkBackground
+                            : AppColors.gray50,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Row(
+                        children: [
+                          _StepperButton(
+                            icon: Icons.remove,
+                            isDark: isDark,
+                            onTap: () {
+                              if (setDetail.weight >= 2.5) {
+                                setDetail.weight -= 2.5;
+                                HapticUtils.light();
+                                onChanged();
+                              }
+                            },
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                final result = await _showNumberEditDialog(
+                                  context: context,
+                                  title: '${setIndex + 1}세트 무게',
+                                  unit: 'kg',
+                                  currentValue: setDetail.weight,
+                                  min: 0,
+                                  max: 500,
+                                  isDark: isDark,
+                                  isInteger: false,
+                                );
+                                if (result != null) {
+                                  setDetail.weight = result;
+                                  HapticUtils.light();
+                                  onChanged();
+                                }
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Center(
+                                child: Text(
+                                  setDetail.weight == setDetail.weight.roundToDouble() &&
+                                          setDetail.weight % 1 == 0
+                                      ? setDetail.weight.toInt().toString()
+                                      : setDetail.weight.toStringAsFixed(1),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          _StepperButton(
+                            icon: Icons.add,
+                            isDark: isDark,
+                            onTap: () {
+                              if (setDetail.weight < 500) {
+                                setDetail.weight += 2.5;
+                                HapticUtils.light();
+                                onChanged();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1448,183 +1239,6 @@ Future<double?> _showNumberEditDialog({
       );
     },
   );
-}
-
-/// 스텝퍼 컨트롤 (세트, 반복)
-class _StepperControl extends StatelessWidget {
-  final String label;
-  final int value;
-  final String unit;
-  final bool isDark;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
-  final VoidCallback? onValueTap;
-
-  const _StepperControl({
-    required this.label,
-    required this.value,
-    required this.unit,
-    required this.isDark,
-    required this.onDecrement,
-    required this.onIncrement,
-    this.onValueTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 레이블
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        // [-] 값 [+] 가로 배치
-        Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBackground : AppColors.gray50,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              // 감소 버튼
-              _StepperButton(
-                icon: Icons.remove,
-                isDark: isDark,
-                onTap: onDecrement,
-              ),
-              // 값 표시 (탭하면 직접 입력)
-              Expanded(
-                child: GestureDetector(
-                  onTap: onValueTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: Center(
-                    child: Text(
-                      '$value',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // 증가 버튼
-              _StepperButton(
-                icon: Icons.add,
-                isDark: isDark,
-                onTap: onIncrement,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          unit,
-          style: TextStyle(
-            fontSize: 10,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 무게 컨트롤 (+/- 2.5kg)
-class _WeightControl extends StatelessWidget {
-  final double weight;
-  final bool isDark;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
-  final VoidCallback? onValueTap;
-
-  const _WeightControl({
-    required this.weight,
-    required this.isDark,
-    required this.onDecrement,
-    required this.onIncrement,
-    this.onValueTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // 소수점 없으면 정수로 표시
-    final weightText =
-        weight == weight.roundToDouble() && weight % 1 == 0
-            ? weight.toInt().toString()
-            : weight.toStringAsFixed(1);
-
-    return Column(
-      children: [
-        Text(
-          '무게',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBackground : AppColors.gray50,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              _StepperButton(
-                icon: Icons.remove,
-                isDark: isDark,
-                onTap: onDecrement,
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onValueTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: Center(
-                    child: Text(
-                      weightText,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              _StepperButton(
-                icon: Icons.add,
-                isDark: isDark,
-                onTap: onIncrement,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'kg',
-          style: TextStyle(
-            fontSize: 10,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 /// 스텝퍼 +/- 버튼
@@ -2123,6 +1737,344 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 운동 선택 바텀시트 (독립 StatefulWidget – InheritedElement 충돌 방지)
+// ---------------------------------------------------------------------------
+
+class _ExercisePickerSheetWidget extends StatefulWidget {
+  final List<Map<String, dynamic>> exercises;
+  final Set<String> initialSelectedIds;
+  final Map<String, Map<String, dynamic>> initialSelectedData;
+  final void Function(
+    Set<String> selectedIds,
+    Map<String, Map<String, dynamic>> selectedData,
+  ) onConfirm;
+
+  const _ExercisePickerSheetWidget({
+    required this.exercises,
+    required this.initialSelectedIds,
+    required this.initialSelectedData,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_ExercisePickerSheetWidget> createState() =>
+      _ExercisePickerSheetWidgetState();
+}
+
+class _ExercisePickerSheetWidgetState
+    extends State<_ExercisePickerSheetWidget> {
+  static const List<_MuscleGroup> _muscleGroups = [
+    _MuscleGroup(label: '가슴', filterKey: '가슴', icon: Icons.fitness_center),
+    _MuscleGroup(label: '등', filterKey: '등', icon: Icons.accessibility_new),
+    _MuscleGroup(label: '하체', filterKey: '하체', icon: Icons.directions_run),
+    _MuscleGroup(
+        label: '어깨', filterKey: '어깨', icon: Icons.sports_martial_arts),
+    _MuscleGroup(label: '팔', filterKey: '팔', icon: Icons.front_hand),
+    _MuscleGroup(label: '복근', filterKey: '복근', icon: Icons.star_outline),
+    _MuscleGroup(label: '유산소', filterKey: '유산소', icon: Icons.directions_bike),
+    _MuscleGroup(label: '종아리', filterKey: '종아리', icon: Icons.hiking),
+  ];
+
+  late Set<String> _selectedIds;
+  late Map<String, Map<String, dynamic>> _selectedData;
+  int _selectedMuscleIndex = 0;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIds = Set<String>.from(widget.initialSelectedIds);
+    _selectedData =
+        Map<String, Map<String, dynamic>>.from(widget.initialSelectedData);
+  }
+
+  List<Map<String, dynamic>> get _filteredExercises {
+    final muscle = _muscleGroups[_selectedMuscleIndex].filterKey;
+    final all = widget.exercises
+        .where((e) => e['primaryMuscle'] == muscle)
+        .toList();
+
+    if (_searchQuery.isEmpty) return all;
+    final q = _searchQuery.toLowerCase();
+    return all
+        .where((e) =>
+            (e['nameKo'] as String).toLowerCase().contains(q))
+        .toList();
+  }
+
+  void _toggle(Map<String, dynamic> exercise) {
+    HapticUtils.light();
+    final id = exercise['id'] as String;
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        _selectedData.remove(id);
+      } else {
+        _selectedIds.add(id);
+        _selectedData[id] = exercise;
+      }
+    });
+  }
+
+  void _confirm() {
+    // 선택 데이터 캡처
+    final ids = Set<String>.from(_selectedIds);
+    final data = Map<String, Map<String, dynamic>>.from(_selectedData);
+    // 먼저 모달 닫기 → 다음 프레임에서 콜백 실행 (PopScope GlobalKey 충돌 방지)
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onConfirm(ids, data);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final exercises = _filteredExercises;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
+        ),
+      ),
+      child: Column(
+        children: [
+          // 핸들
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[600] : Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // 헤더
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '운동 선택',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (_selectedIds.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_selectedIds.length}개 선택',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // 검색바
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: '운동 검색',
+                hintStyle: TextStyle(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                prefixIcon: Icon(Icons.search,
+                    color: isDark ? Colors.grey[400] : Colors.grey),
+                filled: true,
+                fillColor: isDark
+                    ? AppColors.darkBackground
+                    : Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
+              ),
+            ),
+          ),
+          // 근육 그룹 탭
+          SizedBox(
+            height: 44,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _muscleGroups.length,
+              itemBuilder: (_, i) {
+                final g = _muscleGroups[i];
+                final selected = i == _selectedMuscleIndex;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    avatar: Icon(g.icon, size: 16),
+                    label: Text(g.label),
+                    selected: selected,
+                    onSelected: (_) =>
+                        setState(() => _selectedMuscleIndex = i),
+                    selectedColor:
+                        AppColors.primary.withValues(alpha: 0.15),
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
+                      color: selected
+                          ? AppColors.primary
+                          : isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                    ),
+                    side: BorderSide(
+                      color: selected
+                          ? AppColors.primary
+                          : isDark
+                              ? Colors.grey[700]!
+                              : Colors.grey[300]!,
+                    ),
+                    backgroundColor:
+                        isDark ? AppColors.darkBackground : Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 운동 목록
+          Expanded(
+            child: exercises.isEmpty
+                ? Center(
+                    child: Text(
+                      '검색 결과가 없습니다',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: exercises.length,
+                    itemBuilder: (_, i) {
+                      final ex = exercises[i];
+                      final id = ex['id'] as String;
+                      final isSelected = _selectedIds.contains(id);
+                      return ListTile(
+                        dense: true,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 8),
+                        leading: Icon(
+                          isSelected
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: isSelected
+                              ? AppColors.primary
+                              : isDark
+                                  ? Colors.grey[500]
+                                  : Colors.grey[400],
+                          size: 22,
+                        ),
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                ex['nameKo'] as String,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          ex['equipment'] as String,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        onTap: () => _toggle(ex),
+                      );
+                    },
+                  ),
+          ),
+          // 하단 버튼
+          SafeArea(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _confirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppRadius.md),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    _selectedIds.isEmpty
+                        ? '확인'
+                        : '${_selectedIds.length}개 선택 완료',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

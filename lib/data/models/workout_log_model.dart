@@ -17,28 +17,78 @@ enum WorkoutCategory {
   @JsonValue('other') other,       // 기타
 }
 
+/// 세트별 상세 (무게/횟수)
+@freezed
+sealed class SetDetail with _$SetDetail {
+  const factory SetDetail({
+    /// 반복 횟수
+    required int reps,
+    /// 무게 (kg)
+    @Default(0.0) double weight,
+  }) = _SetDetail;
+
+  factory SetDetail.fromJson(Map<String, dynamic> json) =>
+      _$SetDetailFromJson(json);
+}
+
 /// 개별 운동 기록
 @freezed
 sealed class WorkoutExercise with _$WorkoutExercise {
+  @JsonSerializable(explicitToJson: true)
   const factory WorkoutExercise({
     /// 운동 이름
     required String name,
     /// 운동 부위
     required WorkoutCategory category,
-    /// 세트 수
+    /// 세트 수 (요약용 - setDetails가 있으면 setDetails.length와 동일)
     required int sets,
-    /// 반복 횟수
+    /// 반복 횟수 (요약용 - setDetails가 있으면 첫 세트 값)
     required int reps,
-    /// 무게 (kg)
+    /// 무게 (kg) (요약용 - setDetails가 있으면 최대값)
     @Default(0.0) double weight,
     /// 휴식 시간 (초)
     @Default(60) int restSeconds,
     /// 메모
     @Default('') String note,
+    /// 세트별 상세 (null이면 균일 세트 - 하위호환)
+    List<SetDetail>? setDetails,
   }) = _WorkoutExercise;
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> json) =>
       _$WorkoutExerciseFromJson(json);
+}
+
+/// WorkoutExercise 확장 메서드
+extension WorkoutExerciseX on WorkoutExercise {
+  /// 세트별 요약 텍스트 생성
+  String get setSummaryText {
+    if (setDetails != null && setDetails!.isNotEmpty) {
+      final details = setDetails!;
+      final allSame = details.every(
+          (s) => s.reps == details.first.reps && s.weight == details.first.weight);
+      if (allSame) {
+        final w = details.first.weight;
+        final wText = w > 0
+            ? (w % 1 == 0 ? '${w.toInt()}kg' : '${w.toStringAsFixed(1)}kg')
+            : '';
+        return '${details.length}세트 × ${details.first.reps}회${wText.isNotEmpty ? ' $wText' : ''}';
+      }
+      return details
+          .map((s) {
+            final w = s.weight;
+            final wText = w > 0
+                ? (w % 1 == 0 ? '${w.toInt()}kg' : '${w.toStringAsFixed(1)}kg')
+                : '';
+            return '${wText.isNotEmpty ? '$wText×' : ''}${s.reps}회';
+          })
+          .join(', ');
+    }
+    final w = weight;
+    final wText = w > 0
+        ? (w % 1 == 0 ? ' ${w.toInt()}kg' : ' ${w.toStringAsFixed(1)}kg')
+        : '';
+    return '${sets}세트 × ${reps}회$wText';
+  }
 }
 
 /// 운동 기록 모델
@@ -46,6 +96,7 @@ sealed class WorkoutExercise with _$WorkoutExercise {
 sealed class WorkoutLogModel with _$WorkoutLogModel {
   const WorkoutLogModel._(); // ignore: unused_element
 
+  @JsonSerializable(explicitToJson: true)
   const factory WorkoutLogModel({
     /// Firestore 문서 ID
     @Default('') String id,

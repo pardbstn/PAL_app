@@ -6,6 +6,14 @@ part of 'workout_log_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_SetDetail _$SetDetailFromJson(Map<String, dynamic> json) => _SetDetail(
+  reps: (json['reps'] as num).toInt(),
+  weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
+);
+
+Map<String, dynamic> _$SetDetailToJson(_SetDetail instance) =>
+    <String, dynamic>{'reps': instance.reps, 'weight': instance.weight};
+
 _WorkoutExercise _$WorkoutExerciseFromJson(Map<String, dynamic> json) =>
     _WorkoutExercise(
       name: json['name'] as String,
@@ -15,6 +23,9 @@ _WorkoutExercise _$WorkoutExerciseFromJson(Map<String, dynamic> json) =>
       weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
       restSeconds: (json['restSeconds'] as num?)?.toInt() ?? 60,
       note: json['note'] as String? ?? '',
+      setDetails: (json['setDetails'] as List<dynamic>?)
+          ?.map((e) => SetDetail.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$WorkoutExerciseToJson(_WorkoutExercise instance) =>
@@ -26,6 +37,7 @@ Map<String, dynamic> _$WorkoutExerciseToJson(_WorkoutExercise instance) =>
       'weight': instance.weight,
       'restSeconds': instance.restSeconds,
       'note': instance.note,
+      'setDetails': instance.setDetails?.map((e) => e.toJson()).toList(),
     };
 
 const _$WorkoutCategoryEnumMap = {
@@ -62,7 +74,7 @@ Map<String, dynamic> _$WorkoutLogModelToJson(_WorkoutLogModel instance) =>
       'trainerId': instance.trainerId,
       'title': instance.title,
       'workoutDate': const TimestampConverter().toJson(instance.workoutDate),
-      'exercises': instance.exercises,
+      'exercises': instance.exercises.map((e) => e.toJson()).toList(),
       'durationMinutes': instance.durationMinutes,
       'memo': instance.memo,
       'imageUrl': instance.imageUrl,

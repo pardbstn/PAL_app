@@ -13,16 +13,281 @@ part of 'workout_log_model.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$SetDetail {
+
+/// 반복 횟수
+ int get reps;/// 무게 (kg)
+ double get weight;
+/// Create a copy of SetDetail
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SetDetailCopyWith<SetDetail> get copyWith => _$SetDetailCopyWithImpl<SetDetail>(this as SetDetail, _$identity);
+
+  /// Serializes this SetDetail to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SetDetail&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,reps,weight);
+
+@override
+String toString() {
+  return 'SetDetail(reps: $reps, weight: $weight)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SetDetailCopyWith<$Res>  {
+  factory $SetDetailCopyWith(SetDetail value, $Res Function(SetDetail) _then) = _$SetDetailCopyWithImpl;
+@useResult
+$Res call({
+ int reps, double weight
+});
+
+
+
+
+}
+/// @nodoc
+class _$SetDetailCopyWithImpl<$Res>
+    implements $SetDetailCopyWith<$Res> {
+  _$SetDetailCopyWithImpl(this._self, this._then);
+
+  final SetDetail _self;
+  final $Res Function(SetDetail) _then;
+
+/// Create a copy of SetDetail
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? reps = null,Object? weight = null,}) {
+  return _then(_self.copyWith(
+reps: null == reps ? _self.reps : reps // ignore: cast_nullable_to_non_nullable
+as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SetDetail].
+extension SetDetailPatterns on SetDetail {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SetDetail value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SetDetail() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SetDetail value)  $default,){
+final _that = this;
+switch (_that) {
+case _SetDetail():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SetDetail value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SetDetail() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int reps,  double weight)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SetDetail() when $default != null:
+return $default(_that.reps,_that.weight);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int reps,  double weight)  $default,) {final _that = this;
+switch (_that) {
+case _SetDetail():
+return $default(_that.reps,_that.weight);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int reps,  double weight)?  $default,) {final _that = this;
+switch (_that) {
+case _SetDetail() when $default != null:
+return $default(_that.reps,_that.weight);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SetDetail implements SetDetail {
+  const _SetDetail({required this.reps, this.weight = 0.0});
+  factory _SetDetail.fromJson(Map<String, dynamic> json) => _$SetDetailFromJson(json);
+
+/// 반복 횟수
+@override final  int reps;
+/// 무게 (kg)
+@override@JsonKey() final  double weight;
+
+/// Create a copy of SetDetail
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SetDetailCopyWith<_SetDetail> get copyWith => __$SetDetailCopyWithImpl<_SetDetail>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SetDetailToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SetDetail&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,reps,weight);
+
+@override
+String toString() {
+  return 'SetDetail(reps: $reps, weight: $weight)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SetDetailCopyWith<$Res> implements $SetDetailCopyWith<$Res> {
+  factory _$SetDetailCopyWith(_SetDetail value, $Res Function(_SetDetail) _then) = __$SetDetailCopyWithImpl;
+@override @useResult
+$Res call({
+ int reps, double weight
+});
+
+
+
+
+}
+/// @nodoc
+class __$SetDetailCopyWithImpl<$Res>
+    implements _$SetDetailCopyWith<$Res> {
+  __$SetDetailCopyWithImpl(this._self, this._then);
+
+  final _SetDetail _self;
+  final $Res Function(_SetDetail) _then;
+
+/// Create a copy of SetDetail
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? reps = null,Object? weight = null,}) {
+  return _then(_SetDetail(
+reps: null == reps ? _self.reps : reps // ignore: cast_nullable_to_non_nullable
+as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$WorkoutExercise {
 
 /// 운동 이름
  String get name;/// 운동 부위
- WorkoutCategory get category;/// 세트 수
- int get sets;/// 반복 횟수
- int get reps;/// 무게 (kg)
+ WorkoutCategory get category;/// 세트 수 (요약용 - setDetails가 있으면 setDetails.length와 동일)
+ int get sets;/// 반복 횟수 (요약용 - setDetails가 있으면 첫 세트 값)
+ int get reps;/// 무게 (kg) (요약용 - setDetails가 있으면 최대값)
  double get weight;/// 휴식 시간 (초)
  int get restSeconds;/// 메모
- String get note;
+ String get note;/// 세트별 상세 (null이면 균일 세트 - 하위호환)
+ List<SetDetail>? get setDetails;
 /// Create a copy of WorkoutExercise
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -35,16 +300,16 @@ $WorkoutExerciseCopyWith<WorkoutExercise> get copyWith => _$WorkoutExerciseCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutExercise&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.sets, sets) || other.sets == sets)&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.restSeconds, restSeconds) || other.restSeconds == restSeconds)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutExercise&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.sets, sets) || other.sets == sets)&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.restSeconds, restSeconds) || other.restSeconds == restSeconds)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other.setDetails, setDetails));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,category,sets,reps,weight,restSeconds,note);
+int get hashCode => Object.hash(runtimeType,name,category,sets,reps,weight,restSeconds,note,const DeepCollectionEquality().hash(setDetails));
 
 @override
 String toString() {
-  return 'WorkoutExercise(name: $name, category: $category, sets: $sets, reps: $reps, weight: $weight, restSeconds: $restSeconds, note: $note)';
+  return 'WorkoutExercise(name: $name, category: $category, sets: $sets, reps: $reps, weight: $weight, restSeconds: $restSeconds, note: $note, setDetails: $setDetails)';
 }
 
 
@@ -55,7 +320,7 @@ abstract mixin class $WorkoutExerciseCopyWith<$Res>  {
   factory $WorkoutExerciseCopyWith(WorkoutExercise value, $Res Function(WorkoutExercise) _then) = _$WorkoutExerciseCopyWithImpl;
 @useResult
 $Res call({
- String name, WorkoutCategory category, int sets, int reps, double weight, int restSeconds, String note
+ String name, WorkoutCategory category, int sets, int reps, double weight, int restSeconds, String note, List<SetDetail>? setDetails
 });
 
 
@@ -72,7 +337,7 @@ class _$WorkoutExerciseCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutExercise
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? category = null,Object? sets = null,Object? reps = null,Object? weight = null,Object? restSeconds = null,Object? note = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? category = null,Object? sets = null,Object? reps = null,Object? weight = null,Object? restSeconds = null,Object? note = null,Object? setDetails = freezed,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
@@ -81,7 +346,8 @@ as int,reps: null == reps ? _self.reps : reps // ignore: cast_nullable_to_non_nu
 as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as double,restSeconds: null == restSeconds ? _self.restSeconds : restSeconds // ignore: cast_nullable_to_non_nullable
 as int,note: null == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String,
+as String,setDetails: freezed == setDetails ? _self.setDetails : setDetails // ignore: cast_nullable_to_non_nullable
+as List<SetDetail>?,
   ));
 }
 
@@ -163,10 +429,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note,  List<SetDetail>? setDetails)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkoutExercise() when $default != null:
-return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note);case _:
+return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note,_that.setDetails);case _:
   return orElse();
 
 }
@@ -184,10 +450,10 @@ return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note,  List<SetDetail>? setDetails)  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutExercise():
-return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note);}
+return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note,_that.setDetails);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -201,10 +467,10 @@ return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  WorkoutCategory category,  int sets,  int reps,  double weight,  int restSeconds,  String note,  List<SetDetail>? setDetails)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutExercise() when $default != null:
-return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note);case _:
+return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_that.restSeconds,_that.note,_that.setDetails);case _:
   return null;
 
 }
@@ -213,26 +479,37 @@ return $default(_that.name,_that.category,_that.sets,_that.reps,_that.weight,_th
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _WorkoutExercise implements WorkoutExercise {
-  const _WorkoutExercise({required this.name, required this.category, required this.sets, required this.reps, this.weight = 0.0, this.restSeconds = 60, this.note = ''});
+  const _WorkoutExercise({required this.name, required this.category, required this.sets, required this.reps, this.weight = 0.0, this.restSeconds = 60, this.note = '', final  List<SetDetail>? setDetails}): _setDetails = setDetails;
   factory _WorkoutExercise.fromJson(Map<String, dynamic> json) => _$WorkoutExerciseFromJson(json);
 
 /// 운동 이름
 @override final  String name;
 /// 운동 부위
 @override final  WorkoutCategory category;
-/// 세트 수
+/// 세트 수 (요약용 - setDetails가 있으면 setDetails.length와 동일)
 @override final  int sets;
-/// 반복 횟수
+/// 반복 횟수 (요약용 - setDetails가 있으면 첫 세트 값)
 @override final  int reps;
-/// 무게 (kg)
+/// 무게 (kg) (요약용 - setDetails가 있으면 최대값)
 @override@JsonKey() final  double weight;
 /// 휴식 시간 (초)
 @override@JsonKey() final  int restSeconds;
 /// 메모
 @override@JsonKey() final  String note;
+/// 세트별 상세 (null이면 균일 세트 - 하위호환)
+ final  List<SetDetail>? _setDetails;
+/// 세트별 상세 (null이면 균일 세트 - 하위호환)
+@override List<SetDetail>? get setDetails {
+  final value = _setDetails;
+  if (value == null) return null;
+  if (_setDetails is EqualUnmodifiableListView) return _setDetails;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of WorkoutExercise
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +524,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutExercise&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.sets, sets) || other.sets == sets)&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.restSeconds, restSeconds) || other.restSeconds == restSeconds)&&(identical(other.note, note) || other.note == note));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutExercise&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.sets, sets) || other.sets == sets)&&(identical(other.reps, reps) || other.reps == reps)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.restSeconds, restSeconds) || other.restSeconds == restSeconds)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other._setDetails, _setDetails));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,category,sets,reps,weight,restSeconds,note);
+int get hashCode => Object.hash(runtimeType,name,category,sets,reps,weight,restSeconds,note,const DeepCollectionEquality().hash(_setDetails));
 
 @override
 String toString() {
-  return 'WorkoutExercise(name: $name, category: $category, sets: $sets, reps: $reps, weight: $weight, restSeconds: $restSeconds, note: $note)';
+  return 'WorkoutExercise(name: $name, category: $category, sets: $sets, reps: $reps, weight: $weight, restSeconds: $restSeconds, note: $note, setDetails: $setDetails)';
 }
 
 
@@ -267,7 +544,7 @@ abstract mixin class _$WorkoutExerciseCopyWith<$Res> implements $WorkoutExercise
   factory _$WorkoutExerciseCopyWith(_WorkoutExercise value, $Res Function(_WorkoutExercise) _then) = __$WorkoutExerciseCopyWithImpl;
 @override @useResult
 $Res call({
- String name, WorkoutCategory category, int sets, int reps, double weight, int restSeconds, String note
+ String name, WorkoutCategory category, int sets, int reps, double weight, int restSeconds, String note, List<SetDetail>? setDetails
 });
 
 
@@ -284,7 +561,7 @@ class __$WorkoutExerciseCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutExercise
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? category = null,Object? sets = null,Object? reps = null,Object? weight = null,Object? restSeconds = null,Object? note = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? category = null,Object? sets = null,Object? reps = null,Object? weight = null,Object? restSeconds = null,Object? note = null,Object? setDetails = freezed,}) {
   return _then(_WorkoutExercise(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
@@ -293,7 +570,8 @@ as int,reps: null == reps ? _self.reps : reps // ignore: cast_nullable_to_non_nu
 as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as double,restSeconds: null == restSeconds ? _self.restSeconds : restSeconds // ignore: cast_nullable_to_non_nullable
 as int,note: null == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
-as String,
+as String,setDetails: freezed == setDetails ? _self._setDetails : setDetails // ignore: cast_nullable_to_non_nullable
+as List<SetDetail>?,
   ));
 }
 
@@ -508,8 +786,8 @@ return $default(_that.id,_that.userId,_that.trainerId,_that.title,_that.workoutD
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _WorkoutLogModel extends WorkoutLogModel {
   const _WorkoutLogModel({this.id = '', required this.userId, this.trainerId = '', this.title = '', @TimestampConverter() required this.workoutDate, required final  List<WorkoutExercise> exercises, this.durationMinutes = 0, this.memo = '', this.imageUrl, @TimestampConverter() required this.createdAt}): _exercises = exercises,super._();
   factory _WorkoutLogModel.fromJson(Map<String, dynamic> json) => _$WorkoutLogModelFromJson(json);
